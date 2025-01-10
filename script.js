@@ -148,6 +148,17 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     displayPaymentSchedule(schedule);
 });
 
+function calculateEqualPrincipalInterest(loanAmount, loanTerm, interestRate) {
+    return (
+        (loanAmount * (interestRate * Math.pow(1 + interestRate, loanTerm))) /
+        (Math.pow(1 + interestRate, loanTerm) - 1)
+    );
+}
+
+function calculateEqualPrincipal(loanAmount, loanTerm, interestRate) {
+    return loanAmount / loanTerm + loanAmount * interestRate;
+}
+
 function generateEqualPrincipalInterestSchedule(
     loanAmount,
     loanTerm,

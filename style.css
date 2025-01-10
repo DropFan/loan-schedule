@@ -1,11 +1,8 @@
+/* 确保页面内容在表格内容多时不影响布局 */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
     margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
 }
 
 .container {
@@ -53,10 +50,6 @@ button:hover {
     background-color: #45a049;
 }
 
-#result {
-    margin-top: 20px;
-}
-
 #payment-schedule {
     margin-top: 20px;
     max-height: 400px; /* 限制表格的最大高度 */
@@ -79,9 +72,31 @@ button:hover {
     background-color: #f1f1f1;
 }
 
+#loan-form {
+    margin: 20px;
+}
+
+#result {
+    margin: 20px;
+}
+
 #additional-functions {
     margin-top: 20px;
-    background-color: #f9f9f9;
-    padding: 10px;
-    border-radius: 5px;
+}
+
+/* 确保页面滚动到顶部 */
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+}
+
+#schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#schedule-table th, #schedule-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
 }
