@@ -13,6 +13,9 @@ document
             100 /
             12; // Convert annual rate to monthly rate
         const loanMethod = document.getElementById("loan-method").value;
+        const loanStartDate = new Date(
+            document.getElementById("loan-start-date").value
+        );
 
         let monthlyPayment, schedule;
 
@@ -25,7 +28,8 @@ document
             schedule = generateEqualPrincipalInterestSchedule(
                 loanAmount,
                 loanTerm,
-                interestRate
+                interestRate,
+                loanStartDate
             );
         } else if (loanMethod === "equal-principal") {
             monthlyPayment = calculateEqualPrincipal(
@@ -36,7 +40,8 @@ document
             schedule = generateEqualPrincipalSchedule(
                 loanAmount,
                 loanTerm,
-                interestRate
+                interestRate,
+                loanStartDate
             );
         }
 
@@ -61,6 +66,9 @@ document
         const loanTerm =
             parseInt(document.getElementById("loan-term").value) * 12;
         const loanMethod = document.getElementById("loan-method").value;
+        const interestChangeDate = new Date(
+            document.getElementById("interest-change-date").value
+        );
 
         let monthlyPayment, schedule;
 
@@ -73,7 +81,8 @@ document
             schedule = generateEqualPrincipalInterestSchedule(
                 loanAmount,
                 loanTerm,
-                newInterestRate
+                newInterestRate,
+                interestChangeDate
             );
         } else if (loanMethod === "equal-principal") {
             monthlyPayment = calculateEqualPrincipal(
@@ -84,7 +93,8 @@ document
             schedule = generateEqualPrincipalSchedule(
                 loanAmount,
                 loanTerm,
-                newInterestRate
+                newInterestRate,
+                interestChangeDate
             );
         }
 
@@ -97,12 +107,9 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     const prepayAmount = parseFloat(
         document.getElementById("prepay-amount").value
     );
-    let loanAmount = parseFloat(document.getElementById("loan-amount").value);
-    loanAmount -= prepayAmount;
-
-    document.getElementById("remaining-loan").textContent =
-        loanAmount.toFixed(2);
-
+    const loanAmount =
+        parseFloat(document.getElementById("loan-amount").value) - prepayAmount; // Update remaining loan amount
+    const prepayDate = new Date(document.getElementById("prepay-date").value);
     const loanTerm = parseInt(document.getElementById("loan-term").value) * 12;
     const interestRate =
         parseFloat(document.getElementById("interest-rate").value) / 100 / 12;
@@ -119,7 +126,8 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         schedule = generateEqualPrincipalInterestSchedule(
             loanAmount,
             loanTerm,
-            interestRate
+            interestRate,
+            prepayDate
         );
     } else if (loanMethod === "equal-principal") {
         monthlyPayment = calculateEqualPrincipal(
@@ -130,33 +138,25 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         schedule = generateEqualPrincipalSchedule(
             loanAmount,
             loanTerm,
-            interestRate
+            interestRate,
+            prepayDate
         );
     }
 
-    document.getElementById("monthly-payment").textContent =
-        monthlyPayment.toFixed(2);
+    document.getElementById("remaining-loan").textContent =
+        loanAmount.toFixed(2);
     displayPaymentSchedule(schedule);
 });
-
-function calculateEqualPrincipalInterest(loanAmount, loanTerm, interestRate) {
-    return (
-        (loanAmount * (interestRate * Math.pow(1 + interestRate, loanTerm))) /
-        (Math.pow(1 + interestRate, loanTerm) - 1)
-    );
-}
-
-function calculateEqualPrincipal(loanAmount, loanTerm, interestRate) {
-    return loanAmount / loanTerm + loanAmount * interestRate;
-}
 
 function generateEqualPrincipalInterestSchedule(
     loanAmount,
     loanTerm,
-    interestRate
+    interestRate,
+    startDate
 ) {
     let schedule = [];
     let remainingLoan = loanAmount;
+    let currentDate = new Date(startDate);
 
     for (let i = 1; i <= loanTerm; i++) {
         let interest = remainingLoan * interestRate;
@@ -167,9 +167,11 @@ function generateEqualPrincipalInterestSchedule(
                 interestRate
             ) - interest;
         remainingLoan -= principal;
+        currentDate.setMonth(currentDate.getMonth() + 1); // Move to the next month
 
         schedule.push({
             period: i,
+            paymentDate: currentDate.toISOString().split("T")[0], // Format to YYYY-MM-DD
             monthlyPayment: calculateEqualPrincipalInterest(
                 loanAmount,
                 loanTerm,
@@ -184,17 +186,25 @@ function generateEqualPrincipalInterestSchedule(
     return schedule;
 }
 
-function generateEqualPrincipalSchedule(loanAmount, loanTerm, interestRate) {
+function generateEqualPrincipalSchedule(
+    loanAmount,
+    loanTerm,
+    interestRate,
+    startDate
+) {
     let schedule = [];
     let remainingLoan = loanAmount;
+    let currentDate = new Date(startDate);
 
     for (let i = 1; i <= loanTerm; i++) {
         let interest = remainingLoan * interestRate;
         let principal = loanAmount / loanTerm;
         remainingLoan -= principal;
+        currentDate.setMonth(currentDate.getMonth() + 1); // Move to the next month
 
         schedule.push({
             period: i,
+            paymentDate: currentDate.toISOString().split("T")[0], // Format to YYYY-MM-DD
             monthlyPayment: principal + interest,
             principal: principal,
             interest: interest,
@@ -213,6 +223,7 @@ function displayPaymentSchedule(schedule) {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${item.period}</td>
+            <td>${item.paymentDate}</td>
             <td>${item.monthlyPayment.toFixed(2)}</td>
             <td>${item.principal.toFixed(2)}</td>
             <td>${item.interest.toFixed(2)}</td>

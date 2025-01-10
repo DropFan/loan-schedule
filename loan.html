@@ -25,6 +25,9 @@
                 <option value="equal-principal">等额本金</option>
             </select>
 
+            <label for="loan-start-date">贷款开始日期:</label>
+            <input type="date" id="loan-start-date" required>
+
             <button type="submit">计算月还款金额</button>
         </form>
 
@@ -39,6 +42,7 @@
                 <thead>
                     <tr>
                         <th>期数</th>
+                        <th>还款日期</th>
                         <th>月还款金额</th>
                         <th>本金</th>
                         <th>利息</th>
@@ -53,10 +57,14 @@
             <h3>调整利率或提前还款</h3>
             <label for="new-interest-rate">新的年利率 (%):</label>
             <input type="number" id="new-interest-rate" step="0.01">
+            <label for="interest-change-date">利率变更日期:</label>
+            <input type="date" id="interest-change-date">
             <button id="update-interest-rate">更新利率</button>
 
             <label for="prepay-amount">提前还款金额 (元):</label>
             <input type="number" id="prepay-amount">
+            <label for="prepay-date">提前还款日期:</label>
+            <input type="date" id="prepay-date">
             <button id="prepay-loan">提前还款</button>
         </div>
     </div>
