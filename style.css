@@ -13,7 +13,7 @@ body {
     padding: 20px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    width: 400px;
+    width: 600px;
 }
 
 h1 {
@@ -31,7 +31,7 @@ label {
     font-weight: bold;
 }
 
-input {
+input, select {
     width: 100%;
     padding: 8px;
     margin-bottom: 10px;
@@ -57,14 +57,29 @@ button:hover {
     margin-top: 20px;
 }
 
+#payment-schedule {
+    margin-top: 20px;
+}
+
+#payment-schedule table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#payment-schedule th, #payment-schedule td {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+#payment-schedule th {
+    background-color: #f1f1f1;
+}
+
 #additional-functions {
     margin-top: 20px;
     background-color: #f9f9f9;
     padding: 10px;
     border-radius: 5px;
-}
-
-#remaining-loan {
-    font-weight: bold;
-    color: #333;
 }
