@@ -3,15 +3,24 @@ let loanSchedule = [];
 
 // 计算等额本息每月还款金额
 function calculateEqualPrincipalInterest(loanAmount, loanTerm, interestRate) {
-    return (
-        (loanAmount * (interestRate * Math.pow(1 + interestRate, loanTerm))) /
-        (Math.pow(1 + interestRate, loanTerm) - 1)
+    console.log(
+        `计算等额本息每月还款金额: loanAmount = ${loanAmount}, loanTerm = ${loanTerm}, interestRate = ${interestRate}`
     );
+    const result =
+        (loanAmount * (interestRate * Math.pow(1 + interestRate, loanTerm))) /
+        (Math.pow(1 + interestRate, loanTerm) - 1);
+    console.log(`月还款金额: ${result}`);
+    return result;
 }
 
 // 计算等额本金每月还款金额
 function calculateEqualPrincipal(loanAmount, loanTerm, interestRate) {
-    return loanAmount / loanTerm + loanAmount * interestRate;
+    console.log(
+        `计算等额本金每月还款金额: loanAmount = ${loanAmount}, loanTerm = ${loanTerm}, interestRate = ${interestRate}`
+    );
+    const result = loanAmount / loanTerm + loanAmount * interestRate;
+    console.log(`月还款金额: ${result}`);
+    return result;
 }
 
 // 生成等额本息的还款计划
@@ -21,6 +30,9 @@ function generateEqualPrincipalInterestSchedule(
     interestRate,
     startDate
 ) {
+    console.log(
+        `生成等额本息还款计划: loanAmount = ${loanAmount}, loanTerm = ${loanTerm}, interestRate = ${interestRate}, startDate = ${startDate}`
+    );
     let schedule = [];
     let remainingLoan = loanAmount;
     let currentDate = new Date(startDate);
@@ -36,6 +48,16 @@ function generateEqualPrincipalInterestSchedule(
         remainingLoan -= principal;
         currentDate.setMonth(currentDate.getMonth() + 1); // 移动到下一个月
 
+        console.log(
+            `期数 ${i}: 本期利息 = ${interest.toFixed(
+                2
+            )}, 本期本金 = ${principal.toFixed(
+                2
+            )}, 剩余贷款 = ${remainingLoan.toFixed(2)}, 日期 = ${
+                currentDate.toISOString().split("T")[0]
+            }`
+        );
+
         schedule.push({
             period: i,
             paymentDate: currentDate.toISOString().split("T")[0], // 格式化为 YYYY-MM-DD
@@ -47,6 +69,7 @@ function generateEqualPrincipalInterestSchedule(
             principal: principal,
             interest: interest,
             remainingLoan: remainingLoan > 0 ? remainingLoan : 0,
+            annualInterestRate: (interestRate * 12 * 100).toFixed(2), // 年化利率，以百分比显示
         });
     }
 
@@ -60,6 +83,9 @@ function generateEqualPrincipalSchedule(
     interestRate,
     startDate
 ) {
+    console.log(
+        `生成等额本金还款计划: loanAmount = ${loanAmount}, loanTerm = ${loanTerm}, interestRate = ${interestRate}, startDate = ${startDate}`
+    );
     let schedule = [];
     let remainingLoan = loanAmount;
     let currentDate = new Date(startDate);
@@ -70,6 +96,16 @@ function generateEqualPrincipalSchedule(
         remainingLoan -= principal;
         currentDate.setMonth(currentDate.getMonth() + 1); // 移动到下一个月
 
+        console.log(
+            `期数 ${i}: 本期利息 = ${interest.toFixed(
+                2
+            )}, 本期本金 = ${principal.toFixed(
+                2
+            )}, 剩余贷款 = ${remainingLoan.toFixed(2)}, 日期 = ${
+                currentDate.toISOString().split("T")[0]
+            }`
+        );
+
         schedule.push({
             period: i,
             paymentDate: currentDate.toISOString().split("T")[0], // 格式化为 YYYY-MM-DD
@@ -77,6 +113,7 @@ function generateEqualPrincipalSchedule(
             principal: principal,
             interest: interest,
             remainingLoan: remainingLoan > 0 ? remainingLoan : 0,
+            annualInterestRate: (interestRate * 12 * 100).toFixed(2), // 年化利率，以百分比显示
         });
     }
 
@@ -95,6 +132,7 @@ function getCurrentSchedule() {
         ? loanSchedule[currentPeriod - 1].remainingLoan
         : loanSchedule[loanSchedule.length - 1].remainingLoan;
 
+    console.log(`当前已还期数: ${paidPeriods}, 剩余贷款: ${remainingLoan}`);
     return {
         paidPeriods, // 已还期数
         remainingLoan, // 剩余贷款
@@ -115,6 +153,7 @@ function displayPaymentSchedule(schedule) {
             <td>${item.principal.toFixed(2)}</td>
             <td>${item.interest.toFixed(2)}</td>
             <td>${item.remainingLoan.toFixed(2)}</td>
+            <td>${item.annualInterestRate}%</td> <!-- 显示年化利率 -->
         `;
         tbody.appendChild(row);
     });
@@ -140,6 +179,11 @@ document
             document.getElementById("loan-start-date").value
         );
 
+        console.log(
+            `贷款金额: ${loanAmount}, 贷款期数: ${loanTerm}, 利率: ${
+                interestRate * 12 * 100
+            }%`
+        );
         let monthlyPayment, schedule;
 
         if (loanMethod === "equal-principal-interest") {
@@ -201,13 +245,17 @@ document
             document.getElementById("interest-change-date").value
         );
 
+        console.log(`更新后的利率: ${newInterestRate * 12 * 100}%`);
         const currentSchedule = getCurrentSchedule(); // 获取当前还款进度
 
         let remainingLoan = currentSchedule.remainingLoan; // 变更后的剩余贷款
         let remainingTerm = loanTerm - currentSchedule.paidPeriods; // 剩余期数
 
+        console.log(`剩余贷款: ${remainingLoan}, 剩余期数: ${remainingTerm}`);
+
         let monthlyPayment, schedule;
 
+        // 保留之前的还款计划，并从变更日期开始更新
         if (loanMethod === "equal-principal-interest") {
             monthlyPayment = calculateEqualPrincipalInterest(
                 remainingLoan,
@@ -234,12 +282,14 @@ document
             );
         }
 
-        // 更新贷款计划
-        loanSchedule = schedule;
+        // 将更新后的计划追加到原计划后面
+        loanSchedule = loanSchedule
+            .slice(0, currentSchedule.paidPeriods)
+            .concat(schedule);
 
         document.getElementById("monthly-payment").textContent =
             monthlyPayment.toFixed(2);
-        displayPaymentSchedule(schedule);
+        displayPaymentSchedule(loanSchedule);
 
         // 滚动到页面顶部
         document.body.scrollTop = 0;
@@ -264,8 +314,13 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     let remainingLoan = currentSchedule.remainingLoan - prepayAmount; // 提前还款后的剩余贷款
     let remainingTerm = loanTerm - currentSchedule.paidPeriods; // 剩余期数
 
+    console.log(
+        `提前还款金额: ${prepayAmount}, 剩余贷款: ${remainingLoan}, 剩余期数: ${remainingTerm}`
+    );
+
     let monthlyPayment, schedule;
 
+    // 保留之前的还款计划，并从提前还款日期开始更新
     if (loanMethod === "equal-principal-interest") {
         monthlyPayment = calculateEqualPrincipalInterest(
             remainingLoan,
@@ -292,12 +347,14 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         );
     }
 
-    // 更新贷款计划
-    loanSchedule = schedule;
+    // 将更新后的计划追加到原计划后面
+    loanSchedule = loanSchedule
+        .slice(0, currentSchedule.paidPeriods)
+        .concat(schedule);
 
     document.getElementById("remaining-loan").textContent =
         remainingLoan.toFixed(2);
-    displayPaymentSchedule(schedule);
+    displayPaymentSchedule(loanSchedule);
 
     // 滚动到页面顶部
     document.body.scrollTop = 0;
