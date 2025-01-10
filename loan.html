@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贷款计算器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>贷款计算器</h1>
+        <form id="loan-form">
+            <label for="loan-amount">贷款金额 (元):</label>
+            <input type="number" id="loan-amount" required>
+
+            <label for="loan-term">贷款期限 (年):</label>
+            <input type="number" id="loan-term" required>
+
+            <label for="interest-rate">年利率 (%):</label>
+            <input type="number" id="interest-rate" step="0.01" required>
+
+            <button type="submit">计算月还款金额</button>
+        </form>
+
+        <div id="result">
+            <p>每月还款金额: <span id="monthly-payment"></span> 元</p>
+            <div id="additional-functions">
+                <h3>调整利率或提前还款</h3>
+                <label for="new-interest-rate">新的年利率 (%):</label>
+                <input type="number" id="new-interest-rate" step="0.01">
+                <button id="update-interest-rate">更新利率</button>
+
+                <label for="prepay-amount">提前还款金额 (元):</label>
+                <input type="number" id="prepay-amount">
+                <button id="prepay-loan">提前还款</button>
+
+                <p>剩余贷款金额: <span id="remaining-loan"></span> 元</p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
