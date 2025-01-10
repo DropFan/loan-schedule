@@ -121,10 +121,20 @@ function generateEqualPrincipalSchedule(
 }
 
 // 获取当前贷款还款计划的已还期数和剩余贷款
-function getCurrentSchedule() {
-    const today = new Date();
+function getRemainingSchedule(startDate) {
+    if (loanSchedule.length === 0) {
+        console.log("loanSchedule 还款计划为空");
+        return;
+    }
+
+    if (!startDate || startDate === "") {
+        console.log("startDate 为空");
+        return;
+    }
+
+    // const today = new Date();
     const currentPeriod = loanSchedule.findIndex(
-        (item) => new Date(item.paymentDate) > today
+        (item) => new Date(item.paymentDate) > startDate
     );
 
     const paidPeriods = currentPeriod === 0 ? 0 : currentPeriod; // 如果当前日期之前没有支付过任何款项
@@ -246,7 +256,7 @@ document
         );
 
         console.log(`更新后的利率: ${newInterestRate * 12 * 100}%`);
-        const currentSchedule = getCurrentSchedule(); // 获取当前还款进度
+        const currentSchedule = getRemainingSchedule(interestChangeDate); // 获取当前还款进度
 
         let remainingLoan = currentSchedule.remainingLoan; // 变更后的剩余贷款
         let remainingTerm = loanTerm - currentSchedule.paidPeriods; // 剩余期数
@@ -309,10 +319,10 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         parseFloat(document.getElementById("interest-rate").value) / 100 / 12;
     const loanMethod = document.getElementById("loan-method").value;
 
-    const currentSchedule = getCurrentSchedule(); // 获取当前还款进度
+    const remainingSchedule = getRemainingSchedule(prepayDate); // 获取当前还款进度
 
-    let remainingLoan = currentSchedule.remainingLoan - prepayAmount; // 提前还款后的剩余贷款
-    let remainingTerm = loanTerm - currentSchedule.paidPeriods; // 剩余期数
+    let remainingLoan = remainingSchedule.remainingLoan - prepayAmount; // 提前还款后的剩余贷款
+    let remainingTerm = loanTerm - remainingSchedule.paidPeriods; // 剩余期数
 
     console.log(
         `提前还款金额: ${prepayAmount}, 剩余贷款: ${remainingLoan}, 剩余期数: ${remainingTerm}`
@@ -349,7 +359,7 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
 
     // 将更新后的计划追加到原计划后面
     loanSchedule = loanSchedule
-        .slice(0, currentSchedule.paidPeriods)
+        .slice(0, remainingSchedule.paidPeriods)
         .concat(schedule);
 
     document.getElementById("remaining-loan").textContent =
