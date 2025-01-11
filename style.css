@@ -1,5 +1,9 @@
 /* 确保页面内容在表格内容多时不影响布局 */
 body {
+    {{/* display: flex; */}}
+    background-color: #f4f4f4;
+    justify-content: center;
+    {{/* align-items: center; */}}
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
@@ -10,7 +14,8 @@ body {
     padding: 20px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    width: 600px;
+    min-width: 800px;
+    max-width: 100%;
 }
 
 h1 {
