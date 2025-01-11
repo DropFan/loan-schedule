@@ -338,6 +338,8 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     let remainingLoan = remainingSchedule.remainingLoan - prepayAmount; // 提前还款后的剩余贷款
     let remainingTerm = loanTerm - remainingSchedule.paidPeriods; // 剩余期数
 
+    interestRate = loanSchedule[remainingSchedule.paidPeriods].annualInterestRate / 100 / 12;
+
     loanSchedule[remainingSchedule.paidPeriods - 1].monthlyPayment +=
         prepayAmount;
     loanSchedule[remainingSchedule.paidPeriods - 1].principal += prepayAmount;
