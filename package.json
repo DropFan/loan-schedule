@@ -1,9 +1,13 @@
 {
     "name": "loan-schedule",
     "version": "1.0.0",
-    "description": "本计算器用于计算贷款金额、期限、利率和还款方式，并显示月还款金额、剩余贷款金额和未来还款计划。额外支持存量房贷的多次利率变更和提前还款计算功能。",
+    "description": "一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷计算多次调整利率和提前还款，模拟用户真实的还贷情况。由 Tiger 开发，帮助用户轻松管理贷款计划。",
     "license": "",
     "author": "Tiger <DropFan@Gmail.com>",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/DropFan/loan-schedule.git"
+    },
     "type": "commonjs",
     "main": "index.html",
     "scripts": {

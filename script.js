@@ -1,6 +1,9 @@
 // 初始化模拟的贷款还款计划（用于测试）
 let loanSchedule = [];
 
+// 变更列表，用于记录每次利率变更或提前还款，后续如果需要扩展功能再实现
+// let changeList = [];
+
 // 计算等额本息每月还款金额
 function calculateEqualPrincipalInterest(loanAmount, loanTerm, interestRate) {
     // console.log(
@@ -65,7 +68,7 @@ function generateEqualPrincipalInterestSchedule(
         });
     }
 
-    console.log("还款计划:", schedule);
+    console.log("等额本息还款计划:", schedule);
 
     return schedule;
 }
@@ -103,7 +106,7 @@ function generateEqualPrincipalSchedule(
         });
     }
 
-    console.log("还款计划:", schedule);
+    console.log("等额本金还款计划:", schedule);
 
     return schedule;
 }
@@ -320,8 +323,7 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     const prepayAmount = parseFloat(
         document.getElementById("prepay-amount").value
     );
-    const loanAmount =
-        parseFloat(document.getElementById("loan-amount").value) - prepayAmount; // 更新剩余贷款金额
+
     const prepayDate = new Date(document.getElementById("prepay-date").value);
     const loanTerm = parseInt(document.getElementById("loan-term").value) * 12;
     const originInterestRate =
@@ -338,6 +340,7 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     let remainingLoan = remainingSchedule.remainingLoan - prepayAmount; // 提前还款后的剩余贷款
     let remainingTerm = loanTerm - remainingSchedule.paidPeriods; // 剩余期数
 
+    // 利率还是用之前的
     interestRate = loanSchedule[remainingSchedule.paidPeriods].annualInterestRate / 100 / 12;
 
     loanSchedule[remainingSchedule.paidPeriods - 1].monthlyPayment +=
@@ -407,8 +410,9 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
 
 // 导出 Excel 文件
 function exportToExcel(filename, rows) {
+    filename = "还款计划表_由公众号Hacking4un生成.xlsx";
     const worksheetData = [
-        ["期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数", "利率", "说明"],
+        ["期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数", "利率", "说明","由微信公众号 Hacking4fun生成"],
         ...rows.map(row => [
             row.period,
             row.paymentDate,
@@ -418,19 +422,33 @@ function exportToExcel(filename, rows) {
             row.remainingLoan.toFixed(2),
             row.remainingTerm,
             row.annualInterestRate + "%",
-            row.comment
+            row.comment,
+            ""
         ])
     ];
 
+    worksheetData.push(["", "", "", "", "", "", "", "", ""], ["", "", "", "", "", "", "", "", ""]);
+    worksheetData.push(
+        ["", "", "", "", "", "", "", "",
+            "在这个文件里留公众号像极了早年互联网分享软件和资源的各种广告行为……就当是古典互联网的文艺复兴吧"],
+        ["", "", "", "", "", "", "", "",
+            "公众号 Hacking4fun!"],
+        ["", "", "", "", "", "", "", "",
+            "贷款计算 & 还贷模拟器 可访问："],
+        ["", "", "", "", "", "", "", "",
+            "https://dropfan.github.io/loan-schedule/"],
+    );
+
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "还款计划表");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "还款计划表-由公众号Hacking4fun生成");
     XLSX.writeFile(workbook, filename);
 }
 
 
-// 添加导出Excel按钮的事件监听器
+// 添加导出 Excel 按钮的事件监听
 document.getElementById("export-excel").addEventListener("click", function () {
-    const filename = "loan_schedule.xlsx";
+    const filename = "还款计划表_由公众号Hacking4un生成.xlsx";
+
     exportToExcel(filename, loanSchedule);
 });
