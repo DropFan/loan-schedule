@@ -404,3 +404,33 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         remainingLoan.toFixed(2);
     displayPaymentSchedule(loanSchedule);
 });
+
+// 导出 Excel 文件
+function exportToExcel(filename, rows) {
+    const worksheetData = [
+        ["期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数", "利率", "说明"],
+        ...rows.map(row => [
+            row.period,
+            row.paymentDate,
+            row.monthlyPayment.toFixed(2),
+            row.principal.toFixed(2),
+            row.interest.toFixed(2),
+            row.remainingLoan.toFixed(2),
+            row.remainingTerm,
+            row.annualInterestRate + "%",
+            row.comment
+        ])
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "还款计划表");
+    XLSX.writeFile(workbook, filename);
+}
+
+
+// 添加导出Excel按钮的事件监听器
+document.getElementById("export-excel").addEventListener("click", function () {
+    const filename = "loan_schedule.xlsx";
+    exportToExcel(filename, loanSchedule);
+});

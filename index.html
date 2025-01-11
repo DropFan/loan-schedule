@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>贷款计算器</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -47,6 +48,7 @@
         </div>
 
         <h3>还款计划表</h3>
+        <button id="export-excel">导出为 Excel </button>
         <div id="payment-schedule">
             <table id="schedule-table">
                 <thead>
