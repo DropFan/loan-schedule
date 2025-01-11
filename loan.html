@@ -14,6 +14,7 @@
             <br>
             本计算器不同于市面上其他计算器的特殊功能：&nbsp; 针对存量房贷计算可以多次调整利率或提前还款。<br>
             在操作利率变更或提前还款时，请注意时间，还贷计划每次计算会刷新指定时间之后的所有数据。<br>
+            日期不重要，按月计算，注意月份不要填错。<br>
         </p>
         <form id="loan-form">
             <label for="loan-amount">贷款金额 (元):</label>
@@ -25,21 +26,24 @@
             <label for="interest-rate">年利率 (%):</label>
             <input type="number" id="interest-rate" step="0.01" required>
 
-            <label for="loan-method">贷款方式:</label>
+            <label for="loan-method">还贷方式：</label>
             <select id="loan-method" required>
                 <option value="equal-principal-interest">等额本息</option>
                 <option value="equal-principal">等额本金</option>
             </select>
 
-            <label for="loan-start-date">贷款开始日期:</label>
             <input type="date" id="loan-start-date" required>
+            <label for="loan-start-date">贷款开始日期：</label>
 
             <button type="submit">计算月还款金额</button>
         </form>
 
         <div id="result">
-            <p>每月还款金额: <span id="monthly-payment"></span> 元</p>
-            <p>剩余贷款金额: <span id="remaining-loan"></span> 元</p>
+            <p>每月还款金额： <span id="monthly-payment"></span> 元</p>
+            <p>剩余贷款本金： <span id="remaining-loan"></span> 元</p>
+            <!-- <p>累计已还本金： <span id="paid-principal"></span> 元</p>
+            <p>累计已还利息： <span id="paid-interest"></span> 元</p>
+            <p>累计已还总费用： <span id="total-paid"></span> 元</p> -->
         </div>
 
         <div id="payment-schedule">
@@ -63,18 +67,28 @@
         </div>
 
         <div id="additional-functions">
-            <h3>调整利率或提前还款</h3>
+            <h3>调整利率</h3>
+
             <label for="new-interest-rate">新的年利率 (%):</label>
             <input type="number" id="new-interest-rate" step="0.01">
-            <label for="interest-change-date">利率变更日期:</label>
             <input type="date" id="interest-change-date">
+            <label for="interest-change-date">利率变更日期：</label>
             <button id="update-interest-rate">更新利率</button>
+
+            <h3>提前还款</h3>
 
             <label for="prepay-amount">提前还款金额 (元):</label>
             <input type="number" id="prepay-amount">
-            <label for="prepay-date">提前还款日期:</label>
             <input type="date" id="prepay-date">
+            <label for="prepay-date">提前还款日期：</label>
             <button id="prepay-loan">提前还款</button>
+
+            <!-- <label for="change-loan-method">调整还款方式：</label>
+            <select id="change-loan-method" required>
+                <option value="equal-principal-interest">等额本息</option>
+                <option value="equal-principal">等额本金</option>
+            </select>
+            <button id="change-loan-method">调整还款方式</button> -->
         </div>
     </div>
 

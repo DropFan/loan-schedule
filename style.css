@@ -78,7 +78,7 @@ button:hover {
 }
 
 #loan-form {
-    margin: 20px;
+    margin: 10px;
 }
 
 #result {
@@ -86,13 +86,14 @@ button:hover {
 }
 
 #additional-functions {
+    margin: 10px;
     margin-top: 20px;
 }
 
 /* 确保页面滚动到顶部 */
 html, body {
     height: 100%;
-    overflow-x: hidden;
+    margin: 20px;
 }
 
 #schedule-table {
