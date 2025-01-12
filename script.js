@@ -412,7 +412,7 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
 function exportToExcel(filename, rows) {
     filename = "还款计划表_由公众号Hacking4un生成.xlsx";
     const worksheetData = [
-        ["期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数", "利率", "说明","由微信公众号 Hacking4fun生成"],
+        ["期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数", "利率", "说明","由微信公众号  Hacking4fun 生成"],
         ...rows.map(row => [
             row.period,
             row.paymentDate,
@@ -430,18 +430,20 @@ function exportToExcel(filename, rows) {
     worksheetData.push(["", "", "", "", "", "", "", "", ""], ["", "", "", "", "", "", "", "", ""]);
     worksheetData.push(
         ["", "", "", "", "", "", "", "",
-            "在这个文件里留公众号像极了早年互联网分享软件和资源的各种广告行为……就当是古典互联网的文艺复兴吧"],
+            "在这个文件里留公众号像极了早年互联网分享软件和资源的各种广告行为……"],
+        ["", "", "", "", "", "", "", "",
+            "就当是古典互联网的文艺复兴吧"],
         ["", "", "", "", "", "", "", "",
             "公众号 Hacking4fun!"],
         ["", "", "", "", "", "", "", "",
             "贷款计算 & 还贷模拟器 可访问："],
         ["", "", "", "", "", "", "", "",
-            "https://dropfan.github.io/loan-schedule/"],
+            "https://loan.v2dl.net/"],
     );
 
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "还款计划表-由公众号Hacking4fun生成");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "还款计划表 - 由公众号 Hacking4fun 生成");
     XLSX.writeFile(workbook, filename);
 }
 

@@ -4,6 +4,7 @@
     "description": "一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷计算多次调整利率和提前还款，模拟用户真实的还贷情况。由 Tiger 开发，帮助用户轻松管理贷款计划。",
     "license": "",
     "author": "Tiger <DropFan@Gmail.com>",
+    "link": "https://loan.v2dl.net",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/DropFan/loan-schedule.git"

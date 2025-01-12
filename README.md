@@ -12,7 +12,7 @@
 
 ## 使用方法
 
-1. 打开浏览器，~~访问项目的根目录下的`index.html`文件。如果需要在手机上访问，在项目根目录执行`npm run dev` 启动本地 http server，就可以访问了~~  直接访问[这个地址](https://dropfan.github.io/loan-calculator/)就行。
+1. 打开浏览器，~~访问项目的根目录下的`index.html`文件。如果需要在手机上访问，在项目根目录执行`npm run dev` 启动本地 http server，就可以访问了~~  直接访问[这个地址](https://loan.v2dl.net/)就行。
 2. 根据页面提示填写贷款相关信息并进行计算。
 3. 如需调整利率或提前还款，使用相应功能模块进行操作。
 4. 若要导出还款计划表为 Excel 文件，点击“导出为 Excel”按钮。
