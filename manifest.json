@@ -1,0 +1,26 @@
+{
+  "name": "贷款计算器 & 还贷模拟器 loan.v2dl.net",
+  "short_name": "贷款计算器",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f4f4f4",
+  "theme_color": "#4CAF50",
+  "description": "一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷计算多次调整利率和提前还款。",
+  "icons": [
+      {
+          "src": "/logo-128.png",
+          "sizes": "128x128",
+          "type": "image/png"
+      },
+      {
+          "src": "/logo-256.png",
+          "sizes": "256x256",
+          "type": "image/png"
+      },
+      {
+          "src": "/logo-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+      }
+  ]
+}

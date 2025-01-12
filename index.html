@@ -5,11 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>贷款计算器 & 还贷模拟器 By Tiger -贷款计算, 存量房贷计算，利率变更，提前还款，还贷模拟</title>
     <meta name="description" content="一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷计算多次调整利率和提前还款，模拟用户真实的还贷情况。由 Tiger 开发，帮助用户轻松管理贷款计划。">
+    <meta name="keywords" content="贷款计算器, 还贷模拟器, 存量房贷计算, 利率变更, 提前还款, 还贷计划, 贷款计划表, 贷款计算, 贷款利率, 贷款方式, 等额本息, 等额本金, 贷款金额, 贷款期限">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="logo-512.png">
+    <link rel="icon" href="favicon.ico">
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="script.js" defer></script>
 </head>
 <body>
+    <script>
+    if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+        .then((registration) => {
+            console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch((error) => {
+            console.log('Service Worker registration failed:', error);
+        });
+    });
+    }
+    </script>
     <div class="container">
         <h1>贷款计算器 & 还贷模拟器</h1>
         <div id="author_desc"> Made By <a href="https://github.com/DropFan">Tiger</a>&nbsp;<a href="https://github.com/DropFan/loan-schedule/">Github</a>&nbsp;<a href="https://about.me/DropFan">About me</a></div>
