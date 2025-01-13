@@ -22,8 +22,15 @@ h1 {
     text-align: center;
     color: #333;
 }
-
-form {
+.form-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.form {
+    width: 50%;
+    margin: 20px;
     margin-bottom: 20px;
 }
 
@@ -41,8 +48,7 @@ input, select {
     border: 1px solid #ccc;
 }
 
-button {
-    width: 100%;
+.btn {
     padding: 10px;
     background-color: #4CAF50;
     color: white;
@@ -50,35 +56,70 @@ button {
     border-radius: 5px;
     cursor: pointer;
 }
+.btn:hover {
+    background-color: #3e8e41;
+}
 
-button:hover {
-    background-color: #45a049;
+.btn-bar {
+    width: 100%;
+    /* max-width: 800px; */
 }
 
 #payment-schedule {
     margin-top: 20px;
     max-height: 600px; /* 限制表格的最大高度 */
     overflow: auto; /* 启用竖向滚动条 */
+    position: relative;
+    /* border: 1px solid #ddd; */
+    padding-top: 35px;
 }
 
 #payment-schedule table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    /* margin-top: 20px; */
 }
+#schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#schedule-table th,
+#schedule-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+#schedule-table thead {
+    position: sticky;
+    /* margin-top: 20px; */
+    top: 20px;
+    z-index: 1;
+}
+
+#schedule-table th {
+    background-color: #f1f1f1;
+}
+#schedule-table caption {
+    background-color: #f1f1f1;
+    position: sticky;
+    top: -35px;
+    z-index: 1;
+    font-weight: bold;
+    padding:10px;
+}
+.schedule-table-caption {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
 
 #payment-schedule th, #payment-schedule td {
     padding: 10px;
     text-align: center;
     border: 1px solid #ddd;
-}
-
-#payment-schedule th {
-    background-color: #f1f1f1;
-}
-
-#loan-form {
-    margin: 10px;
 }
 
 #result {
@@ -95,14 +136,11 @@ html, body {
     height: 100%;
     margin: 20px;
 }
-
-#schedule-table {
-    width: 100%;
-    border-collapse: collapse;
+header {
+    margin-bottom: 20px;
+    text-align: center;
 }
-
-#schedule-table th, #schedule-table td {
-    padding: 8px;
-    border: 1px solid #ddd;
+footer {
+    margin-top: 20px;
     text-align: center;
 }

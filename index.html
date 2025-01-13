@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>贷款计算器 & 还贷模拟器 By Tiger -贷款计算, 存量房贷计算，利率变更，提前还款，还贷模拟</title>
-    <meta name="description" content="一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷计算多次调整利率和提前还款，模拟用户真实的还贷情况。由 Tiger 开发，帮助用户轻松管理贷款计划。">
+    <meta name="description" content="一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况，并支持导出 Excel 表格，帮助用户轻松管理贷款计划。">
     <meta name="keywords" content="贷款计算器, 还贷模拟器, 存量房贷计算, 利率变更, 提前还款, 还贷计划, 贷款计划表, 贷款计算, 贷款利率, 贷款方式, 等额本息, 等额本金, 贷款金额, 贷款期限">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="logo-512.png">
@@ -28,58 +28,119 @@
     });
     }
     </script>
-    <div class="container">
-        <h1>贷款计算器 & 还贷模拟器</h1>
-        <div id="author_desc"> Made By <a href="https://github.com/DropFan">Tiger</a>&nbsp;<a href="https://github.com/DropFan/loan-schedule/">Github</a>&nbsp;<a href="https://about.me/DropFan">About me</a></div>
+    <header>
+
+        <!-- <nav>
+            <a href="https://github.com/DropFan">Tiger</a> &nbsp;
+            <a href="https://github.com/DropFan/loan-schedule/">Github</a>&nbsp;
+            <a href="https://about.me/DropFan">About me</a>
+        </nav> -->
+        <h1 class="app_title">贷款计算器 & 还贷模拟器</h1>
+        <div class="app_desc">
+            <p>一个功能强大的贷款计算器和还贷模拟器。</p><p>特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况。</p><p>并支持导出 Excel 表格，帮助用户轻松管理贷款计划。</p>
+            <p>由 <a href="https://github.com/DropFan">Tiger</a> 开发并开源至<a href="https://github.com/DropFan/loan-schedule/">Github</a></p>
+        </div>
+    </header>
+    <main class="container">
+        <section class="description">
+            <p>本应用可通过贷款金额、期限、利率和还款方式，计算并显示月还款金额、剩余贷款金额和未来还款计划表，并支持导出 Excel 表格。</p>
+            <p>
+                本计算器不同于网上其他贷款计算器的特殊功能：还贷模拟器，针对存量房贷计算可以多次调整利率或提前还款，模拟用户真实还款情况。这也是我写这个程序的初衷。</p>
+                <p>以前一直用表格来处理这个需求，但不方便给别人用。之前有人找我要表格还得传文件，干脆以后写个程序部署到网上，也方便大家使用，正好最近我闲来有心情于是就有了这个。</p>
+            <p>
+                在操作利率变更或提前还款时，请注意日期，还贷计划每次计算会刷新指定日期之后的所有数据。<br><br>
+                具体天数不重要，按月计算，注意月份不要填错。
+            </p>
+            <p>
+                纯原生 HTML/Javascript/CSS 代码，直接浏览器运行，不依赖任何框架，仅 excel 导出功能引用了第三方类库。
+                <br>未添加任何参数验证和错误处理，大家不用测试异常数据了～
+                如果使用有问题可以查看<a href="https://github.com/DropFan/loan-schedule/?tab=readme-ov-file#功能描述">使用说明</a> 或者 <a href="https://github.com/DropFan/loan-schedule/issues">提交反馈</a>
+            </p>
+        </section>
+
         <hr>
-        <p id="description">
-            本应用可通过贷款金额、期限、利率和还款方式，计算并显示月还款金额、剩余贷款金额和未来还款计划表，并支持导出 Excel<br>
-            <br>
-            本计算器不同于网上其他贷款计算器的特殊功能：还贷模拟器，针对存量房贷计算可以多次调整利率或提前还款，模拟用户真实还款情况。这也是我写这个程序的初衷，以前一直用表格来处理这个需求，但不方便给别人用。之前有人找我要表格还得传文件，干脆以后写个程序部署到网上，也方便大家使用，正好最近我闲来有心情于是就有了这个。
-            <br>
-            <br>
-            在操作利率变更或提前还款时，请注意日期，还贷计划每次计算会刷新指定日期之后的所有数据。<br>
-            具体天数不重要，按月计算，注意月份不要填错。<br><br>
-            纯原生 HTML/Javascript/CSS 代码，直接浏览器运行，不依赖任何框架，仅 excel 导出功能引用了第三方类库。
-            <br>未添加任何参数验证和错误处理，大家不用测试异常数据了～
-            <br>
-            <br>
-            如果使用有问题可以查看<a href="https://github.com/DropFan/loan-schedule/?tab=readme-ov-file#功能描述">使用说明</a> <br>
-        </p>
-        <hr>
-        <form id="loan-form">
-            <label for="loan-amount">贷款金额 (元):</label>
-            <input type="number" id="loan-amount" required>
+        <h2>贷款计算</h2>
+            <div class="bigform">
+                <form id="loan-form" class="">
+                    <label for="loan-amount">贷款金额 (元):</label>
+                    <input type="number" id="loan-amount" required>
 
-            <label for="loan-term">贷款期限 (年):</label>
-            <input type="number" id="loan-term" required>
+                    <label for="loan-term">贷款期限 (年):</label>
+                    <input type="number" id="loan-term" required>
 
-            <label for="interest-rate">年利率 (%):</label>
-            <input type="number" id="interest-rate" step="0.01" required>
+                    <label for="interest-rate">年利率 (%):</label>
+                    <input type="number" id="interest-rate" step="0.01" required>
 
-            <label for="loan-method">还贷方式：</label>
-            <select id="loan-method" required>
-                <option value="equal-principal-interest">等额本息</option>
-                <option value="equal-principal">等额本金</option>
-            </select>
+                    <label for="loan-method">还贷方式：</label>
+                    <select id="loan-method" required>
+                        <option value="equal-principal-interest">等额本息</option>
+                        <option value="equal-principal">等额本金</option>
+                    </select>
 
-            <label for="loan-start-date">贷款开始日期：</label>
-            <input type="date" id="loan-start-date" required>
+                    <label for="loan-start-date">贷款开始日期：</label>
+                    <input type="date" id="loan-start-date" required>
 
-            <button type="submit">计算月供，生成还款计划表</button>
-        </form>
+                    <button class="btn btn-bar" type="submit">计算月供，生成还款计划表</button>
+                </form>
+            </div>
 
+        <div id="additional-functions">
+            <h2>变更操作</h2>
+            <div class="description">
+                <p>生成还贷计划后，可按照时间先后顺序多次操作利率变更和提前还款，如可能导致数据异常的情况，比如一个月内多次变更利率/提前还款，由于现实里不存在这种情况，本程序暂不做兼容支持。</p>
+                <p>如因日期选错导致数据异常，可在上方重新生成还款计划表再次操作。</p>
+            </div>
+            <div class="form-group">
+                <div class="form">
+                    <h3>调整利率</h3>
+                    <label for="new-interest-rate">新的年利率 (%):</label>
+                    <input type="number" id="new-interest-rate" step="0.01">
+                    <label for="interest-change-date">利率变更日期：</label>
+                    <input type="date" id="interest-change-date">
+                    <button class="btn btn-bar" id="update-interest-rate">更新利率</button>
+                </div>
+
+                <div class="form">
+                    <h3>提前还款</h3>
+                    <label for="prepay-amount">提前还款金额 (元):</label>
+                    <input type="number" id="prepay-amount">
+                    <label for="prepay-date">提前还款日期：</label>
+                    <input type="date" id="prepay-date">
+                    <button class="btn btn-bar" id="prepay-loan">提前还款</button>
+                </div>
+            </div>
+            <!-- <div class="form">
+                <h3>还款方式变更</h3>
+                <label for="change-loan-method">新的还款方式：</label>
+                <select id="change-loan-method" required>
+                    <option value="equal-principal-interest">等额本息</option>
+                    <option value="equal-principal">等额本金</option>
+                </select>
+                <button class="btn btn-bar" id="change-loan-method">调整还款方式</button>
+            </div> -->
+        </div>
         <h3>还款计划</h3>
         <div id="result">
-            <p>每月还款金额： <span id="monthly-payment"></span> 元</p>
-            <p>剩余贷款本金： <span id="remaining-loan"></span> 元</p>
-            <!-- <p>累计已还本金： <span id="paid-principal"></span> 元</p>
-            <p>累计已还利息： <span id="paid-interest"></span> 元</p>
-            <p>累计已还总费用： <span id="total-paid"></span> 元</p> -->
+            <div id="loan-change-list">
+                <p>每月还款金额： <span id="monthly-payment"></span> 元</p>
+                <p>剩余贷款本金： <span id="remaining-loan"></span> 元</p>
+                <!-- <p>累计已还本金： <span id="paid-principal"></span> 元</p>
+                <p>累计已还利息： <span id="paid-interest"></span> 元</p>
+                <p>累计已还总费用： <span id="total-paid"></span> 元</p> -->
+            </div>
         </div>
-        <button id="export-excel">导出为 Excel </button>
+
+
         <div id="payment-schedule">
             <table id="schedule-table">
+                <caption>
+                    <div class="schedule-table-caption">
+                        &nbsp;
+                        <span>还款计划表</span>
+                        <button class="btn" id="export-excel">导出为 Excel 表格</button>
+                    </div>
+                </caption>
+
                 <thead>
                     <tr>
                         <th>期数</th>
@@ -90,38 +151,47 @@
                         <th>剩余本金</th>
                         <th>剩余期数</th>
                         <th>利率</th>
+                        <th>还款方式</th>
                         <th>说明</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <tr>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
-
-        <div id="additional-functions">
-            <p>生成还贷计划后，按照时间顺序依次操作利率变更和提前还款，如可能导致数据异常的情况，比如一个月内多次变更利率/提前还款，由于现实里不存在这种情况，本程序暂不做兼容支持。</p>
-            <h3>调整利率</h3>
-
-            <label for="new-interest-rate">新的年利率 (%):</label>
-            <input type="number" id="new-interest-rate" step="0.01">
-            <label for="interest-change-date">利率变更日期：</label>
-            <input type="date" id="interest-change-date">
-            <button id="update-interest-rate">更新利率</button>
-
-            <h3>提前还款</h3>
-
-            <label for="prepay-amount">提前还款金额 (元):</label>
-            <input type="number" id="prepay-amount">
-            <label for="prepay-date">提前还款日期：</label>
-            <input type="date" id="prepay-date">
-            <button id="prepay-loan">提前还款</button>
-
-            <!-- <label for="change-loan-method">调整还款方式：</label>
-            <select id="change-loan-method" required>
-                <option value="equal-principal-interest">等额本息</option>
-                <option value="equal-principal">等额本金</option>
-            </select>
-            <button id="change-loan-method">调整还款方式</button> -->
-        </div>
-    </div>
+        <!-- end payment-schedule -->
+    </main>
+    <footer>
+        <p class="copyright">Copyright © 2025 &nbsp; All rights reserved.</p>
+        <p class="author-statement">Made by <a href="https://github.com/DropFan">Tiger</a> with ♥️.
+            <br>
+            This project is open source on <a href="https://github.com/DropFan/loan-schedule/">Github</a>.<br>
+            <a href="https://about.me/DropFan">About Me</a>&nbsp; <a href="https://v2dl.net">v2dl.net</a>
+        </p>
+    </footer>
 </body>
 </html>
