@@ -5,7 +5,7 @@ const APP_Link = "https://loan.v2dl.net";
 const APP_Author = "Tiger <DropFan@Gmail.com>";
 const APP_Author_Link = "https://github.com/DropFan";
 const APP_Copyright = "Copyright © 2025 David Tiger (DropFan@Gmail.com)";
-const APP_Release = "20250113002";
+const APP_Release = "20250113003";
 
 document.addEventListener("DOMContentLoaded", function () {
     console.debug("DOM content loaded.");
