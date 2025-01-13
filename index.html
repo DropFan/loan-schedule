@@ -17,15 +17,15 @@
 <body>
     <script>
     if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-        .then((registration) => {
-            console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch((error) => {
-            console.log('Service Worker registration failed:', error);
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+            .then((registration) => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch((error) => {
+                console.log('Service Worker registration failed:', error);
+            });
         });
-    });
     }
     </script>
     <header>
@@ -35,8 +35,12 @@
             <a href="https://github.com/DropFan/loan-schedule/">Github</a>&nbsp;
             <a href="https://about.me/DropFan">About me</a>
         </nav> -->
-        <h1 class="app_title">贷款计算器 & 还贷模拟器</h1>
-        <div class="app_desc">
+        <img src="./logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" />
+        <h1 class="app-title">
+            <span id="app-name">贷款计算器 & 还贷模拟器</span>
+        </h1>
+        <span id="app-version" class="app-version-info">ver 0.6</span>
+        <div class="app-desc">
             <p>一个功能强大的贷款计算器和还贷模拟器。</p><p>特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况。</p><p>并支持导出 Excel 表格，帮助用户轻松管理贷款计划。</p>
             <p>由 <a href="https://github.com/DropFan">Tiger</a> 开发并开源至<a href="https://github.com/DropFan/loan-schedule/">Github</a></p>
         </div>
@@ -194,6 +198,8 @@
             This project is open source on <a href="https://github.com/DropFan/loan-schedule/">Github</a>.<br>
             <a href="https://about.me/DropFan">About Me</a>&nbsp; <a href="https://v2dl.net">v2dl.net</a>
         </p>
+        <span class="app-name">贷款计算&还贷模拟器</span>
+        <span class="app-version-info">v0.6</span>
     </footer>
 </body>
 </html>

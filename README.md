@@ -1,6 +1,16 @@
-# 贷款计算器 - 还贷模拟器
+贷款计算器 - 还贷模拟器
+===
 
-## 项目概述
+<div class="app-desc" style="text-align:center">
+    <a href="https://loan.v2dl.net" target="_blank"><img src="./logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" /></a>
+    <p>一个功能强大的贷款计算器和还贷模拟器。</p>
+    <p>特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况。</p>
+    <p>并支持导出 Excel 表格，帮助用户轻松管理贷款计划。</p>
+    <p>由 <a href="https://github.com/DropFan">Tiger</a> 开发并开源至<a href="https://github.com/DropFan/loan-schedule/">Github</a></p>
+</div>
+
+项目概述
+---
 
 本项目是一个贷款计算器的 Web 应用，支持用户根据贷款金额、期限、利率和还款方式，计算并显示月还款金额、剩余贷款金额和未来还款计划。
 
@@ -13,18 +23,21 @@
 纯原生 HTML/Javascript/CSS 代码，直接浏览器运行，不依赖任何框架，仅 excel 导出功能引用了一个第三方类库。
 **未添加任何参数验证和错误处理，大家不用测试异常数据了～**
 
-## 更新记录
+更新记录
+---
 
 点击查看[更新记录](https://github.com/DropFan/loan-calculator/blob/main/CHANGELOG.md)
 
-## 使用方法
+使用方法
+---
 
 1. 打开浏览器，~~访问项目的根目录下的`index.html`文件。如果需要在手机上访问，在项目根目录执行`npm run dev` 启动本地 http server，就可以访问了~~  直接访问[这个地址](https://loan.v2dl.net/)就行。
 2. 根据页面提示填写贷款相关信息并进行计算。
 3. 如需调整利率或提前还款，使用相应功能模块进行操作。
 4. 若要导出还款计划表为 Excel 文件，点击“导出为 Excel”按钮。
 
-## 注意事项
+注意事项
+---
 
 - 生成还贷计划后，可按照时间先后顺序多次操作利率变更和提前还款。
 - 本计算器按月计算，确保月份填写正确。
@@ -89,6 +102,7 @@
 用户点击导出按钮即可下载 Excel 文件到本地，
 
 ---
+
 本文部分内容是 AI 生成的，开发者指南这部分感觉说了跟没说一样。。。
 
 ## 开发者指南
@@ -111,7 +125,7 @@
 
 ## 版权声明
 
-本项目由 [@Tiger](https://github.com/DropFan) 开发，仅供学习和参考使用。
+本项目由 [Tiger](https://github.com/DropFan) 开发，仅供学习和参考使用。
 未经许可，不得用于商业用途。
 
 如果有任何疑问或建议，请随时联系作者本人，或提交反馈到[本项目 ISSUES](https://github.com/DropFan/loan-schedule/issues)

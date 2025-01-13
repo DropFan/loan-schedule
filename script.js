@@ -1,4 +1,17 @@
 
+const APP_Name = "贷款计算器 & 还贷模拟器";
+const APP_Version = "0.6.1";
+const APP_Link = "https://loan.v2dl.net";
+const APP_Author = "Tiger <DropFan@Gmail.com>";
+const APP_Author_Link = "https://github.com/DropFan";
+const APP_Copyright = "Copyright © 2025 David Tiger (DropFan@Gmail.com)";
+const APP_Release = "20250113002";
+
+document.addEventListener("DOMContentLoaded", function () {
+    console.debug("DOM content loaded.");
+    displayAppInfo();
+});
+
 const LoanMethodName = {
     "equal-principal-interest": "等额本息",
     "equal-principal": "等额本金",
@@ -6,6 +19,13 @@ const LoanMethodName = {
     "bullet-repayment": "一次性还本付息",
     "flexible-repayment": "灵活还款 (需满足每月最低还款额)",
 };
+
+function displayAppInfo() {
+    versionInfo = `v${APP_Version} Release ${APP_Release}`
+    for (const e of document.getElementsByClassName("app-version-info")) {
+        e.innerHTML = versionInfo;
+    }
+}
 
 // 初始化模拟的贷款还款计划
 let _loanSchedule = [];
