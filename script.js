@@ -232,13 +232,17 @@ function getRemainingSchedule(startDate) {
 function refreshLoanChangeList(changeDetail) {
     const changeDate = new Date(changeDetail.date);
     const {
-        loanAmount, monthlyPayment,
-        annualInterestRate, loanMethod,
-        comment
+        loanAmount,
+        remainingTerm,
+        monthlyPayment,
+        annualInterestRate,
+        loanMethod,
+        comment,
     } = changeDetail;
     _loanChangeList.push({
         date: changeDate,
         loanAmount,
+        remainingTerm,
         monthlyPayment,
         annualInterestRate,
         loanMethod,
@@ -251,6 +255,7 @@ function refreshLoanChangeList(changeDetail) {
         ${changeDate.toISOString().split("T")[0]}</span> <span class="loan-change-comment">${comment}</span></p>
         <p class="loan-change-detail">每月还款金额： <span class="monthly-payment">${monthlyPayment.toFixed(2)}</span> 元 &nbsp;
         剩余贷款本金： <span class="remaining-loan">${loanAmount.toFixed(2)}</span> 元 &nbsp;
+        剩余期数： <span class="remaining-term">${remainingTerm}</span> 月 &nbsp;
         还款方式：<span class="loan-method">${LoanMethodName[loanMethod]}</span> &nbsp;
         利率：<span class="interest-rate">${annualInterestRate}%</span></p>
 `;
@@ -259,11 +264,9 @@ function refreshLoanChangeList(changeDetail) {
 function refreshPaymentSchedule(schedule) {
     const tbody = document.querySelector("#schedule-table tbody");
     tbody.innerHTML = ""; // 清空之前的表格数据
-
+    rows = [];
     schedule.forEach((item) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${item.period}</td>
+        rows.push(`<tr><td>${item.period}</td>
             <td>${item.paymentDate}</td>
             <td>${item.monthlyPayment.toFixed(2)}</td>
             <td>${item.principal.toFixed(2)}</td>
@@ -272,10 +275,9 @@ function refreshPaymentSchedule(schedule) {
             <td>${item.remainingTerm}</td>
             <td>${item.annualInterestRate}%</td>
             <td>${item.loanMethod}</td>
-            <td>${item.comment}</td>
-        `;
-        tbody.appendChild(row);
+            <td>${item.comment}</td></tr>`);
     });
+    tbody.innerHTML = rows.join("");
 }
 
 function calculateLoan(loanAmount, loanTerm, interestRate, startDate, loanMethod) {
@@ -334,6 +336,7 @@ document
             monthlyPayment: result.monthlyPayment,
             annualInterestRate: annualInterestRate,
             loanMethod: loanMethod,
+            remainingTerm: loanTerm,
         });
 
         refreshPaymentSchedule(result.schedule);
@@ -408,6 +411,7 @@ document
             monthlyPayment: monthlyPayment,
             annualInterestRate: annualInterestRate,
             loanMethod: loanMethod,
+            remainingTerm: remainingTerm - 1,
         });
         refreshPaymentSchedule(_loanSchedule);
     });
@@ -435,10 +439,7 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
     _loanSchedule[remainingSchedule.paidPeriods - 1].principal += prepayAmount;
     _loanSchedule[remainingSchedule.paidPeriods - 1].remainingLoan -=
         prepayAmount;
-    _loanSchedule[remainingSchedule.paidPeriods - 1].comment =
-        " " +
-        prepayDate.toISOString().split("T")[0] +
-        "提前还款" + prepayAmount;
+
     remainingLoan = _loanSchedule[remainingSchedule.paidPeriods - 1].remainingLoan;
 
     // startDate = prepayDate.setMonth(prepayDate.getMonth() - 1); // 计算时日期前移一个月
@@ -474,6 +475,9 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         comment += "，月供不变";
     }
 
+    _loanSchedule[remainingSchedule.paidPeriods - 1].comment =
+        " " + prepayDate.toISOString().split("T")[0] + comment;
+
     // 将更新后的计划追加到原计划后面
     _loanSchedule = _loanSchedule
         .slice(0, remainingSchedule.paidPeriods)
@@ -486,16 +490,17 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
         monthlyPayment: monthlyPayment,
         annualInterestRate: annualInterestRate,
         loanMethod: loanMethod,
+        remainingTerm: remainingTerm,
     });
 
     refreshPaymentSchedule(_loanSchedule);
 });
 
 // 导出 Excel 文件
-function exportToExcel(filename, rows) {
+function exportToExcel(filename, rows = _loanSchedule, changeList = _loanChangeList) {
     const worksheetData = [
-        [ "期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数",
-            "利率", "说明", "由微信公众号  Hacking4fun 生成",],
+        ["期数", "还款日期", "月还款金额", "本金", "利息", "剩余本金", "剩余期数",
+            "利率", "还款方式", "说明"],
         ...rows.map((row) => [
             row.period,
             row.paymentDate,
@@ -510,6 +515,23 @@ function exportToExcel(filename, rows) {
             "",
         ]),
     ];
+
+    worksheetData.push(
+        ["", "", "", "", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", "", "", "", ""],
+        ["", "", "变更列表", "", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", "", "", "", ""],
+        ["变更日期", "月还款金额", "剩余本金", "剩余期数","利率", "还款方式", "说明"],
+        ...changeList.map((row) => [
+            row.date.toISOString().split("T")[0],
+            row.monthlyPayment.toFixed(2),
+            row.loanAmount.toFixed(2),
+            row.remainingTerm,
+            row.annualInterestRate + "%",
+            LoanMethodName[row.loanMethod],
+            row.comment,
+        ])
+    );
 
     rightContent = [
         [
