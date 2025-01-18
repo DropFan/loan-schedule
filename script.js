@@ -5,7 +5,7 @@ const APP_Link = "https://loan.v2dl.net";
 const APP_Author = "Tiger <DropFan@Gmail.com>";
 const APP_Author_Link = "https://github.com/DropFan";
 const APP_Copyright = "Copyright © 2025 David Tiger (DropFan@Gmail.com)";
-const APP_Release = "20250113003";
+const APP_Release = "20250113005";
 
 document.addEventListener("DOMContentLoaded", function () {
     console.debug("DOM content loaded.");
@@ -488,9 +488,9 @@ document.getElementById("prepay-loan").addEventListener("click", function () {
 
     // 计算月供变化，并展示增加或减少
     if (oldMonthlyPayment < monthlyPayment) {
-        comment += "，月供增加 " + (monthlyPayment - oldMonthlyPayment).toFixed(2) + "元";
+        comment += "，月供增加 " + (monthlyPayment - oldMonthlyPayment).toFixed(2) + " 元";
     } else if (oldMonthlyPayment > monthlyPayment) {
-        comment += "，月供减少 " + (oldMonthlyPayment - monthlyPayment).toFixed(2) + "元";
+        comment += "，月供减少 " + (oldMonthlyPayment - monthlyPayment).toFixed(2) + " 元";
     } else {
         comment += "，月供不变";
     }

@@ -1,8 +1,9 @@
 贷款计算器 - 还贷模拟器
 ===
 
-<div class="app-desc" style="text-align:center">
-    <a href="https://loan.v2dl.net" target="_blank"><img src="./logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" /></a>
+<div class="app-desc" style="text-align:center" align="center">
+    <a href="https://loan.v2dl.net/?from=github-readme" target="_blank"><img src="./logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" /></a>
+    <h1>贷款计算&还贷模拟器</h1>
     <p>一个功能强大的贷款计算器和还贷模拟器。</p>
     <p>特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况。</p>
     <p>并支持导出 Excel 表格，帮助用户轻松管理贷款计划。</p>
@@ -31,7 +32,7 @@
 使用方法
 ---
 
-1. 打开浏览器，~~访问项目的根目录下的`index.html`文件。如果需要在手机上访问，在项目根目录执行`npm run dev` 启动本地 http server，就可以访问了~~  直接访问[这个地址](https://loan.v2dl.net/)就行。
+1. 打开浏览器，~~访问项目的根目录下的`index.html`文件。如果需要在手机上访问，在项目根目录执行`npm run dev` 启动本地 http server，就可以访问了~~  直接访问[这个地址](https://loan.v2dl.net/?from=github-readme)就行。
 2. 根据页面提示填写贷款相关信息并进行计算。
 3. 如需调整利率或提前还款，使用相应功能模块进行操作。
 4. 若要导出还款计划表为 Excel 文件，点击“导出为 Excel”按钮。
