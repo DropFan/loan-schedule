@@ -1,9 +1,7 @@
-const CACHE_NAME = 'loan-calculator-cache-v1';
+const CACHE_NAME = 'loan-calculator-cache-v2';
 const urlsToCache = [
     "/",
     "/index.html",
-    "/style.css",
-    "/script.js",
     "/favicon.ico",
     "/logo-128.png",
     "/logo-256.png",

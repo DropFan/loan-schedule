@@ -10,7 +10,6 @@
     <link rel="apple-touch-icon" href="logo-512.png">
     <link rel="icon" href="favicon.ico">
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="style.css">
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -18,10 +17,9 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-53FPK6NL');</script>
     <!-- End Google Tag Manager -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="script.js" defer></script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1982478684425376"
         crossorigin="anonymous"></script>
+    <script type="module" src="/src/main.ts"></script>
 </head>
 <body>
     <!-- Google Tag Manager (noscript) -->
@@ -29,31 +27,12 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
 
-    <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-            .then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-                console.log('Service Worker registration failed:', error);
-            });
-        });
-    }
-    </script>
     <header>
-
-        <!-- <nav>
-            <a href="https://github.com/DropFan">Tiger</a> &nbsp;
-            <a href="https://github.com/DropFan/loan-schedule/">Github</a>&nbsp;
-            <a href="https://about.me/DropFan">About me</a>
-        </nav> -->
         <img src="./logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" />
         <h1 class="app-title">
             <span id="app-name">贷款计算器 & 还贷模拟器</span>
         </h1>
-        <span id="app-version" class="app-version-info">ver 0.6</span>
+        <span id="app-version" class="app-version-info">v0.7</span>
         <div class="app-desc">
             <p>一个功能强大的贷款计算器和还贷模拟器。</p><p>特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况。</p><p>并支持导出 Excel 表格，帮助用户轻松管理贷款计划。</p>
             <p>由 <a href="https://github.com/DropFan">Tiger</a> 开发并开源至<a href="https://github.com/DropFan/loan-schedule/">Github</a></p>
@@ -70,9 +49,8 @@
                 具体天数不重要，按月计算，注意月份不要填错。
             </p>
             <p>
-                纯原生 HTML/Javascript/CSS 代码，直接浏览器运行，不依赖任何框架，仅 excel 导出功能引用了第三方类库。
-                <br>未添加任何参数验证和错误处理，大家不用测试异常数据了～
-                如果使用有问题可以查看<a href="https://github.com/DropFan/loan-schedule/?tab=readme-ov-file#功能描述">使用说明</a> 或者 <a href="https://github.com/DropFan/loan-schedule/issues">提交反馈</a>
+                纯原生 HTML/TypeScript/CSS 代码，直接浏览器运行，不依赖任何框架，仅 excel 导出功能引用了第三方类库。
+                <br>如果使用有问题可以查看<a href="https://github.com/DropFan/loan-schedule/?tab=readme-ov-file#功能描述">使用说明</a> 或者 <a href="https://github.com/DropFan/loan-schedule/issues">提交反馈</a>
             </p>
         </section>
 
@@ -129,27 +107,12 @@
                     <button class="btn btn-bar" id="prepay-loan">提前还款</button>
                 </div>
             </div>
-            <!-- <div class="form">
-                <h3>还款方式变更</h3>
-                <label for="change-loan-method">新的还款方式：</label>
-                <select id="change-loan-method" required>
-                    <option value="equal-principal-interest">等额本息</option>
-                    <option value="equal-principal">等额本金</option>
-                </select>
-                <button class="btn btn-bar" id="change-loan-method">调整还款方式</button>
-            </div> -->
         </div>
         <h3>还款计划</h3>
         <div id="result">
             <div id="loan-change-list">
-                <p>每月还款金额： <span id="monthly-payment"></span> 元</p>
-                <p>剩余贷款本金： <span id="remaining-loan"></span> 元</p>
-                <!-- <p>累计已还本金： <span id="paid-principal"></span> 元</p>
-                <p>累计已还利息： <span id="paid-interest"></span> 元</p>
-                <p>累计已还总费用： <span id="total-paid"></span> 元</p> -->
             </div>
         </div>
-
 
         <div id="payment-schedule">
             <table id="schedule-table">
@@ -177,43 +140,22 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                    </tr>
-                    <tr>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <!-- end payment-schedule -->
     </main>
     <footer>
-        <p class="copyright">Copyright © 2025 &nbsp; All rights reserved.</p>
-        <p class="author-statement">Made by <a href="https://github.com/DropFan">Tiger</a> with ♥️.
+        <p class="copyright">Copyright &copy; 2025 &nbsp; All rights reserved.</p>
+        <p class="author-statement">Made by <a href="https://github.com/DropFan">Tiger</a> with &#9829;.
             <br>
             This project is open source on <a href="https://github.com/DropFan/loan-schedule/">Github</a>.<br>
             <a href="https://about.me/DropFan">About Me</a>&nbsp; <a href="https://v2dl.net">v2dl.net</a>
         </p>
         <span class="app-name">贷款计算&还贷模拟器</span>
-        <span class="app-version-info">v0.6</span>
+        <span class="app-version-info">v0.7</span>
     </footer>
 </body>
 </html>

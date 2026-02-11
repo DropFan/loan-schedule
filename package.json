@@ -9,11 +9,20 @@
         "type": "git",
         "url": "git+https://github.com/DropFan/loan-schedule.git"
     },
-    "type": "commonjs",
+    "type": "module",
     "main": "index.html",
     "scripts": {
         "dev": "vite --host 0.0.0.0",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "build": "vite build",
+        "preview": "vite preview",
+        "type-check": "tsc --noEmit"
     },
-    "packageManager": "yarn@4.4.1+sha512.f825273d0689cc9ead3259c14998037662f1dcd06912637b21a450e8da7cfeb4b1965bbee73d16927baa1201054126bc385c6f43ff4aa705c8631d26e12460f1"
+    "packageManager": "yarn@4.4.1+sha512.f825273d0689cc9ead3259c14998037662f1dcd06912637b21a450e8da7cfeb4b1965bbee73d16927baa1201054126bc385c6f43ff4aa705c8631d26e12460f1",
+    "devDependencies": {
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1"
+    },
+    "dependencies": {
+        "xlsx": "^0.18.5"
+    }
 }

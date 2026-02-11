@@ -1,0 +1,16 @@
+.btn {
+  padding: var(--spacing-sm);
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-bar {
+  width: 100%;
+}

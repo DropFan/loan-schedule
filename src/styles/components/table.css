@@ -1,0 +1,52 @@
+#payment-schedule {
+  margin-top: var(--spacing-md);
+  max-height: 600px;
+  overflow: auto;
+  position: relative;
+  padding-top: var(--spacing-lg);
+}
+
+#schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#schedule-table th,
+#schedule-table td {
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+#schedule-table thead {
+  position: sticky;
+  top: 20px;
+  z-index: 1;
+}
+
+#schedule-table th {
+  background-color: var(--color-table-header);
+}
+
+#schedule-table caption {
+  background-color: var(--color-table-header);
+  position: sticky;
+  top: -35px;
+  z-index: 1;
+  font-weight: bold;
+  padding: var(--spacing-sm);
+}
+
+.schedule-table-caption {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  #schedule-table th,
+  #schedule-table td {
+    padding: 4px;
+    font-size: 12px;
+  }
+}

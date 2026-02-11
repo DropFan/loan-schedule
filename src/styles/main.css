@@ -1,0 +1,70 @@
+@import './variables.css';
+@import './components/form.css';
+@import './components/button.css';
+@import './components/table.css';
+
+html,
+body {
+  height: 100%;
+  margin: var(--spacing-md);
+}
+
+body {
+  background-color: var(--color-bg);
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  background-color: var(--color-surface);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-md);
+  max-width: 100%;
+}
+
+h1 {
+  text-align: center;
+  color: var(--color-text);
+}
+
+#result {
+  margin: var(--spacing-md);
+}
+
+#additional-functions {
+  margin: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+header {
+  margin-bottom: var(--spacing-md);
+  text-align: center;
+}
+
+footer {
+  margin-top: var(--spacing-md);
+  text-align: center;
+}
+
+.loan-change-comment {
+  font-weight: bold;
+}
+
+.loan-change-detail {
+  color: #666;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  html,
+  body {
+    margin: var(--spacing-sm);
+  }
+
+  .container {
+    padding: var(--spacing-sm);
+  }
+}
