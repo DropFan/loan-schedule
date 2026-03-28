@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-import echarts from '../echarts-setup';
+import ReactECharts from 'echarts-for-react';
 import { useLoanStore } from '@/stores/useLoanStore';
 
 export function PaymentTrendChart() {
@@ -80,8 +79,7 @@ export function PaymentTrendChart() {
   if (schedule.length === 0) return null;
 
   return (
-    <ReactEChartsCore
-      echarts={echarts}
+    <ReactECharts
       option={option}
       style={{ height: 200 }}
       opts={{ renderer: 'canvas' }}
