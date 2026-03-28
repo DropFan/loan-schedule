@@ -2,6 +2,7 @@ import {
   ChangeType,
   type LoanChangeParams,
   type LoanMethod,
+  PrepaymentMode,
 } from '../types/loan.types';
 import { Validator } from '../utils/validator';
 import { BaseComponent } from './BaseComponent';
@@ -126,6 +127,11 @@ export class LoanForm extends BaseComponent {
     const prepayAmount = parseFloat(this.getInput('prepay-amount').value);
     const dateStr = this.getInput('prepay-date').value;
     const loanMethod = this.getSelect('loan-method').value as LoanMethod;
+    const prepayModeValue = this.getSelect('prepay-mode').value;
+    const prepaymentMode =
+      prepayModeValue === PrepaymentMode.ShortenTerm
+        ? PrepaymentMode.ShortenTerm
+        : PrepaymentMode.ReducePayment;
 
     const dateCheck = Validator.date(dateStr);
     if (!dateCheck.valid) {
@@ -144,6 +150,7 @@ export class LoanForm extends BaseComponent {
       date: new Date(dateStr),
       loanMethod,
       prepayAmount,
+      prepaymentMode,
     });
   }
 }

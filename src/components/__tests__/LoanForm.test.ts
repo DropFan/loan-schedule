@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChangeType, LoanMethod } from '../../types/loan.types';
+import { ChangeType, LoanMethod, PrepaymentMode } from '../../types/loan.types';
 import type { LoanFormData } from '../LoanForm';
 import { LoanForm } from '../LoanForm';
 
@@ -78,6 +78,19 @@ function setupDOM(): void {
   prepayDate.id = 'prepay-date';
   prepayDate.type = 'date';
   container.appendChild(prepayDate);
+
+  // 提前还款变更方式
+  const prepayMode = document.createElement('select');
+  prepayMode.id = 'prepay-mode';
+  const modeOpt1 = document.createElement('option');
+  modeOpt1.value = 'reduce-payment';
+  modeOpt1.textContent = '减少月供';
+  const modeOpt2 = document.createElement('option');
+  modeOpt2.value = 'shorten-term';
+  modeOpt2.textContent = '缩短年限';
+  prepayMode.appendChild(modeOpt1);
+  prepayMode.appendChild(modeOpt2);
+  container.appendChild(prepayMode);
 
   const prepayBtn = document.createElement('button');
   prepayBtn.id = 'prepay-loan';
@@ -438,6 +451,46 @@ describe('LoanForm', () => {
 
       const btn = document.getElementById('prepay-loan')!;
       expect(() => btn.click()).not.toThrow();
+    });
+
+    it('默认传递 ReducePayment 模式', () => {
+      const form = new LoanForm();
+      const handler = vi.fn();
+      form.setOnPrepay(handler);
+
+      (document.getElementById('prepay-amount') as HTMLInputElement).value =
+        '50000';
+      (document.getElementById('prepay-date') as HTMLInputElement).value =
+        '2024-06-15';
+      (document.getElementById('loan-method') as HTMLSelectElement).value =
+        LoanMethod.EqualPrincipalInterest;
+
+      const btn = document.getElementById('prepay-loan')!;
+      btn.click();
+
+      const params = handler.mock.calls[0][0];
+      expect(params.prepaymentMode).toBe(PrepaymentMode.ReducePayment);
+    });
+
+    it('选择缩短年限时传递 ShortenTerm 模式', () => {
+      const form = new LoanForm();
+      const handler = vi.fn();
+      form.setOnPrepay(handler);
+
+      (document.getElementById('prepay-amount') as HTMLInputElement).value =
+        '50000';
+      (document.getElementById('prepay-date') as HTMLInputElement).value =
+        '2024-06-15';
+      (document.getElementById('loan-method') as HTMLSelectElement).value =
+        LoanMethod.EqualPrincipalInterest;
+      (document.getElementById('prepay-mode') as HTMLSelectElement).value =
+        'shorten-term';
+
+      const btn = document.getElementById('prepay-loan')!;
+      btn.click();
+
+      const params = handler.mock.calls[0][0];
+      expect(params.prepaymentMode).toBe(PrepaymentMode.ShortenTerm);
     });
   });
 });
