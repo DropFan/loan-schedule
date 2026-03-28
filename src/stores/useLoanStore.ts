@@ -347,6 +347,12 @@ export const useLoanStore = create<LoanState>()(
         changes: state.changes,
         rateTable: state.rateTable,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state && state.schedule.length > 0) {
+          state.summary = calcScheduleSummary(state.schedule);
+          state.canUndo = state.history.length > 0;
+        }
+      },
     },
   ),
 );
