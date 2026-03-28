@@ -12,15 +12,30 @@ export function PaymentTrendChart() {
     const principals = regularItems.map((item) => item.principal);
     const interests = regularItems.map((item) => item.interest);
 
-    // 变更信息：key 是数组索引，value 是变更描述
+    // 收集变更信息（含 period=0 的提前还款行，标记到其下一个常规期）
     const changeDetailByIndex = new Map<number, string>();
     const changeMarks: Array<{ xAxis: number }> = [];
-    for (let i = 0; i < regularItems.length; i++) {
-      const item = regularItems[i];
-      if (item.comment !== '') {
-        const detail = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
-        changeDetailByIndex.set(i, detail);
-        changeMarks.push({ xAxis: i });
+    let pendingPrepayComment = '';
+
+    for (const item of schedule) {
+      if (item.period === 0 && item.comment !== '') {
+        // 提前还款行，暂存 comment，等下一个常规期时标记
+        pendingPrepayComment = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
+        continue;
+      }
+      if (item.period > 0) {
+        const idx = periods.indexOf(item.period);
+        if (idx === -1) continue;
+
+        if (pendingPrepayComment) {
+          changeDetailByIndex.set(idx, pendingPrepayComment);
+          changeMarks.push({ xAxis: idx });
+          pendingPrepayComment = '';
+        } else if (item.comment !== '') {
+          const detail = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
+          changeDetailByIndex.set(idx, detail);
+          changeMarks.push({ xAxis: idx });
+        }
       }
     }
 
@@ -31,14 +46,19 @@ export function PaymentTrendChart() {
         formatter: (params: Array<{ dataIndex: number; axisValue: string; seriesName: string; value: number; color: string }>) => {
           if (!params.length) return '';
           const index = params[0].dataIndex;
-          const period = params[0].axisValue;
-          let html = `<b>第 ${period} 期</b>`;
+          const item = regularItems[index];
+          if (!item) return '';
+
+          let html = `<b>第 ${item.period} 期</b> ${item.paymentDate}`;
+          html += `<br/><span style="color:#666">●</span> 月供: ¥${item.monthlyPayment.toFixed(2)}`;
           for (const p of params) {
             html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`;
           }
+          html += `<br/><span style="color:#999">●</span> 剩余本金: ¥${item.remainingLoan.toFixed(2)}`;
+          html += `<br/><span style="color:#999">●</span> 利率: ${item.annualInterestRate}%`;
           const detail = changeDetailByIndex.get(index);
           if (detail) {
-            html += `<br/><span style="color:#ff6b6b">┃</span> <b>${detail}</b>`;
+            html += `<br/><span style="color:#ff6b6b">●</span> <b>${detail}</b>`;
           }
           return html;
         },
