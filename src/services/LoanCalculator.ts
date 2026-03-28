@@ -3,6 +3,7 @@ import {
   type CalculateResult,
   LoanMethod,
   LoanMethodName,
+  type LoanScheduleSummary,
   type PaymentScheduleItem,
   type RemainingScheduleInfo,
 } from '../types/loan.types';
@@ -152,6 +153,30 @@ export function calcTermByFixedPrincipal(
   if (remainingLoan <= 0) return 0;
   if (fixedPrincipal <= 0) return null;
   return Math.ceil(remainingLoan / fixedPrincipal);
+}
+
+/** 计算还款计划摘要（总还款、总利息、总本金、总期数） */
+export function calcScheduleSummary(
+  schedule: ReadonlyArray<PaymentScheduleItem>,
+): LoanScheduleSummary {
+  let totalPayment = 0;
+  let totalInterest = 0;
+  let totalPrincipal = 0;
+  let termMonths = 0;
+
+  for (const item of schedule) {
+    totalPayment += item.monthlyPayment;
+    totalInterest += item.interest;
+    totalPrincipal += item.principal;
+    if (item.period > 0) termMonths++;
+  }
+
+  return {
+    totalPayment: roundTo2(totalPayment),
+    totalInterest: roundTo2(totalInterest),
+    totalPrincipal: roundTo2(totalPrincipal),
+    termMonths,
+  };
 }
 
 /** 统一计算入口 */

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { PaymentScheduleItem } from '../../types/loan.types';
+import type { LoanScheduleSummary, PaymentScheduleItem } from '../../types/loan.types';
 import { LoanMethod, LoanMethodName } from '../../types/loan.types';
 import {
   annualToMonthlyRate,
   calcEqualPrincipalInterest,
   calcEqualPrincipalMonthly,
   calcMonthlyPayment,
+  calcScheduleSummary,
   calcTermByFixedPrincipal,
   calcTermByPayment,
   calculateLoan,
@@ -324,6 +325,38 @@ describe('calcTermByFixedPrincipal', () => {
 
   it('固定本金为 0 时返回 null', () => {
     expect(calcTermByFixedPrincipal(100_000, 0)).toBeNull();
+  });
+});
+
+describe('calcScheduleSummary', () => {
+  it('计算等额本息还款计划的摘要', () => {
+    const monthlyRate = annualToMonthlyRate(4.2);
+    const schedule = generateSchedule(100_000, 12, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest);
+    const summary = calcScheduleSummary(schedule);
+
+    expect(summary.totalPrincipal).toBeCloseTo(100_000, 0);
+    expect(summary.totalInterest).toBeGreaterThan(0);
+    expect(summary.totalPayment).toBeCloseTo(summary.totalPrincipal + summary.totalInterest, 0);
+    expect(summary.termMonths).toBe(12);
+  });
+
+  it('空计划返回全零摘要', () => {
+    const summary = calcScheduleSummary([]);
+    expect(summary.totalPayment).toBe(0);
+    expect(summary.totalInterest).toBe(0);
+    expect(summary.totalPrincipal).toBe(0);
+    expect(summary.termMonths).toBe(0);
+  });
+
+  it('含 period=0 提前还款行时，也计入摘要', () => {
+    const monthlyRate = annualToMonthlyRate(4.2);
+    const schedule = generateSchedule(100_000, 12, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest);
+    const prepayItem = { ...schedule[0], period: 0, principal: 50000, interest: 100, monthlyPayment: 50100 };
+    const combined = [...schedule.slice(0, 6), prepayItem, ...schedule.slice(6)];
+    const summary = calcScheduleSummary(combined);
+
+    expect(summary.totalPayment).toBeGreaterThan(0);
+    expect(summary.termMonths).toBe(12); // termMonths only counts period > 0
   });
 });
 
