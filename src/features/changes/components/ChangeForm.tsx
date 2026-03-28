@@ -19,7 +19,7 @@ export function ChangeForm() {
   const { applyChange, undo, canUndo, schedule, changes } = useLoanStore();
   const hasSchedule = schedule.length > 0;
   const currentMethod = changes[changes.length - 1]?.loanMethod;
-  const remainingLoan = schedule[schedule.length - 1]?.remainingLoan ?? 0;
+  const remainingLoan = changes[changes.length - 1]?.loanAmount ?? 0;
 
   // 利率变更
   const [newRate, setNewRate] = useState('');
