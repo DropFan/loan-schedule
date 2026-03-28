@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   annualToMonthlyRate,
   calcScheduleSummary,
@@ -329,30 +329,18 @@ export const useLoanStore = create<LoanState>()(
     {
       name: STORAGE_KEY,
       version: STORAGE_VERSION,
-      storage: {
-        getItem: (name) => {
-          try {
-            const str = localStorage.getItem(name);
-            return str ? JSON.parse(str) : null;
-          } catch {
-            return null;
-          }
-        },
-        setItem: (name, value) => {
-          try {
-            localStorage.setItem(name, JSON.stringify(value));
-          } catch {
-            // quota exceeded or unavailable
-          }
-        },
-        removeItem: (name) => {
-          try {
-            localStorage.removeItem(name);
-          } catch {
-            // unavailable
-          }
-        },
-      },
+      storage: createJSONStorage(() => {
+        try {
+          return localStorage;
+        } catch {
+          // fallback for environments without localStorage
+          return {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          };
+        }
+      }),
       partialize: (state) => ({
         params: state.params,
         schedule: state.schedule,
