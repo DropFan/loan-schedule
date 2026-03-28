@@ -12,15 +12,36 @@ export function PaymentTrendChart() {
     const principals = regularItems.map((item) => item.principal);
     const interests = regularItems.map((item) => item.interest);
 
-    const changeMarks = regularItems
-      .filter((item) => item.comment !== '')
-      .map((item) => ({
-        xAxis: item.period,
-      }));
+    // 变更信息：key 是数组索引，value 是变更描述
+    const changeDetailByIndex = new Map<number, string>();
+    const changeMarks: Array<{ xAxis: number }> = [];
+    for (let i = 0; i < regularItems.length; i++) {
+      const item = regularItems[i];
+      if (item.comment !== '') {
+        const detail = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
+        changeDetailByIndex.set(i, detail);
+        changeMarks.push({ xAxis: i });
+      }
+    }
 
     return {
       tooltip: {
         trigger: 'axis',
+        confine: true,
+        formatter: (params: Array<{ dataIndex: number; axisValue: string; seriesName: string; value: number; color: string }>) => {
+          if (!params.length) return '';
+          const index = params[0].dataIndex;
+          const period = params[0].axisValue;
+          let html = `<b>第 ${period} 期</b>`;
+          for (const p of params) {
+            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`;
+          }
+          const detail = changeDetailByIndex.get(index);
+          if (detail) {
+            html += `<br/><span style="color:#ff6b6b">┃</span> <b>${detail}</b>`;
+          }
+          return html;
+        },
       },
       grid: {
         top: 10,
@@ -73,8 +94,10 @@ export function PaymentTrendChart() {
                     position: 'insideEndBottom',
                     fontSize: 8,
                     color: '#ff6b6b',
-                    formatter: (params: { value: number }) =>
-                      `${params.value}期`,
+                    formatter: (params: { value: number }) => {
+                      const period = periods[params.value] ?? params.value;
+                      return `${period}期`;
+                    },
                   },
                   data: changeMarks,
                 }
