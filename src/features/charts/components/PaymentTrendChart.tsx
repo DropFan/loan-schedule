@@ -14,14 +14,27 @@ export function PaymentTrendChart() {
 
     const changeMarks = regularItems
       .filter((item) => item.comment !== '')
-      .map((item) => ({ xAxis: item.period }));
+      .map((item) => {
+        const shortComment = item.comment
+          .replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '')
+          .replace(/，.*$/, '')
+          .trim();
+        return {
+          xAxis: item.period,
+          label: {
+            formatter: shortComment,
+            fontSize: 9,
+            color: '#ff6b6b',
+          },
+        };
+      });
 
     return {
       tooltip: {
         trigger: 'axis',
       },
       grid: {
-        top: 10,
+        top: 24,
         right: 10,
         bottom: 40,
         left: 50,
@@ -29,7 +42,15 @@ export function PaymentTrendChart() {
       xAxis: {
         type: 'category',
         data: periods,
-        axisLabel: { fontSize: 10 },
+        boundaryGap: false,
+        axisLabel: {
+          fontSize: 10,
+          interval: (index: number) => {
+            if (index === 0 || index === periods.length - 1) return true;
+            const step = Math.ceil(periods.length / 15);
+            return index % step === 0;
+          },
+        },
       },
       yAxis: {
         type: 'value',
