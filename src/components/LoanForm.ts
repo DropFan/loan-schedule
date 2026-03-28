@@ -1,6 +1,10 @@
-import { BaseComponent } from './BaseComponent';
-import { LoanMethod, LoanChangeParams, ChangeType } from '../types/loan.types';
+import {
+  ChangeType,
+  type LoanChangeParams,
+  type LoanMethod,
+} from '../types/loan.types';
 import { Validator } from '../utils/validator';
+import { BaseComponent } from './BaseComponent';
 
 export interface LoanFormData {
   loanAmount: number;
@@ -65,7 +69,7 @@ export class LoanForm extends BaseComponent {
 
   private handleSubmit(): void {
     const loanAmount = parseFloat(this.getInput('loan-amount').value);
-    const loanTermYears = parseInt(this.getInput('loan-term').value);
+    const loanTermYears = parseInt(this.getInput('loan-term').value, 10);
     const annualInterestRate = parseFloat(this.getInput('interest-rate').value);
     const loanMethod = this.getSelect('loan-method').value as LoanMethod;
     const startDate = new Date(this.getInput('loan-start-date').value);
@@ -100,9 +104,15 @@ export class LoanForm extends BaseComponent {
     const loanMethod = this.getSelect('loan-method').value as LoanMethod;
 
     const rateCheck = Validator.annualInterestRate(annualRate);
-    if (!rateCheck.valid) { alert(rateCheck.message); return; }
+    if (!rateCheck.valid) {
+      alert(rateCheck.message);
+      return;
+    }
     const dateCheck = Validator.date(dateStr);
-    if (!dateCheck.valid) { alert(dateCheck.message); return; }
+    if (!dateCheck.valid) {
+      alert(dateCheck.message);
+      return;
+    }
 
     this.onRateChange?.({
       type: ChangeType.RateChange,
@@ -118,10 +128,13 @@ export class LoanForm extends BaseComponent {
     const loanMethod = this.getSelect('loan-method').value as LoanMethod;
 
     const dateCheck = Validator.date(dateStr);
-    if (!dateCheck.valid) { alert(dateCheck.message); return; }
+    if (!dateCheck.valid) {
+      alert(dateCheck.message);
+      return;
+    }
 
     // prepayAmount 的完整验证需要知道剩余本金，在 main.ts 层处理
-    if (isNaN(prepayAmount) || prepayAmount <= 0) {
+    if (Number.isNaN(prepayAmount) || prepayAmount <= 0) {
       alert('提前还款金额必须大于 0');
       return;
     }

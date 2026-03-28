@@ -1,7 +1,7 @@
-@import './variables.css';
-@import './components/form.css';
-@import './components/button.css';
-@import './components/table.css';
+@import "./variables.css";
+@import "./components/form.css";
+@import "./components/button.css";
+@import "./components/table.css";
 
 html,
 body {

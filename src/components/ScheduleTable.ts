@@ -1,7 +1,7 @@
-import { BaseComponent } from './BaseComponent';
-import type { PaymentScheduleItem } from '../types/loan.types';
-import { exportToExcel } from '../services/ExcelExporter';
 import type { LoanSchedule } from '../models/LoanSchedule';
+import { exportToExcel } from '../services/ExcelExporter';
+import type { PaymentScheduleItem } from '../types/loan.types';
+import { BaseComponent } from './BaseComponent';
 
 export class ScheduleTable extends BaseComponent {
   private model: LoanSchedule | null = null;
@@ -16,7 +16,9 @@ export class ScheduleTable extends BaseComponent {
   }
 
   render(schedule: ReadonlyArray<PaymentScheduleItem>): void {
-    const tbody = this.container.querySelector<HTMLTableSectionElement>('#schedule-table tbody');
+    const tbody = this.container.querySelector<HTMLTableSectionElement>(
+      '#schedule-table tbody',
+    );
     if (!tbody) return;
 
     // 清空现有行

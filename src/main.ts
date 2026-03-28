@@ -1,10 +1,10 @@
 import './styles/main.css';
-import { APP_VERSION, APP_RELEASE } from './constants/app.constants';
-import { LoanSchedule } from './models/LoanSchedule';
+import { ChangePanel } from './components/ChangePanel';
 import { LoanForm } from './components/LoanForm';
 import { ScheduleTable } from './components/ScheduleTable';
-import { ChangePanel } from './components/ChangePanel';
-import { LoanMethod } from './types/loan.types';
+import { APP_RELEASE, APP_VERSION } from './constants/app.constants';
+import { LoanSchedule } from './models/LoanSchedule';
+import type { LoanMethod } from './types/loan.types';
 
 // 初始化模型
 const model = new LoanSchedule();

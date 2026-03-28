@@ -1,17 +1,17 @@
 import {
-  PaymentScheduleItem,
-  LoanParameters,
-  LoanChangeRecord,
-  LoanChangeParams,
-  ChangeType,
-  LoanEventType,
-  LoanEventCallback,
-} from '../types/loan.types';
-import {
+  annualToMonthlyRate,
   calculateLoan,
   findRemainingInfo,
-  annualToMonthlyRate,
 } from '../services/LoanCalculator';
+import {
+  ChangeType,
+  type LoanChangeParams,
+  type LoanChangeRecord,
+  type LoanEventCallback,
+  type LoanEventType,
+  type LoanParameters,
+  type PaymentScheduleItem,
+} from '../types/loan.types';
 import { roundTo2 } from '../utils/formatHelper';
 
 export class LoanSchedule {
@@ -40,7 +40,7 @@ export class LoanSchedule {
 
   private emit(event: LoanEventType): void {
     const list = this._listeners.get(event) ?? [];
-    list.forEach((cb) => cb());
+    for (const cb of list) cb();
   }
 
   /** 初始化贷款计划 */
@@ -83,20 +83,33 @@ export class LoanSchedule {
     const method = changeParams.loanMethod;
     let comment = '';
 
-    if (changeParams.type === ChangeType.RateChange && changeParams.newAnnualRate != null) {
+    if (
+      changeParams.type === ChangeType.RateChange &&
+      changeParams.newAnnualRate != null
+    ) {
       // 利率变更：更新利率，本金不变
       annualRate = changeParams.newAnnualRate;
       comment = `利率变更为 ${roundTo2(annualRate).toFixed(2)}%`;
-    } else if (changeParams.type === ChangeType.Prepayment && changeParams.prepayAmount != null) {
+    } else if (
+      changeParams.type === ChangeType.Prepayment &&
+      changeParams.prepayAmount != null
+    ) {
       // 提前还款：本金减少，利率不变
       const prepayAmount = changeParams.prepayAmount;
 
       // 修改提前还款那期的数据
-      if (remaining.paidPeriods > 0 && remaining.paidPeriods <= this._schedule.length) {
+      if (
+        remaining.paidPeriods > 0 &&
+        remaining.paidPeriods <= this._schedule.length
+      ) {
         const prevItem = this._schedule[remaining.paidPeriods - 1];
-        prevItem.monthlyPayment = roundTo2(prevItem.monthlyPayment + prepayAmount);
+        prevItem.monthlyPayment = roundTo2(
+          prevItem.monthlyPayment + prepayAmount,
+        );
         prevItem.principal = roundTo2(prevItem.principal + prepayAmount);
-        prevItem.remainingLoan = roundTo2(prevItem.remainingLoan - prepayAmount);
+        prevItem.remainingLoan = roundTo2(
+          prevItem.remainingLoan - prepayAmount,
+        );
         remainingLoan = prevItem.remainingLoan;
       } else {
         remainingLoan = roundTo2(remainingLoan - prepayAmount);
@@ -107,16 +120,32 @@ export class LoanSchedule {
 
     // 计算新的还款计划
     const monthlyRate = annualToMonthlyRate(annualRate);
-    const newStartDate = changeParams.type === ChangeType.RateChange
-      ? new Date(changeParams.date.getFullYear(), changeParams.date.getMonth() - 1, 15)
-      : new Date(changeParams.date.getFullYear(), changeParams.date.getMonth(), 15);
+    const newStartDate =
+      changeParams.type === ChangeType.RateChange
+        ? new Date(
+            changeParams.date.getFullYear(),
+            changeParams.date.getMonth() - 1,
+            15,
+          )
+        : new Date(
+            changeParams.date.getFullYear(),
+            changeParams.date.getMonth(),
+            15,
+          );
 
-    const result = calculateLoan(remainingLoan, remainingTerm, monthlyRate, newStartDate, method);
+    const result = calculateLoan(
+      remainingLoan,
+      remainingTerm,
+      monthlyRate,
+      newStartDate,
+      method,
+    );
 
     // 调整期数偏移
-    const periodOffset = changeParams.type === ChangeType.RateChange
-      ? remaining.paidPeriods - 1
-      : remaining.paidPeriods;
+    const periodOffset =
+      changeParams.type === ChangeType.RateChange
+        ? remaining.paidPeriods - 1
+        : remaining.paidPeriods;
 
     result.schedule.forEach((item) => {
       item.period += periodOffset;
@@ -140,15 +169,19 @@ export class LoanSchedule {
     result.schedule[0].comment = ` ${dateStr}${comment}`;
 
     // 拼接计划
-    const sliceIndex = changeParams.type === ChangeType.RateChange
-      ? remaining.paidPeriods - 1
-      : remaining.paidPeriods;
-    this._schedule = this._schedule.slice(0, sliceIndex).concat(result.schedule);
+    const sliceIndex =
+      changeParams.type === ChangeType.RateChange
+        ? remaining.paidPeriods - 1
+        : remaining.paidPeriods;
+    this._schedule = this._schedule
+      .slice(0, sliceIndex)
+      .concat(result.schedule);
 
     // 记录变更
-    const changeRemainingTerm = changeParams.type === ChangeType.RateChange
-      ? remainingTerm - 1
-      : remainingTerm;
+    const changeRemainingTerm =
+      changeParams.type === ChangeType.RateChange
+        ? remainingTerm - 1
+        : remainingTerm;
 
     this._changeList.push({
       date: changeParams.date,

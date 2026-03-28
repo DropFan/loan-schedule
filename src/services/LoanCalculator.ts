@@ -1,11 +1,11 @@
 import {
+  type CalculateResult,
   LoanMethod,
   LoanMethodName,
-  PaymentScheduleItem,
-  CalculateResult,
-  RemainingScheduleInfo,
+  type PaymentScheduleItem,
+  type RemainingScheduleInfo,
 } from '../types/loan.types';
-import { roundTo2, addMonths, formatDate } from '../utils/formatHelper';
+import { addMonths, formatDate, roundTo2 } from '../utils/formatHelper';
 
 export function annualToMonthlyRate(annualRate: number): number {
   return annualRate / 100 / 12;
@@ -17,7 +17,7 @@ export function calcEqualPrincipalInterest(
   termMonths: number,
   monthlyRate: number,
 ): number {
-  const pow = Math.pow(1 + monthlyRate, termMonths);
+  const pow = (1 + monthlyRate) ** termMonths;
   return (principal * monthlyRate * pow) / (pow - 1);
 }
 
@@ -104,7 +104,8 @@ export function findRemainingInfo(
   if (schedule.length === 0) return null;
 
   const currentIndex = schedule.findIndex(
-    (item) => new Date(item.paymentDate) > changeDate && item.monthlyPayment > 0,
+    (item) =>
+      new Date(item.paymentDate) > changeDate && item.monthlyPayment > 0,
   );
 
   // 所有还款日期都早于变更日期 → 贷款已还完
@@ -130,8 +131,19 @@ export function calculateLoan(
   startDate: Date,
   method: LoanMethod,
 ): CalculateResult {
-  const monthlyPayment = calcMonthlyPayment(loanAmount, termMonths, monthlyRate, method);
-  const schedule = generateSchedule(loanAmount, termMonths, monthlyRate, startDate, method);
+  const monthlyPayment = calcMonthlyPayment(
+    loanAmount,
+    termMonths,
+    monthlyRate,
+    method,
+  );
+  const schedule = generateSchedule(
+    loanAmount,
+    termMonths,
+    monthlyRate,
+    startDate,
+    method,
+  );
 
   return { monthlyPayment: roundTo2(monthlyPayment), schedule };
 }

@@ -49,7 +49,7 @@ export interface LoanChangeParams {
   date: Date;
   loanMethod: LoanMethod;
   newAnnualRate?: number; // 利率变更时使用
-  prepayAmount?: number;  // 提前还款时使用
+  prepayAmount?: number; // 提前还款时使用
 }
 
 export interface RemainingScheduleInfo {

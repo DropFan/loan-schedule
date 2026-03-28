@@ -1,6 +1,6 @@
-import { BaseComponent } from './BaseComponent';
 import type { LoanChangeRecord } from '../types/loan.types';
-import { LoanMethodName, LoanMethod } from '../types/loan.types';
+import { type LoanMethod, LoanMethodName } from '../types/loan.types';
+import { BaseComponent } from './BaseComponent';
 
 export class ChangePanel extends BaseComponent {
   constructor() {

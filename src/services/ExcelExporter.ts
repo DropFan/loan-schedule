@@ -1,5 +1,8 @@
-import type { PaymentScheduleItem, LoanChangeRecord } from '../types/loan.types';
-import { LoanMethodName, LoanMethod } from '../types/loan.types';
+import type {
+  LoanChangeRecord,
+  PaymentScheduleItem,
+} from '../types/loan.types';
+import { type LoanMethod, LoanMethodName } from '../types/loan.types';
 
 export async function exportToExcel(
   schedule: ReadonlyArray<PaymentScheduleItem>,
@@ -9,8 +12,18 @@ export async function exportToExcel(
   const XLSX = await import('xlsx');
 
   const worksheetData: (string | number)[][] = [
-    ['期数', '还款日期', '月还款金额', '本金', '利息', '剩余本金', '剩余期数',
-      '利率', '还款方式', '说明'],
+    [
+      '期数',
+      '还款日期',
+      '月还款金额',
+      '本金',
+      '利息',
+      '剩余本金',
+      '剩余期数',
+      '利率',
+      '还款方式',
+      '说明',
+    ],
     ...schedule.map((row) => [
       row.period,
       row.paymentDate,
@@ -19,7 +32,7 @@ export async function exportToExcel(
       row.interest.toFixed(2),
       row.remainingLoan.toFixed(2),
       row.remainingTerm,
-      row.annualInterestRate + '%',
+      `${row.annualInterestRate}%`,
       row.loanMethod,
       row.comment,
       '',
@@ -31,13 +44,21 @@ export async function exportToExcel(
     ['', '', '', '', '', '', '', '', '', '', ''],
     ['', '', '变更列表', '', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', '', '', '', ''],
-    ['变更日期', '月还款金额', '剩余本金', '剩余期数', '利率', '还款方式', '说明'],
+    [
+      '变更日期',
+      '月还款金额',
+      '剩余本金',
+      '剩余期数',
+      '利率',
+      '还款方式',
+      '说明',
+    ],
     ...changeList.map((row) => [
       row.date.toISOString().split('T')[0],
       row.monthlyPayment.toFixed(2),
       row.loanAmount.toFixed(2),
       row.remainingTerm,
-      row.annualInterestRate + '%',
+      `${row.annualInterestRate}%`,
       LoanMethodName[row.loanMethod as LoanMethod],
       row.comment,
     ]),
@@ -48,9 +69,33 @@ export async function exportToExcel(
     ['', '', '', '', '', '', '', '', '', '', ' '],
     ['', '', '', '', '', '', '', '', '', '', '贷款计算 & 还贷模拟器 可访问：'],
     ['', '', '', '', '', '', '', '', '', '', 'https://loan.v2dl.net/'],
-    ['', '', '', '', '', '', '', '', '', '', '在这个文件里留公众号像极了早年互联网分享软件和资源的各种广告行为……'],
+    [
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '在这个文件里留公众号像极了早年互联网分享软件和资源的各种广告行为……',
+    ],
     ['', '', '', '', '', '', '', '', '', '', '就当是古典互联网的文艺复兴吧'],
-    ['', '', '', '', '', '', '', '', '', '', '有任何问题可通过微信公众号 Hacking4fun 或 Github 与我交流'],
+    [
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '有任何问题可通过微信公众号 Hacking4fun 或 Github 与我交流',
+    ],
   ];
 
   while (worksheetData.length < rightContent.length) {
@@ -59,7 +104,10 @@ export async function exportToExcel(
 
   rightContent.forEach((row, index) => {
     try {
-      worksheetData[index] = [...(worksheetData[index] as (string | number)[]).slice(0, 10), row[10]];
+      worksheetData[index] = [
+        ...(worksheetData[index] as (string | number)[]).slice(0, 10),
+        row[10],
+      ];
     } catch {
       // skip merge errors
     }
@@ -67,7 +115,11 @@ export async function exportToExcel(
 
   const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, '还款计划表 - 由公众号 Hacking4fun 生成');
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    '还款计划表 - 由公众号 Hacking4fun 生成',
+  );
 
   if (!filename) {
     const now = new Date();
