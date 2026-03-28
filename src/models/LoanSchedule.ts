@@ -1,3 +1,4 @@
+import { MS_PER_DAY, REPAYMENT_DAY } from '../constants/app.constants';
 import {
   annualToMonthlyRate,
   calculateLoan,
@@ -62,13 +63,14 @@ export class LoanSchedule {
       params.loanAmount,
       params.loanTermMonths,
       monthlyRate,
+      params.annualInterestRate,
       params.startDate,
       params.loanMethod,
     );
 
     // 首期按天计息：放款日和还款日不一致时，首期产生额外利息
     const startDay = params.startDate.getDate();
-    const repaymentDay = 15;
+    const repaymentDay = REPAYMENT_DAY;
     let firstPeriodComment = '';
 
     if (startDay !== repaymentDay && result.schedule.length > 0) {
@@ -138,7 +140,7 @@ export class LoanSchedule {
     // 按天计算额外利息（基于最后一期常规还款日，而非提前还款行日期）
     const lastRegularDate = new Date(remaining.lastRegularPaymentDate);
     const deltaDay =
-      (changeParams.date.getTime() - lastRegularDate.getTime()) / 86400000;
+      (changeParams.date.getTime() - lastRegularDate.getTime()) / MS_PER_DAY;
     let extraInterest = 0;
 
     if (
@@ -184,6 +186,7 @@ export class LoanSchedule {
       remainingLoan,
       remainingTerm,
       monthlyRate,
+      annualRate,
       newStartDate,
       method,
     );

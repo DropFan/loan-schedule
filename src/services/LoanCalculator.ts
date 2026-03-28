@@ -1,3 +1,4 @@
+import { REPAYMENT_DAY } from '../constants/app.constants';
 import {
   type CalculateResult,
   LoanMethod,
@@ -5,7 +6,7 @@ import {
   type PaymentScheduleItem,
   type RemainingScheduleInfo,
 } from '../types/loan.types';
-import { addMonths, formatDate } from '../utils/formatHelper';
+import { addMonths, formatDate, roundTo2 } from '../utils/formatHelper';
 
 export function annualToMonthlyRate(annualRate: number): number {
   return annualRate / 100 / 12;
@@ -49,34 +50,32 @@ export function generateSchedule(
   loanAmount: number,
   termMonths: number,
   monthlyRate: number,
+  annualRate: number,
   startDate: Date,
   method: LoanMethod,
 ): PaymentScheduleItem[] {
   const schedule: PaymentScheduleItem[] = [];
   let remainingLoan = loanAmount;
-  const annualRate = parseFloat((monthlyRate * 12 * 100).toFixed(2));
 
   for (let i = 1; i <= termMonths; i++) {
     let monthlyPayment: number;
     let principal: number;
-    const interest = remainingLoan * monthlyRate;
+    const interest = roundTo2(remainingLoan * monthlyRate);
 
     if (method === LoanMethod.EqualPrincipalInterest) {
-      monthlyPayment = calcEqualPrincipalInterest(
-        loanAmount,
-        termMonths,
-        monthlyRate,
+      monthlyPayment = roundTo2(
+        calcEqualPrincipalInterest(loanAmount, termMonths, monthlyRate),
       );
-      principal = monthlyPayment - interest;
+      principal = roundTo2(monthlyPayment - interest);
     } else {
       // 等额本金：每期本金固定，月供 = 固定本金 + 当期利息
-      principal = loanAmount / termMonths;
-      monthlyPayment = principal + interest;
+      principal = roundTo2(loanAmount / termMonths);
+      monthlyPayment = roundTo2(principal + interest);
     }
 
-    remainingLoan -= principal;
+    remainingLoan = roundTo2(remainingLoan - principal);
 
-    const paymentDate = addMonths(startDate, i, 15);
+    const paymentDate = addMonths(startDate, i, REPAYMENT_DAY);
 
     schedule.push({
       period: i,
@@ -135,19 +134,18 @@ export function calculateLoan(
   loanAmount: number,
   termMonths: number,
   monthlyRate: number,
+  annualRate: number,
   startDate: Date,
   method: LoanMethod,
 ): CalculateResult {
-  const monthlyPayment = calcMonthlyPayment(
-    loanAmount,
-    termMonths,
-    monthlyRate,
-    method,
+  const monthlyPayment = roundTo2(
+    calcMonthlyPayment(loanAmount, termMonths, monthlyRate, method),
   );
   const schedule = generateSchedule(
     loanAmount,
     termMonths,
     monthlyRate,
+    annualRate,
     startDate,
     method,
   );
