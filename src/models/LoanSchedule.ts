@@ -1,6 +1,8 @@
 import { MS_PER_DAY, REPAYMENT_DAY } from '../constants/app.constants';
 import {
   annualToMonthlyRate,
+  calcTermByFixedPrincipal,
+  calcTermByPayment,
   calculateLoan,
   findRemainingInfo,
 } from '../services/LoanCalculator';
@@ -10,9 +12,11 @@ import {
   type LoanChangeRecord,
   type LoanEventCallback,
   type LoanEventType,
+  LoanMethod,
   LoanMethodName,
   type LoanParameters,
   type PaymentScheduleItem,
+  PrepaymentMode,
 } from '../types/loan.types';
 import { formatDate } from '../utils/formatHelper';
 
@@ -133,7 +137,7 @@ export class LoanSchedule {
 
     let remainingLoan = remaining.remainingLoan;
     let annualRate = remaining.annualInterestRate;
-    const remainingTerm = remaining.remainingTerm;
+    let remainingTerm = remaining.remainingTerm;
     const method = changeParams.loanMethod;
     let comment = '';
 
@@ -175,6 +179,33 @@ export class LoanSchedule {
           (((prepayAmount * remaining.annualInterestRate) / 100 / 12) *
             deltaDay) /
           30;
+      }
+
+      // 缩短年限模式：保持月供不变，反算新期数
+      if (changeParams.prepaymentMode === PrepaymentMode.ShortenTerm) {
+        const newMonthlyRate = annualToMonthlyRate(annualRate);
+        let newTerm: number | null;
+
+        if (method === LoanMethod.EqualPrincipalInterest) {
+          const currentMonthlyPayment = this.getLastMonthlyPayment();
+          newTerm = calcTermByPayment(
+            remainingLoan,
+            currentMonthlyPayment,
+            newMonthlyRate,
+          );
+        } else {
+          // 等额本金：保持每期固定本金不变
+          const lastChange = this._changeList[this._changeList.length - 1];
+          const fixedPrincipal =
+            lastChange.loanAmount / lastChange.remainingTerm;
+          newTerm = calcTermByFixedPrincipal(remainingLoan, fixedPrincipal);
+        }
+
+        if (newTerm != null && newTerm > 0) {
+          const termDiff = remainingTerm - newTerm;
+          remainingTerm = newTerm;
+          comment += `，期数缩短 ${termDiff} 期`;
+        }
       }
     }
 

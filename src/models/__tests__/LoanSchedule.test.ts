@@ -4,6 +4,7 @@ import {
   ChangeType,
   LoanMethod,
   type LoanParameters,
+  PrepaymentMode,
 } from '../../types/loan.types';
 import { LoanSchedule } from '../LoanSchedule';
 
@@ -284,6 +285,100 @@ describe('LoanSchedule', () => {
         const prepayItem = ls.schedule.find((item) => item.period === 0);
         expect(prepayItem).toBeDefined();
         expect(prepayItem!.interest).toBeGreaterThan(0);
+      });
+
+      describe('缩短年限模式 (ShortenTerm)', () => {
+        it('等额本息：缩短年限后月供接近不变，期数减少', () => {
+          const ls = new LoanSchedule();
+          ls.initialize(
+            makeParams({ startDate: new Date(2024, 0, REPAYMENT_DAY) }),
+          );
+
+          const oldMonthlyPayment = ls.changeList[0].monthlyPayment;
+          const oldScheduleLength = ls.schedule.length;
+
+          const changeDate = new Date(ls.schedule[11].paymentDate);
+          ls.applyChange({
+            type: ChangeType.Prepayment,
+            date: changeDate,
+            loanMethod: LoanMethod.EqualPrincipalInterest,
+            prepayAmount: 100_000,
+            prepaymentMode: PrepaymentMode.ShortenTerm,
+          });
+
+          const lastChange = ls.changeList[1];
+          // 月供应保持接近不变
+          expect(lastChange.monthlyPayment).toBeCloseTo(oldMonthlyPayment, -2);
+          // 期数应缩短（原 remainingTerm=348）
+          expect(lastChange.remainingTerm).toBeLessThan(348);
+          // comment 应包含"期数缩短"信息
+          expect(lastChange.comment).toContain('期数缩短');
+          // schedule 长度应减少
+          expect(ls.schedule.length).toBeLessThan(oldScheduleLength);
+        });
+
+        it('等额本金：缩短年限后每期固定本金不变，期数减少', () => {
+          const ls = new LoanSchedule();
+          ls.initialize(
+            makeParams({
+              loanMethod: LoanMethod.EqualPrincipal,
+              startDate: new Date(2024, 0, REPAYMENT_DAY),
+            }),
+          );
+
+          const oldScheduleLength = ls.schedule.length;
+
+          const changeDate = new Date(ls.schedule[11].paymentDate);
+          ls.applyChange({
+            type: ChangeType.Prepayment,
+            date: changeDate,
+            loanMethod: LoanMethod.EqualPrincipal,
+            prepayAmount: 100_000,
+            prepaymentMode: PrepaymentMode.ShortenTerm,
+          });
+
+          const lastChange = ls.changeList[1];
+          expect(lastChange.remainingTerm).toBeLessThan(348);
+          expect(lastChange.comment).toContain('期数缩短');
+          expect(ls.schedule.length).toBeLessThan(oldScheduleLength);
+        });
+
+        it('默认模式（不传 prepaymentMode）行为不变：减少月供', () => {
+          const ls = new LoanSchedule();
+          ls.initialize(
+            makeParams({ startDate: new Date(2024, 0, REPAYMENT_DAY) }),
+          );
+
+          const changeDate = new Date(ls.schedule[11].paymentDate);
+          ls.applyChange({
+            type: ChangeType.Prepayment,
+            date: changeDate,
+            loanMethod: LoanMethod.EqualPrincipalInterest,
+            prepayAmount: 100_000,
+            // 不传 prepaymentMode
+          });
+
+          expect(ls.changeList[1].remainingTerm).toBe(348);
+          expect(ls.changeList[1].comment).toContain('月供减少');
+        });
+
+        it('显式传 ReducePayment 行为与默认一致', () => {
+          const ls = new LoanSchedule();
+          ls.initialize(
+            makeParams({ startDate: new Date(2024, 0, REPAYMENT_DAY) }),
+          );
+
+          const changeDate = new Date(ls.schedule[11].paymentDate);
+          ls.applyChange({
+            type: ChangeType.Prepayment,
+            date: changeDate,
+            loanMethod: LoanMethod.EqualPrincipalInterest,
+            prepayAmount: 100_000,
+            prepaymentMode: PrepaymentMode.ReducePayment,
+          });
+
+          expect(ls.changeList[1].remainingTerm).toBe(348);
+        });
       });
 
       it('提前还款插入独立记录行，remainingLoan 不为负', () => {
