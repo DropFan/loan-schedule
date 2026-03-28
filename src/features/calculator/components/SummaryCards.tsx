@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { PaymentTrendChart } from '@/features/charts';
 import { formatCurrency } from '@/core/utils/formatHelper';
 import { useLoanStore } from '@/stores/useLoanStore';
 
@@ -36,6 +37,9 @@ export function SummaryCards() {
               <div className="text-xs text-muted mt-1">{item.label}</div>
             </div>
           ))}
+        </div>
+        <div className="mt-4">
+          <PaymentTrendChart />
         </div>
       </CardContent>
     </Card>
