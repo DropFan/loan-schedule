@@ -42,7 +42,18 @@ export interface LoanChangeRecord {
 export enum ChangeType {
   RateChange = 'rate-change',
   Prepayment = 'prepayment',
+  MethodChange = 'method-change',
 }
+
+export enum PrepaymentMode {
+  ReducePayment = 'reduce-payment',
+  ShortenTerm = 'shorten-term',
+}
+
+export const PrepaymentModeName: Record<PrepaymentMode, string> = {
+  [PrepaymentMode.ReducePayment]: '减少月供',
+  [PrepaymentMode.ShortenTerm]: '缩短年限',
+};
 
 export interface LoanChangeParams {
   type: ChangeType;
@@ -50,6 +61,7 @@ export interface LoanChangeParams {
   loanMethod: LoanMethod;
   newAnnualRate?: number; // 利率变更时使用
   prepayAmount?: number; // 提前还款时使用
+  prepaymentMode?: PrepaymentMode;
 }
 
 export interface RemainingScheduleInfo {
@@ -64,6 +76,13 @@ export interface RemainingScheduleInfo {
 export interface CalculateResult {
   monthlyPayment: number;
   schedule: PaymentScheduleItem[];
+}
+
+export interface LoanScheduleSummary {
+  totalPayment: number;
+  totalInterest: number;
+  totalPrincipal: number;
+  termMonths: number;
 }
 
 export type LoanEventType = 'initialized' | 'changed' | 'cleared';
