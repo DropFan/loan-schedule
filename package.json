@@ -1,37 +1,50 @@
 {
-    "name": "loan-schedule",
-    "version": "0.8.0",
-    "description": "一个功能强大的贷款计算器和还贷模拟器，特别支持存量房贷计算多次调整利率和提前还款，模拟用户真实的还贷情况。由 Tiger 开发，帮助用户轻松管理贷款计划。",
-    "license": "CC-BY-NC-SA-4.0",
-    "author": "Tiger <DropFan@Gmail.com>",
-    "link": "https://loan.v2dl.net",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/DropFan/loan-schedule.git"
-    },
-    "type": "module",
-    "main": "index.html",
-    "scripts": {
-        "dev": "vite --host 0.0.0.0",
-        "build": "vite build",
-        "preview": "vite preview",
-        "type-check": "tsc --noEmit",
-        "lint": "biome check src/",
-        "lint:fix": "biome check --write src/",
-        "format": "biome format --write src/",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage"
-    },
-    "devDependencies": {
-        "@biomejs/biome": "2.4.9",
-        "@vitest/coverage-v8": "^4.1.2",
-        "happy-dom": "^20.8.9",
-        "typescript": "^6.0.2",
-        "vite": "^8.0.3",
-        "vitest": "^4.1.2"
-    },
-    "dependencies": {
-        "xlsx": "^0.18.5"
-    }
+  "name": "loan-schedule",
+  "version": "2.0.0-alpha.1",
+  "description": "贷款计算器 & 还贷模拟器 — 支持利率变更、提前还款、自定义利率表",
+  "license": "CC-BY-NC-SA-4.0",
+  "author": "Tiger <DropFan@Gmail.com>",
+  "link": "https://loan.v2dl.net",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DropFan/loan-schedule.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router": "^7.6.1",
+    "zustand": "^5.0.5",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
+    "@tanstack/react-virtual": "^3.13.6",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.9",
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.2",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "jsdom": "^26.1.0",
+    "tailwindcss": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.8",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
+  }
 }
