@@ -129,6 +129,31 @@ export function findRemainingInfo(
   };
 }
 
+/** 等额本息：已知月供、剩余本金、月利率，反算剩余期数（向上取整）。月供不足以覆盖利息时返回 null */
+export function calcTermByPayment(
+  remainingLoan: number,
+  monthlyPayment: number,
+  monthlyRate: number,
+): number | null {
+  if (remainingLoan <= 0) return 0;
+  const netPayment = monthlyPayment - remainingLoan * monthlyRate;
+  if (netPayment <= 0) return null;
+  const exact = Math.log(monthlyPayment / netPayment) / Math.log(1 + monthlyRate);
+  // 浮点精度修正：若计算值与整数相差极小，视为整数
+  const rounded = Math.round(exact);
+  return Math.abs(exact - rounded) < 1e-4 ? rounded : Math.ceil(exact);
+}
+
+/** 等额本金：已知剩余本金和每期固定本金，反算剩余期数（向上取整）。固定本金为 0 时返回 null */
+export function calcTermByFixedPrincipal(
+  remainingLoan: number,
+  fixedPrincipal: number,
+): number | null {
+  if (remainingLoan <= 0) return 0;
+  if (fixedPrincipal <= 0) return null;
+  return Math.ceil(remainingLoan / fixedPrincipal);
+}
+
 /** 统一计算入口 */
 export function calculateLoan(
   loanAmount: number,

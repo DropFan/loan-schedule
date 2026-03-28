@@ -6,6 +6,8 @@ import {
   calcEqualPrincipalInterest,
   calcEqualPrincipalMonthly,
   calcMonthlyPayment,
+  calcTermByFixedPrincipal,
+  calcTermByPayment,
   calculateLoan,
   findRemainingInfo,
   generateSchedule,
@@ -277,6 +279,51 @@ describe('findRemainingInfo', () => {
     expect(result!.lastPaymentDate).toBe('2024-06-20');
     // lastRegularDate 为空，fallback 到 ref.paymentDate
     expect(result!.lastRegularPaymentDate).toBe('2024-06-20');
+  });
+});
+
+describe('calcTermByPayment', () => {
+  it('等额本息：根据月供反算期数', () => {
+    const monthlyRate = annualToMonthlyRate(4.2);
+    const monthlyPayment = calcEqualPrincipalInterest(1_000_000, 360, monthlyRate);
+    const remaining = findRemainingInfo(
+      generateSchedule(1_000_000, 360, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest),
+      new Date(2025, 0, 15),
+    );
+    const newTerm = calcTermByPayment(remaining!.remainingLoan, monthlyPayment, monthlyRate);
+    expect(newTerm).toBe(remaining!.remainingTerm);
+  });
+
+  it('提前还款10万后，期数应缩短', () => {
+    const monthlyRate = annualToMonthlyRate(4.2);
+    const monthlyPayment = calcEqualPrincipalInterest(1_000_000, 360, monthlyRate);
+    const schedule = generateSchedule(1_000_000, 360, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest);
+    const remaining = findRemainingInfo(schedule, new Date(2025, 0, 15));
+    const newLoan = remaining!.remainingLoan - 100_000;
+    const newTerm = calcTermByPayment(newLoan, monthlyPayment, monthlyRate);
+    expect(newTerm).toBeLessThan(remaining!.remainingTerm);
+    expect(newTerm).toBeGreaterThan(0);
+  });
+
+  it('月供不足以覆盖利息时返回 null', () => {
+    const result = calcTermByPayment(1_000_000, 100, 0.01);
+    expect(result).toBeNull();
+  });
+});
+
+describe('calcTermByFixedPrincipal', () => {
+  it('等额本金：根据固定本金反算期数', () => {
+    const fixedPrincipal = 1_000_000 / 360;
+    const newTerm = calcTermByFixedPrincipal(900_000, fixedPrincipal);
+    expect(newTerm).toBe(Math.ceil(900_000 / fixedPrincipal));
+  });
+
+  it('剩余本金为 0 时返回 0', () => {
+    expect(calcTermByFixedPrincipal(0, 2777.78)).toBe(0);
+  });
+
+  it('固定本金为 0 时返回 null', () => {
+    expect(calcTermByFixedPrincipal(100_000, 0)).toBeNull();
   });
 });
 
