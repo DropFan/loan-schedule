@@ -24,6 +24,18 @@
 			"quoteStyle": "single"
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["**/__tests__/**", "**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noNonNullAssertion": "off"
+					}
+				}
+			}
+		}
+	],
 	"assist": {
 		"enabled": true,
 		"actions": {
