@@ -15,7 +15,7 @@ const columns = [
   { key: 'interest', label: '利息', width: 'w-20' },
   { key: 'remainingLoan', label: '剩余本金', width: 'w-28' },
   { key: 'annualInterestRate', label: '利率', width: 'w-16' },
-  { key: 'comment', label: '备注', width: 'w-40' },
+  { key: 'comment', label: '备注', width: 'w-60' },
 ] as const;
 
 export function ScheduleTable() {
@@ -58,7 +58,7 @@ export function ScheduleTable() {
           className="max-h-[500px] overflow-auto"
         >
           {/* 内层定宽容器，表头和数据一起横向滚动 */}
-          <div className="min-w-[760px]">
+          <div className="min-w-[840px]">
             {/* 表头 — sticky top 让纵向滚动时固定 */}
             <div className="flex border-b border-border bg-background text-xs font-medium text-muted-foreground sticky top-0 z-10">
               {columns.map((col) => (
@@ -101,7 +101,7 @@ export function ScheduleTable() {
                     <div className="w-20 shrink-0 px-2 py-2">{formatCurrency(row.interest)}</div>
                     <div className="w-28 shrink-0 px-2 py-2">{formatCurrency(row.remainingLoan)}</div>
                     <div className="w-16 shrink-0 px-2 py-2">{row.annualInterestRate}%</div>
-                    <div className="w-40 shrink-0 px-2 py-2 text-muted-foreground truncate">
+                    <div className="w-60 shrink-0 px-2 py-2 text-muted-foreground break-words">
                       {row.comment}
                     </div>
                   </div>
