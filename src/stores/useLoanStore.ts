@@ -346,6 +346,7 @@ export const useLoanStore = create<LoanState>()(
         schedule: state.schedule,
         changes: state.changes,
         rateTable: state.rateTable,
+        history: state.history,
       }),
       onRehydrateStorage: () => (state) => {
         if (state && state.schedule.length > 0) {
