@@ -53,21 +53,22 @@ export function ScheduleTable() {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          {/* 表头 */}
-          <div className="flex border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground sticky top-0 z-10">
-            {columns.map((col) => (
-              <div key={col.key} className={`${col.width} shrink-0 px-2 py-2`}>
-                {col.label}
-              </div>
-            ))}
-          </div>
+        <div
+          ref={parentRef}
+          className="max-h-[500px] overflow-auto"
+        >
+          {/* 内层定宽容器，表头和数据一起横向滚动 */}
+          <div className="min-w-[760px]">
+            {/* 表头 — sticky top 让纵向滚动时固定 */}
+            <div className="flex border-b border-border bg-background text-xs font-medium text-muted-foreground sticky top-0 z-10">
+              {columns.map((col) => (
+                <div key={col.key} className={`${col.width} shrink-0 px-2 py-2`}>
+                  {col.label}
+                </div>
+              ))}
+            </div>
 
-          {/* 虚拟滚动区域 */}
-          <div
-            ref={parentRef}
-            className="max-h-[500px] overflow-y-auto"
-          >
+            {/* 虚拟滚动区域 */}
             <div
               style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
             >
