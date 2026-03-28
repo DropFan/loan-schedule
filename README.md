@@ -2,7 +2,7 @@
 ===
 
 <div class="app-desc" style="text-align:center" align="center">
-    <a href="https://loan.v2dl.net/?from=github-readme" target="_blank"><img src="./logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" /></a>
+    <a href="https://loan.v2dl.net/?from=github-readme" target="_blank"><img src="./public/logo-128.png" alt="贷款计算器&还贷模拟器 By Tiger https://github.com/DropFan" /></a>
     <h1>贷款计算&还贷模拟器</h1>
     <p>一个功能强大的贷款计算器和还贷模拟器。</p>
     <p>特别支持存量房贷多次调整利率和提前还款的计算，模拟用户真实的还贷情况。</p>
