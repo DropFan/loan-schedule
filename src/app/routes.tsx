@@ -1,6 +1,8 @@
 import type { RouteObject } from 'react-router';
 import { AppShell } from '@/components/layout/AppShell';
 import { CalculatorPage } from '@/features/calculator';
+import { RateTablePage } from '@/features/rate-table';
+import { SettingsPage } from '@/features/settings';
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -17,8 +19,8 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <CalculatorPage /> },
       { path: 'analysis', element: <PlaceholderPage title="数据分析" /> },
-      { path: 'rates', element: <PlaceholderPage title="利率表" /> },
-      { path: 'settings', element: <PlaceholderPage title="设置" /> },
+      { path: 'rates', element: <RateTablePage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 ];
