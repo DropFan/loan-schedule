@@ -22,7 +22,7 @@ export class ChangePanel extends BaseComponent {
       // 日期 + 说明行
       const pDate = document.createElement('p');
       const spanDate = document.createElement('span');
-      spanDate.id = 'loan-change-date';
+      spanDate.className = 'loan-change-date';
       spanDate.textContent = dateStr;
       pDate.appendChild(spanDate);
 

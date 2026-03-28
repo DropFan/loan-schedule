@@ -108,8 +108,8 @@ export async function exportToExcel(
         ...(worksheetData[index] as (string | number)[]).slice(0, 10),
         row[10],
       ];
-    } catch {
-      // skip merge errors
+    } catch (e) /* v8 ignore next */ {
+      console.warn('Excel export: row merge skipped', e);
     }
   });
 
