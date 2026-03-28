@@ -8,9 +8,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
-import { LoanMethod } from '@/core/types/loan.types';
+import { LoanMethod, LoanMethodName } from '@/core/types/loan.types';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
 
@@ -111,7 +110,7 @@ export function LoanForm() {
             <Label htmlFor="loan-method">还贷方式</Label>
             <Select value={method} onValueChange={(v) => setMethod(v as LoanMethod)}>
               <SelectTrigger>
-                <SelectValue />
+                {LoanMethodName[method]}
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={LoanMethod.EqualPrincipalInterest}>

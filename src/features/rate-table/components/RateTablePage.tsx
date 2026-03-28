@@ -44,12 +44,12 @@ export function RateTablePage() {
             <div className="flex items-center justify-between py-2 px-3 mb-2 rounded bg-muted/20 text-sm">
               <span>{params.startDate instanceof Date ? params.startDate.toISOString().split('T')[0] : String(params.startDate).split('T')[0]}</span>
               <span className="font-medium">{params.annualInterestRate}%</span>
-              <span className="text-xs text-muted">初始利率（自动同步）</span>
+              <span className="text-xs text-muted-foreground">初始利率（自动同步）</span>
             </div>
           )}
 
           {sorted.length === 0 && !params && (
-            <p className="text-sm text-muted py-4 text-center">
+            <p className="text-sm text-muted-foreground py-4 text-center">
               暂无利率数据。请先在贷款计算页面设置贷款参数。
             </p>
           )}
@@ -80,7 +80,7 @@ export function RateTablePage() {
             ))}
           </div>
 
-          <p className="text-xs text-muted mt-4">
+          <p className="text-xs text-muted-foreground mt-4">
             利率表中的变更会自动应用到还款计划。首条利率与贷款参数中的利率同步。
           </p>
         </CardContent>

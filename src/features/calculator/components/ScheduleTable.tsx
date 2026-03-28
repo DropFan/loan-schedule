@@ -55,7 +55,7 @@ export function ScheduleTable() {
       <CardContent>
         <div className="overflow-x-auto">
           {/* 表头 */}
-          <div className="flex border-b border-border bg-muted/30 text-xs font-medium text-muted sticky top-0 z-10">
+          <div className="flex border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground sticky top-0 z-10">
             {columns.map((col) => (
               <div key={col.key} className={`${col.width} shrink-0 px-2 py-2`}>
                 {col.label}
@@ -100,7 +100,7 @@ export function ScheduleTable() {
                     <div className="w-20 shrink-0 px-2 py-2">{formatCurrency(row.interest)}</div>
                     <div className="w-28 shrink-0 px-2 py-2">{formatCurrency(row.remainingLoan)}</div>
                     <div className="w-16 shrink-0 px-2 py-2">{row.annualInterestRate}%</div>
-                    <div className="w-40 shrink-0 px-2 py-2 text-muted truncate">
+                    <div className="w-40 shrink-0 px-2 py-2 text-muted-foreground truncate">
                       {row.comment}
                     </div>
                   </div>

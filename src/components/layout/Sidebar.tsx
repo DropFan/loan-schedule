@@ -47,7 +47,7 @@ export function Sidebar() {
               `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                 isActive
                   ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted hover:bg-muted/10'
+                  : 'text-muted-foreground hover:bg-muted/10'
               }`
             }
           >
@@ -57,7 +57,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 text-xs text-muted border-t border-border">
+      <div className="p-3 text-xs text-muted-foreground border-t border-border">
         {!collapsed && `v${APP_VERSION}`}
       </div>
     </aside>

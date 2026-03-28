@@ -20,7 +20,7 @@ export function SettingsPage() {
           <CardTitle>数据管理</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             所有数据存储在浏览器本地，清除后无法恢复。
           </p>
           <Button variant="destructive" onClick={handleClearData}>
@@ -35,8 +35,8 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="text-sm space-y-2">
           <p>贷款计算器 & 还贷模拟器</p>
-          <p className="text-muted">版本 v{APP_VERSION} (Release {APP_RELEASE})</p>
-          <p className="text-muted">作者：{APP_AUTHOR}</p>
+          <p className="text-muted-foreground">版本 v{APP_VERSION} (Release {APP_RELEASE})</p>
+          <p className="text-muted-foreground">作者：{APP_AUTHOR}</p>
           <p>
             <a href={APP_LINK} className="text-primary hover:underline" target="_blank" rel="noreferrer">
               {APP_LINK}

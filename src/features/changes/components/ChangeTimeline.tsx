@@ -28,8 +28,8 @@ export function ChangeTimeline() {
                   ? formatDate(change.date)
                   : new Date(change.date).toISOString().split('T')[0]}
               </div>
-              <div className="text-sm text-muted mt-0.5">{change.comment}</div>
-              <div className="text-xs text-muted mt-1 space-x-3">
+              <div className="text-sm text-muted-foreground mt-0.5">{change.comment}</div>
+              <div className="text-xs text-muted-foreground mt-1 space-x-3">
                 <span>月供 ¥{formatCurrency(change.monthlyPayment)}</span>
                 <span>剩余 ¥{formatCurrency(change.loanAmount)}</span>
                 <span>{change.remainingTerm}期</span>

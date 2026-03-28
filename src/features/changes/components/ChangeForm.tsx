@@ -8,10 +8,9 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChangeType, PrepaymentMode } from '@/core/types/loan.types';
+import { ChangeType, PrepaymentMode, PrepaymentModeName } from '@/core/types/loan.types';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
 
@@ -121,7 +120,7 @@ export function ChangeForm() {
               <div className="space-y-1">
                 <Label htmlFor="prepay-mode">变更方式</Label>
                 <Select value={prepayMode} onValueChange={(v) => setPrepayMode(v as PrepaymentMode)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>{PrepaymentModeName[prepayMode]}</SelectTrigger>
                   <SelectContent>
                     <SelectItem value={PrepaymentMode.ReducePayment}>减少月供（期限不变）</SelectItem>
                     <SelectItem value={PrepaymentMode.ShortenTerm}>缩短年限（月供不变）</SelectItem>

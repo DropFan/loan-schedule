@@ -34,7 +34,7 @@ export function SummaryCards() {
           {items.map((item) => (
             <div key={item.label} className="text-center">
               <div className="text-lg font-bold text-primary">{item.value}</div>
-              <div className="text-xs text-muted mt-1">{item.label}</div>
+              <div className="text-xs text-muted-foreground mt-1">{item.label}</div>
             </div>
           ))}
         </div>
