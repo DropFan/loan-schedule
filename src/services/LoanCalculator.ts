@@ -139,7 +139,8 @@ export function calcTermByPayment(
   if (remainingLoan <= 0) return 0;
   const netPayment = monthlyPayment - remainingLoan * monthlyRate;
   if (netPayment <= 0) return null;
-  const exact = Math.log(monthlyPayment / netPayment) / Math.log(1 + monthlyRate);
+  const exact =
+    Math.log(monthlyPayment / netPayment) / Math.log(1 + monthlyRate);
   // 浮点精度修正：若计算值与整数相差极小，视为整数
   const rounded = Math.round(exact);
   return Math.abs(exact - rounded) < 1e-4 ? rounded : Math.ceil(exact);

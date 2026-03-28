@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanScheduleSummary, PaymentScheduleItem } from '../../types/loan.types';
+import type { PaymentScheduleItem } from '../../types/loan.types';
 import { LoanMethod, LoanMethodName } from '../../types/loan.types';
 import {
   annualToMonthlyRate,
@@ -286,19 +286,45 @@ describe('findRemainingInfo', () => {
 describe('calcTermByPayment', () => {
   it('等额本息：根据月供反算期数', () => {
     const monthlyRate = annualToMonthlyRate(4.2);
-    const monthlyPayment = calcEqualPrincipalInterest(1_000_000, 360, monthlyRate);
+    const monthlyPayment = calcEqualPrincipalInterest(
+      1_000_000,
+      360,
+      monthlyRate,
+    );
     const remaining = findRemainingInfo(
-      generateSchedule(1_000_000, 360, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest),
+      generateSchedule(
+        1_000_000,
+        360,
+        monthlyRate,
+        4.2,
+        new Date(2024, 0, 15),
+        LoanMethod.EqualPrincipalInterest,
+      ),
       new Date(2025, 0, 15),
     );
-    const newTerm = calcTermByPayment(remaining!.remainingLoan, monthlyPayment, monthlyRate);
+    const newTerm = calcTermByPayment(
+      remaining!.remainingLoan,
+      monthlyPayment,
+      monthlyRate,
+    );
     expect(newTerm).toBe(remaining!.remainingTerm);
   });
 
   it('提前还款10万后，期数应缩短', () => {
     const monthlyRate = annualToMonthlyRate(4.2);
-    const monthlyPayment = calcEqualPrincipalInterest(1_000_000, 360, monthlyRate);
-    const schedule = generateSchedule(1_000_000, 360, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest);
+    const monthlyPayment = calcEqualPrincipalInterest(
+      1_000_000,
+      360,
+      monthlyRate,
+    );
+    const schedule = generateSchedule(
+      1_000_000,
+      360,
+      monthlyRate,
+      4.2,
+      new Date(2024, 0, 15),
+      LoanMethod.EqualPrincipalInterest,
+    );
     const remaining = findRemainingInfo(schedule, new Date(2025, 0, 15));
     const newLoan = remaining!.remainingLoan - 100_000;
     const newTerm = calcTermByPayment(newLoan, monthlyPayment, monthlyRate);
@@ -331,12 +357,22 @@ describe('calcTermByFixedPrincipal', () => {
 describe('calcScheduleSummary', () => {
   it('计算等额本息还款计划的摘要', () => {
     const monthlyRate = annualToMonthlyRate(4.2);
-    const schedule = generateSchedule(100_000, 12, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest);
+    const schedule = generateSchedule(
+      100_000,
+      12,
+      monthlyRate,
+      4.2,
+      new Date(2024, 0, 15),
+      LoanMethod.EqualPrincipalInterest,
+    );
     const summary = calcScheduleSummary(schedule);
 
     expect(summary.totalPrincipal).toBeCloseTo(100_000, 0);
     expect(summary.totalInterest).toBeGreaterThan(0);
-    expect(summary.totalPayment).toBeCloseTo(summary.totalPrincipal + summary.totalInterest, 0);
+    expect(summary.totalPayment).toBeCloseTo(
+      summary.totalPrincipal + summary.totalInterest,
+      0,
+    );
     expect(summary.termMonths).toBe(12);
   });
 
@@ -350,9 +386,26 @@ describe('calcScheduleSummary', () => {
 
   it('含 period=0 提前还款行时，也计入摘要', () => {
     const monthlyRate = annualToMonthlyRate(4.2);
-    const schedule = generateSchedule(100_000, 12, monthlyRate, 4.2, new Date(2024, 0, 15), LoanMethod.EqualPrincipalInterest);
-    const prepayItem = { ...schedule[0], period: 0, principal: 50000, interest: 100, monthlyPayment: 50100 };
-    const combined = [...schedule.slice(0, 6), prepayItem, ...schedule.slice(6)];
+    const schedule = generateSchedule(
+      100_000,
+      12,
+      monthlyRate,
+      4.2,
+      new Date(2024, 0, 15),
+      LoanMethod.EqualPrincipalInterest,
+    );
+    const prepayItem = {
+      ...schedule[0],
+      period: 0,
+      principal: 50000,
+      interest: 100,
+      monthlyPayment: 50100,
+    };
+    const combined = [
+      ...schedule.slice(0, 6),
+      prepayItem,
+      ...schedule.slice(6),
+    ];
     const summary = calcScheduleSummary(combined);
 
     expect(summary.totalPayment).toBeGreaterThan(0);
