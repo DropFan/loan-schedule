@@ -1,6 +1,37 @@
 Changelog
 ===
 
+[0.7.0] - 2026-03-29
+---
+
+### 架构重构
+
+* 从原生 HTML/JavaScript/CSS 迁移到 TypeScript + Vite 架构。
+* 代码按职责分层：models / services / components / utils / types。
+* 引入 BaseComponent 组件基类，统一 DOM 操作模式。
+* LoanCalculator 重构为纯函数，零副作用。
+* LoanSchedule 模型采用发布订阅模式通知 UI 更新。
+
+### 新功能
+
+* [New] 按天计息 —— 变更当月支持按天计算利息差额，更贴近银行实际算法。
+* [New] 撤销操作 —— 支持撤销最近一次变更（利率调整或提前还款）。
+* [New] 输入验证 —— 完整的表单验证，防止异常数据输入。
+
+### 工程化
+
+* 升级 TypeScript 6、Vite 8。
+* 引入 Biome 统一代码检查与格式化，替代 ESLint + Prettier。
+* 引入 Vitest + happy-dom 测试框架，163 个测试用例，100% 覆盖率。
+* CI 流水线增加 type-check 和 lint 检查步骤。
+* 补充 MIT License。
+
+### 修复
+
+* 修复金额精度问题，全部使用 `roundTo2()` 控制每期计算精度。
+* 修复 ChangePanel 组件重复 ID 问题。
+* 修复 ExcelExporter 空 catch 吞错误。
+
 [0.6.1] - 2025-01-13
 ---
 
