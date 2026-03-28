@@ -57,6 +57,8 @@ export interface RemainingScheduleInfo {
   remainingLoan: number;
   remainingTerm: number;
   annualInterestRate: number;
+  lastPaymentDate: string; // YYYY-MM-DD，最后一条记录的日期
+  lastRegularPaymentDate: string; // YYYY-MM-DD，最后一期常规还款日（排除提前还款行），用于按天计算利息差
 }
 
 export interface CalculateResult {

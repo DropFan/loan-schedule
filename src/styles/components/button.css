@@ -7,8 +7,14 @@
   cursor: pointer;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
+}
+
+.btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-bar {

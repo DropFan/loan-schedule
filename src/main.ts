@@ -25,20 +25,30 @@ function displayAppInfo(): void {
   });
 }
 
+// 撤销按钮状态同步
+const undoBtn = document.getElementById('undo-change') as HTMLButtonElement;
+
+function updateUndoBtn(): void {
+  if (undoBtn) undoBtn.disabled = !model.canUndo;
+}
+
 // 模型事件 → UI 更新
 model.on('initialized', () => {
   scheduleTable.render(model.schedule);
   changePanel.render(model.changeList);
+  updateUndoBtn();
 });
 
 model.on('changed', () => {
   scheduleTable.render(model.schedule);
   changePanel.render(model.changeList);
+  updateUndoBtn();
 });
 
 model.on('cleared', () => {
   scheduleTable.render([]);
   changePanel.render([]);
+  updateUndoBtn();
 });
 
 // 表单回调 → 模型操作
@@ -59,6 +69,11 @@ loanForm.setOnRateChange((params) => {
 loanForm.setOnPrepay((params) => {
   model.applyChange(params);
 });
+
+// 撤销按钮
+if (undoBtn) {
+  undoBtn.addEventListener('click', () => model.undo());
+}
 
 // Service Worker 注册
 if ('serviceWorker' in navigator) {
