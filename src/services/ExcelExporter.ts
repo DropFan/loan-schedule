@@ -1,8 +1,8 @@
 import type {
   LoanChangeRecord,
   PaymentScheduleItem,
-} from '../types/loan.types';
-import { type LoanMethod, LoanMethodName } from '../types/loan.types';
+} from '@/core/types/loan.types';
+import { type LoanMethod, LoanMethodName } from '@/core/types/loan.types';
 
 export async function exportToExcel(
   schedule: ReadonlyArray<PaymentScheduleItem>,
