@@ -248,3 +248,4 @@ node_modules/
 dist/
 *.local
 .gstack/
+docs/superpowers
