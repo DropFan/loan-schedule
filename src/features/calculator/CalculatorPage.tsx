@@ -1,6 +1,6 @@
 import { ChangeForm, ChangeTimeline } from '@/features/changes';
 import { LoanForm } from './components/LoanForm';
-import { LoanSwitcher } from './components/LoanSwitcher';
+import { LoanSwitcher } from '@/components/shared/LoanSwitcher';
 import { ScheduleTable } from './components/ScheduleTable';
 import { SummaryCards } from './components/SummaryCards';
 
