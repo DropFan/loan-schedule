@@ -4,14 +4,27 @@
   "short_name": "贷款计算器",
   "start_url": "/",
   "scope": "/",
+  "lang": "zh-Hans",
+  "dir": "ltr",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#f4f4f4",
   "theme_color": "#4CAF50",
   "description": "一个功能强大的贷款计算器和还贷模拟器，支持利率变更、提前还款、LPR利率表、数据分析。",
+  "categories": ["finance", "utilities"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "icons": [
     {
       "src": "/logo-128.png",
       "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-192.png",
+      "sizes": "192x192",
       "type": "image/png"
     },
     {
@@ -23,7 +36,66 @@
       "src": "/logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "贷款计算器桌面端 — 还款计划"
+    },
+    {
+      "src": "/screenshot-desktop-analysis.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "数据分析桌面端 — 利息对比"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "贷款计算器移动端 — 还款计划"
+    },
+    {
+      "src": "/screenshot-mobile-analysis.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "数据分析移动端 — 利息对比"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "贷款计算",
+      "short_name": "计算",
+      "url": "/",
+      "description": "计算还款计划",
+      "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "数据分析",
+      "short_name": "分析",
+      "url": "/analysis",
+      "description": "查看还款数据分析",
+      "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "利率表",
+      "short_name": "利率",
+      "url": "/rates",
+      "description": "查看LPR利率表",
+      "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }]
     }
   ]
 }
