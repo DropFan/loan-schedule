@@ -20,10 +20,47 @@ export function DetailedTrendChart({ schedule }: Props) {
     const interests = regularItems.map((item) => item.interest);
     const remainingLoans = regularItems.map((item) => item.remainingLoan);
 
+    // 变更线（含提前还款 period=0 映射到下一常规期）
+    const changeMarks: Array<{ xAxis: number }> = [];
+    let pendingPrepay = false;
+    for (const item of schedule) {
+      if (item.period === 0 && item.comment !== '') {
+        pendingPrepay = true;
+        continue;
+      }
+      if (item.period > 0) {
+        const idx = periods.indexOf(item.period);
+        if (idx === -1) continue;
+        if (pendingPrepay) {
+          changeMarks.push({ xAxis: idx });
+          pendingPrepay = false;
+        } else if (item.comment !== '') {
+          changeMarks.push({ xAxis: idx });
+        }
+      }
+    }
+
     return {
       tooltip: {
         trigger: 'axis',
         confine: true,
+        formatter: (params: Array<{ dataIndex: number; seriesName: string; value: number; color: string }>) => {
+          if (!params.length) return '';
+          const idx = params[0].dataIndex;
+          const item = regularItems[idx];
+          if (!item) return '';
+          let html = `<b>第 ${item.period} 期</b> ${item.paymentDate}`;
+          html += `<br/><span style="color:#666">●</span> 月供: ¥${item.monthlyPayment.toFixed(2)}`;
+          for (const p of params) {
+            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`;
+          }
+          html += `<br/><span style="color:#999">●</span> 利率: ${item.annualInterestRate}%`;
+          if (item.comment) {
+            const detail = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
+            if (detail) html += `<br/><span style="color:#ff6b6b">●</span> <b>${detail}</b>`;
+          }
+          return html;
+        },
       },
       legend: {
         bottom: 35,
@@ -33,7 +70,15 @@ export function DetailedTrendChart({ schedule }: Props) {
       xAxis: {
         type: 'category',
         data: periods,
-        axisLabel: { fontSize: 10, color: textColor },
+        axisLabel: {
+          fontSize: 10,
+          color: textColor,
+          interval: (index: number) => {
+            if (index === 0 || index === periods.length - 1) return true;
+            const step = Math.ceil(periods.length / 12);
+            return index % step === 0;
+          },
+        },
         axisLine: { lineStyle: { color: isDark ? '#444' : '#ddd' } },
       },
       yAxis: [
@@ -71,6 +116,25 @@ export function DetailedTrendChart({ schedule }: Props) {
           showSymbol: false,
           lineStyle: { width: 1 },
           itemStyle: { color: '#4caf50' },
+          markLine:
+            changeMarks.length > 0
+              ? {
+                  silent: true,
+                  symbol: 'none',
+                  lineStyle: { type: 'dashed', color: '#ff6b6b' },
+                  label: {
+                    show: true,
+                    position: 'insideEndBottom',
+                    fontSize: 8,
+                    color: '#ff6b6b',
+                    formatter: (params: { value: number }) => {
+                      const period = periods[params.value] ?? params.value;
+                      return `${period}期`;
+                    },
+                  },
+                  data: changeMarks,
+                }
+              : undefined,
         },
         {
           name: '利息',
