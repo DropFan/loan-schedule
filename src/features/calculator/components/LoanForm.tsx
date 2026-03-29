@@ -9,6 +9,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
+import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
 import { LoanMethod, LoanMethodName } from '@/core/types/loan.types';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
@@ -31,6 +32,9 @@ export function LoanForm() {
     params?.startDate
       ? new Date(params.startDate).toISOString().split('T')[0]
       : '',
+  );
+  const [repaymentDay, setRepaymentDay] = useState(
+    params?.repaymentDay?.toString() ?? String(DEFAULT_REPAYMENT_DAY),
   );
   const [error, setError] = useState('');
 
@@ -66,12 +70,20 @@ export function LoanForm() {
       return;
     }
 
+    const repaymentDayNum = Number(repaymentDay);
+    const repaymentDayCheck = Validator.repaymentDay(repaymentDayNum);
+    if (!repaymentDayCheck.valid) {
+      setError(repaymentDayCheck.message);
+      return;
+    }
+
     initialize({
       loanAmount: amountNum,
       loanTermMonths: termNum * 12,
       annualInterestRate: rateNum,
       loanMethod: method,
       startDate: new Date(startDate),
+      repaymentDay: repaymentDayNum,
     });
   };
 
@@ -143,6 +155,20 @@ export function LoanForm() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="repayment-day">每月还款日</Label>
+            <Input
+              id="repayment-day"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={28}
+              value={repaymentDay}
+              onChange={(e) => setRepaymentDay(e.target.value)}
+              placeholder="1-28，默认 15"
             />
           </div>
 

@@ -6,8 +6,8 @@ export const APP_AUTHOR_LINK = 'https://github.com/DropFan';
 export const APP_COPYRIGHT = 'Copyright © 2025 David Tiger (DropFan@Gmail.com)';
 export const APP_RELEASE = '20260329003';
 
-/** 每月固定还款日 */
-export const REPAYMENT_DAY = 15;
+/** 每月固定还款日（默认值） */
+export const DEFAULT_REPAYMENT_DAY = 15;
 
 /** 一天的毫秒数 */
 export const MS_PER_DAY = 86_400_000;

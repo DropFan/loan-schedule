@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
 import { LoanMethod } from '@/core/types/loan.types';
 import { useLoanStore } from '../useLoanStore';
 
@@ -14,6 +15,7 @@ describe('useLoanStore', () => {
       annualInterestRate: 3.5,
       loanMethod: LoanMethod.EqualPrincipalInterest,
       startDate: new Date(2024, 0, 15),
+      repaymentDay: DEFAULT_REPAYMENT_DAY,
     });
 
     const state = useLoanStore.getState();
@@ -33,6 +35,7 @@ describe('useLoanStore', () => {
       annualInterestRate: 4.0,
       loanMethod: LoanMethod.EqualPrincipal,
       startDate: new Date(2024, 0, 15),
+      repaymentDay: DEFAULT_REPAYMENT_DAY,
     });
 
     useLoanStore.getState().clear();

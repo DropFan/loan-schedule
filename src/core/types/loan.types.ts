@@ -27,6 +27,7 @@ export interface LoanParameters {
   annualInterestRate: number; // 如 3.65
   loanMethod: LoanMethod;
   startDate: Date;
+  repaymentDay: number; // 每月固定还款日，1-28，默认 15
 }
 
 export interface LoanChangeRecord {

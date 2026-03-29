@@ -1,4 +1,3 @@
-import { REPAYMENT_DAY } from '@/constants/app.constants';
 import {
   type CalculateResult,
   LoanMethod,
@@ -54,6 +53,7 @@ export function generateSchedule(
   annualRate: number,
   startDate: Date,
   method: LoanMethod,
+  repaymentDay: number,
 ): PaymentScheduleItem[] {
   const schedule: PaymentScheduleItem[] = [];
   let remainingLoan = loanAmount;
@@ -76,7 +76,7 @@ export function generateSchedule(
 
     remainingLoan = roundTo2(remainingLoan - principal);
 
-    const paymentDate = addMonths(startDate, i, REPAYMENT_DAY);
+    const paymentDate = addMonths(startDate, i, repaymentDay);
 
     schedule.push({
       period: i,
@@ -190,6 +190,7 @@ export function calculateLoan(
   annualRate: number,
   startDate: Date,
   method: LoanMethod,
+  repaymentDay: number,
 ): CalculateResult {
   const monthlyPayment = roundTo2(
     calcMonthlyPayment(loanAmount, termMonths, monthlyRate, method),
@@ -201,6 +202,7 @@ export function calculateLoan(
     annualRate,
     startDate,
     method,
+    repaymentDay,
   );
 
   return { monthlyPayment, schedule };

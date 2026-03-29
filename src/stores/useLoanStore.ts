@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { MS_PER_DAY, REPAYMENT_DAY } from '@/constants/app.constants';
+import { DEFAULT_REPAYMENT_DAY, MS_PER_DAY } from '@/constants/app.constants';
 import {
   annualToMonthlyRate,
   calcScheduleSummary,
@@ -118,6 +118,7 @@ export const useLoanStore = create<LoanState>()(
 
       initialize: (params: LoanParameters) => {
         const monthlyRate = annualToMonthlyRate(params.annualInterestRate);
+        const repaymentDay = params.repaymentDay;
         const result = calculateLoan(
           params.loanAmount,
           params.loanTermMonths,
@@ -125,25 +126,26 @@ export const useLoanStore = create<LoanState>()(
           params.annualInterestRate,
           params.startDate,
           params.loanMethod,
+          repaymentDay,
         );
 
         // 首期按天计息
         const startDay = params.startDate.getDate();
         let firstPeriodComment = '';
 
-        if (startDay !== REPAYMENT_DAY && result.schedule.length > 0) {
+        if (startDay !== repaymentDay && result.schedule.length > 0) {
           const dailyRate = monthlyRate / 30;
           let extraDays: number;
 
-          if (startDay < REPAYMENT_DAY) {
-            extraDays = REPAYMENT_DAY - startDay + 1;
+          if (startDay < repaymentDay) {
+            extraDays = repaymentDay - startDay + 1;
           } else {
             const daysInMonth = new Date(
               params.startDate.getFullYear(),
               params.startDate.getMonth() + 1,
               0,
             ).getDate();
-            extraDays = daysInMonth - startDay + 1 + (REPAYMENT_DAY - 1);
+            extraDays = daysInMonth - startDay + 1 + (repaymentDay - 1);
           }
 
           const extraInterest = params.loanAmount * dailyRate * extraDays;
@@ -291,6 +293,7 @@ export const useLoanStore = create<LoanState>()(
           annualRate,
           newStartDate,
           method,
+          state.params.repaymentDay,
         );
 
         for (const item of result.schedule) {
@@ -663,6 +666,7 @@ export const useLoanStore = create<LoanState>()(
         // Date 对象在 JSON 序列化后变成字符串，恢复时重建
         if (state.params?.startDate) {
           state.params.startDate = new Date(state.params.startDate);
+          state.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
         }
         for (const c of state.changes) {
           if (c.date && !(c.date instanceof Date)) {
@@ -673,6 +677,7 @@ export const useLoanStore = create<LoanState>()(
         for (const loan of state.savedLoans) {
           if (loan.params?.startDate) {
             loan.params.startDate = new Date(loan.params.startDate);
+            loan.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
           }
           for (const c of loan.changes) {
             if (c.date && !(c.date instanceof Date)) {

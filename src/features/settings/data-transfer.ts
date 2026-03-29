@@ -1,3 +1,4 @@
+import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
 import type { LoanChangeParams, LoanParameters } from '@/core/types/loan.types';
 import type { RateEntry } from '@/stores/useLoanStore';
 import { useLoanStore } from '@/stores/useLoanStore';
@@ -93,8 +94,9 @@ export function importData(file: File): Promise<string> {
         for (const loan of data.loans) {
           if (!loan.params) continue;
 
-          // 恢复 Date 对象
+          // 恢复 Date 对象，兼容旧数据
           loan.params.startDate = new Date(loan.params.startDate);
+          loan.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
           for (const cp of loan.changeParams) {
             cp.date = new Date(cp.date);
           }

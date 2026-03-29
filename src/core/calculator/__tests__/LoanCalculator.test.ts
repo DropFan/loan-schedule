@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
 import { LoanMethod, LoanMethodName } from '@/core/types/loan.types';
 import {
@@ -83,6 +84,7 @@ describe('generateSchedule', () => {
         4.9,
         startDate,
         LoanMethod.EqualPrincipalInterest,
+        DEFAULT_REPAYMENT_DAY,
       );
 
       expect(schedule).toHaveLength(12);
@@ -107,6 +109,7 @@ describe('generateSchedule', () => {
         4.9,
         startDate,
         LoanMethod.EqualPrincipalInterest,
+        DEFAULT_REPAYMENT_DAY,
       );
 
       const firstPayment = schedule[0].monthlyPayment;
@@ -115,7 +118,7 @@ describe('generateSchedule', () => {
       }
     });
 
-    it('还款日期使用 REPAYMENT_DAY（15号）', () => {
+    it('还款日期使用指定的 repaymentDay（15号）', () => {
       const monthlyRate = annualToMonthlyRate(4.9);
       const startDate = new Date(2024, 0, 15);
       const schedule = generateSchedule(
@@ -125,6 +128,7 @@ describe('generateSchedule', () => {
         4.9,
         startDate,
         LoanMethod.EqualPrincipalInterest,
+        DEFAULT_REPAYMENT_DAY,
       );
 
       expect(schedule[0].paymentDate).toBe('2024-02-15');
@@ -143,6 +147,7 @@ describe('generateSchedule', () => {
         4.9,
         startDate,
         LoanMethod.EqualPrincipal,
+        DEFAULT_REPAYMENT_DAY,
       );
 
       expect(schedule).toHaveLength(12);
@@ -163,6 +168,7 @@ describe('generateSchedule', () => {
         4.9,
         startDate,
         LoanMethod.EqualPrincipal,
+        DEFAULT_REPAYMENT_DAY,
       );
 
       const firstPrincipal = schedule[0].principal;
@@ -299,6 +305,7 @@ describe('calcTermByPayment', () => {
         4.2,
         new Date(2024, 0, 15),
         LoanMethod.EqualPrincipalInterest,
+        DEFAULT_REPAYMENT_DAY,
       ),
       new Date(2025, 0, 15),
     );
@@ -324,6 +331,7 @@ describe('calcTermByPayment', () => {
       4.2,
       new Date(2024, 0, 15),
       LoanMethod.EqualPrincipalInterest,
+      DEFAULT_REPAYMENT_DAY,
     );
     const remaining = findRemainingInfo(schedule, new Date(2025, 0, 15));
     const newLoan = remaining!.remainingLoan - 100_000;
@@ -364,6 +372,7 @@ describe('calcScheduleSummary', () => {
       4.2,
       new Date(2024, 0, 15),
       LoanMethod.EqualPrincipalInterest,
+      DEFAULT_REPAYMENT_DAY,
     );
     const summary = calcScheduleSummary(schedule);
 
@@ -393,6 +402,7 @@ describe('calcScheduleSummary', () => {
       4.2,
       new Date(2024, 0, 15),
       LoanMethod.EqualPrincipalInterest,
+      DEFAULT_REPAYMENT_DAY,
     );
     const prepayItem = {
       ...schedule[0],
@@ -424,6 +434,7 @@ describe('calculateLoan', () => {
       4.9,
       startDate,
       LoanMethod.EqualPrincipalInterest,
+      DEFAULT_REPAYMENT_DAY,
     );
 
     expect(result.monthlyPayment).toBeGreaterThan(0);
@@ -442,6 +453,7 @@ describe('calculateLoan', () => {
       4.9,
       startDate,
       LoanMethod.EqualPrincipal,
+      DEFAULT_REPAYMENT_DAY,
     );
 
     expect(result.monthlyPayment).toBeGreaterThan(0);
@@ -461,6 +473,7 @@ describe('calculateLoan', () => {
       3.65,
       startDate,
       LoanMethod.EqualPrincipalInterest,
+      DEFAULT_REPAYMENT_DAY,
     );
 
     const expected =

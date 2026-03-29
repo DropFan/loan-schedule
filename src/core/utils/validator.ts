@@ -31,6 +31,13 @@ export const Validator = {
     return ok();
   },
 
+  repaymentDay(value: number): ValidationResult {
+    if (Number.isNaN(value) || !Number.isInteger(value))
+      return fail('还款日必须为整数');
+    if (value < 1 || value > 28) return fail('还款日必须在 1-28 之间');
+    return ok();
+  },
+
   prepayAmount(value: number, remainingLoan: number): ValidationResult {
     if (Number.isNaN(value) || value <= 0)
       return fail('提前还款金额必须大于 0');
