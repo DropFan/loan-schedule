@@ -18,6 +18,9 @@ export default defineConfig({
         clientsClaim: true,
         cleanupOutdatedCaches: true,
       },
+      devOptions: {
+        enabled: true,
+      },
     }),
   ],
   resolve: {

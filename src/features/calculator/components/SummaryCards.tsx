@@ -1,8 +1,14 @@
+import { lazy, Suspense } from 'react';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/core/utils/formatHelper';
-import { PaymentTrendChart } from '@/features/charts';
 import { useLoanStore } from '@/stores/useLoanStore';
+
+const PaymentTrendChart = lazy(() =>
+  import('@/features/charts').then((m) => ({
+    default: m.PaymentTrendChart,
+  })),
+);
 
 export function SummaryCards() {
   const summary = useLoanStore((s) => s.summary);
@@ -41,7 +47,9 @@ export function SummaryCards() {
           ))}
         </div>
         <div className="mt-4">
-          <PaymentTrendChart />
+          <Suspense>
+            <PaymentTrendChart />
+          </Suspense>
         </div>
       </CardContent>
     </Card>
