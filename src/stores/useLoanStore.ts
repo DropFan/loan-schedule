@@ -179,6 +179,30 @@ export const useLoanStore = create<LoanState>()(
         const state = get();
         if (!state.params || state.schedule.length === 0) return;
 
+        // 检测乱序插入：如果新变更日期早于最后一条变更，则全量重放
+        const lastChange =
+          state.changes.length > 1
+            ? state.changes[state.changes.length - 1]
+            : null;
+        if (lastChange && changeParams.date < lastChange.date) {
+          // 收集所有已有的 changeParams（跳过初始记录）
+          const existingParams = state.changes
+            .slice(1)
+            .map((c) => c.changeParams)
+            .filter((p): p is LoanChangeParams => p != null);
+          // 合并新变更，按日期排序
+          const allParams = [...existingParams, changeParams].sort(
+            (a, b) => a.date.getTime() - b.date.getTime(),
+          );
+          // 重新初始化贷款
+          get().initialize(state.params);
+          // 按序重放所有变更
+          for (const cp of allParams) {
+            get().applyChange(cp);
+          }
+          return;
+        }
+
         const remaining = findRemainingInfo(state.schedule, changeParams.date);
         if (!remaining) return;
 
@@ -333,6 +357,7 @@ export const useLoanStore = create<LoanState>()(
           annualInterestRate: annualRate,
           loanMethod: method,
           comment,
+          changeParams,
         };
 
         const newHistory = [...state.history, snapshot];

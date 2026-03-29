@@ -37,6 +37,7 @@ export interface LoanChangeRecord {
   annualInterestRate: number;
   loanMethod: LoanMethod;
   comment: string;
+  changeParams?: LoanChangeParams;
 }
 
 export enum ChangeType {
