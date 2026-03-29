@@ -13,6 +13,13 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // 跳过等待，新 SW 立即接管
+        skipWaiting: true,
+        clientsClaim: true,
+        // 清理旧版 SW 遗留的缓存
+        cleanupOutdatedCaches: true,
+        // 不缓存旧版 service-worker.js（它是清理用的空壳）
+        globIgnores: ['**/service-worker.js'],
       },
     }),
   ],
