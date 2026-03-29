@@ -494,9 +494,30 @@ export const useLoanStore = create<LoanState>()(
         activeLoanId: state.activeLoanId,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state && state.schedule.length > 0) {
+        if (!state) return;
+        // Date 对象在 JSON 序列化后变成字符串，恢复时重建
+        if (state.params?.startDate) {
+          state.params.startDate = new Date(state.params.startDate);
+        }
+        for (const c of state.changes) {
+          if (c.date && !(c.date instanceof Date)) {
+            c.date = new Date(c.date);
+          }
+        }
+        // savedLoans 中的 Date 也需要恢复
+        for (const loan of state.savedLoans) {
+          if (loan.params?.startDate) {
+            loan.params.startDate = new Date(loan.params.startDate);
+          }
+          for (const c of loan.changes) {
+            if (c.date && !(c.date instanceof Date)) {
+              c.date = new Date(c.date);
+            }
+          }
+        }
+        if (state.schedule.length > 0) {
           state.summary = calcScheduleSummary(state.schedule);
-          state.canUndo = state.history.length > 0;
+          state.canUndo = (state.history?.length ?? 0) > 0;
         }
       },
     },
