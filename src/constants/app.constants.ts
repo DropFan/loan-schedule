@@ -1,10 +1,10 @@
 export const APP_NAME = '贷款计算器 & 还贷模拟器';
-export const APP_VERSION = '0.8.0';
+export const APP_VERSION = '2.0.0';
 export const APP_LINK = 'https://loan.v2dl.net';
 export const APP_AUTHOR = 'Tiger <DropFan@Gmail.com>';
 export const APP_AUTHOR_LINK = 'https://github.com/DropFan';
 export const APP_COPYRIGHT = 'Copyright © 2025 David Tiger (DropFan@Gmail.com)';
-export const APP_RELEASE = '20260329001';
+export const APP_RELEASE = '20260329002';
 
 /** 每月固定还款日 */
 export const REPAYMENT_DAY = 15;

@@ -1,6 +1,48 @@
 Changelog
 ===
 
+[2.0.0] - 2026-03-29
+---
+
+### 全量重构
+
+从 vanilla TypeScript 全量迁移到 React 19 + Shadcn/ui + Tailwind CSS 4 + Zustand 技术栈。
+包管理从 npm 切换到 pnpm。
+
+### 全新 UI
+
+* Dashboard 风格布局，桌面端侧边导航 + 移动端底部 Tab。
+* Shadcn/ui (Radix UI) 组件库，无障碍支持。
+* 亮色/暗色/跟随系统三种主题模式。
+* 响应式设计适配手机、平板、桌面。
+
+### 新功能
+
+* [New] 数据分析页面 — 还款概览环形图、变更前后对比线图、利息节省柱图、详细趋势图。
+* [New] 贷款方案管理 — 支持保存、加载、重命名、删除多个贷款方案。
+* [New] LPR 内置利率表 — 5 年期 LPR 历史数据（2019-08 至 2026-03），支持基点偏移自动计算。
+* [New] 自定义利率表 — 通用利率时间线管理器，预留多数据源扩展。
+* [New] 数据持久化 — localStorage 自动保存/恢复，刷新不丢失数据。
+* [New] 还款计划虚拟滚动 — 360 期数据流畅滚动（@tanstack/react-virtual）。
+* [New] 还款趋势面积图 — 本金/利息占比可视化，变更点竖线标注（ECharts）。
+* [New] Excel 导出保留。
+
+### 架构
+
+* `core/` 纯计算逻辑与 UI 框架解耦，可跨平台复用。
+* `features/` 按功能分区，模块化卡片设计，新增功能 = 新增目录。
+* Zustand 状态管理替代事件订阅模型，persist 中间件对接 localStorage。
+* StorageAdapter 接口抽象存储层，未来可替换为 IndexedDB 或云端同步。
+* RateProvider 接口预留 LPR 等多数据源扩展。
+* vite-plugin-pwa 自动 Service Worker 注册。
+
+### 工程化
+
+* pnpm 严格依赖模式。
+* Vitest + @testing-library/react + jsdom 测试。
+* CI 新增 PR check workflow（type-check + lint + test + build）。
+* Biome 2 支持 JSX/TSX。
+
 [0.8.0] - 2026-03-29
 ---
 

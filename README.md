@@ -12,15 +12,13 @@
 
 ## 项目概述
 
-本项目是一个贷款计算器的 Web 应用，支持用户根据贷款金额、期限、利率和还款方式，计算并显示月还款金额、剩余贷款金额和未来还款计划。
+本项目是一个贷款计算器和还贷模拟器 Web 应用，支持用户根据贷款金额、期限、利率和还款方式，计算并显示月还款金额、剩余贷款金额和未来还款计划。
 
-不同于网上其他房贷计算器，本项目专门针对存量房贷开发了还贷模拟功能：可以多次调整利率或提前还款，模拟用户真实还款情况，并支持将数据导出到 Excel。
+不同于网上其他房贷计算器，本项目专门针对存量房贷开发了还贷模拟功能：可以多次调整利率或提前还款，模拟用户真实还款情况，并通过数据可视化帮助用户直观对比不同方案的差异。
 
-这也是我写这个程序的初衷，以前一直用表格来处理这个需求，但不方便给别人用。之前有人找我要表格还得传文件，干脆写个程序部署到网上，方便大家使用。
+v2.0 全面升级为 React + Shadcn/ui 现代技术栈，新增 Dashboard 布局、暗色主题、数据分析图表、LPR 利率表、多方案管理和数据持久化。
 
-经过测试，按照时间先后多次操作调整利率和提前还款的计算结果与我之前用 Numbers/Excel 的数据一致。变更当月由于银行按天计算利息，与按月计算会有微小差异，仅影响变动当月，不影响后续计算。
-
-**所有代码在浏览器本地运行，不用担心数据泄露，请放心使用。**
+**所有计算在浏览器本地运行，数据存储在本地，不用担心数据泄露，请放心使用。**
 
 ## 在线使用
 
@@ -28,13 +26,22 @@
 
 ## 功能特性
 
+### 核心功能
 - **贷款计算** - 支持等额本息和等额本金两种还款方式
 - **利率变更** - 模拟存量房贷利率调整，变更日期后的还款计划自动重算
-- **提前还款** - 模拟提前还本金，剩余还款计划自动重算
+- **提前还款** - 模拟提前还本金，支持减少月供或缩短年限两种模式
 - **按天计息** - 变更当月支持按天计算利息差额
 - **撤销操作** - 支持撤销最近一次变更操作
 - **Excel 导出** - 还款计划表和变更记录一键导出为 Excel 文件
-- **输入验证** - 完整的表单验证，防止异常输入
+
+### v2.0 新增
+- **数据分析** - 还款概览环形图、变更前后对比、利息节省分析、详细趋势图
+- **多方案管理** - 保存、加载、切换多个贷款方案
+- **LPR 利率表** - 内置 5 年期 LPR 历史数据，支持基点偏移自动计算
+- **自定义利率表** - 通用利率时间线管理，一次性批量设置利率变更
+- **数据持久化** - 自动保存到浏览器本地，刷新不丢失
+- **暗色主题** - 亮色/暗色/跟随系统三种模式
+- **响应式设计** - 桌面端侧边导航 + 移动端底部 Tab，适配各种屏幕
 - **PWA 支持** - 可安装到桌面，离线可用
 
 ## 注意事项
@@ -48,42 +55,45 @@
 
 ## 技术栈
 
-- **TypeScript** + **Vite** - 类型安全的现代构建
+- **React 19** + **TypeScript 6** + **Vite 8** - 现代 React 技术栈
+- **Shadcn/ui** (Radix UI) - 可定制 UI 组件，内置无障碍
+- **Tailwind CSS 4** - 原子化样式
+- **Zustand** - 轻量状态管理 + localStorage 持久化
+- **ECharts** - 数据可视化（按需引入）
+- **pnpm** - 严格依赖管理
 - **Biome** - 统一代码检查与格式化
-- **Vitest** + **happy-dom** - 单元测试，100% 覆盖率
+- **Vitest** + **React Testing Library** - 单元测试
 - **GitHub Actions** - CI/CD 自动部署到 GitHub Pages
-- 无框架依赖，原生 DOM 操作
 
 ## 项目结构
 
 ```
 src/
-├── main.ts                    # 应用入口，组件实例化与事件连接
-├── types/
-│   └── loan.types.ts          # TypeScript 类型/接口/枚举定义
-├── models/
-│   └── LoanSchedule.ts        # 数据模型：状态管理 + 发布订阅
-├── services/
-│   ├── LoanCalculator.ts      # 纯计算函数（零副作用）
-│   └── ExcelExporter.ts       # Excel 导出（动态 import xlsx）
+├── app/                       # 根组件、路由、providers
 ├── components/
-│   ├── BaseComponent.ts       # 组件基类
-│   ├── LoanForm.ts            # 贷款表单 + 变更表单
-│   ├── ScheduleTable.ts       # 还款计划表格
-│   └── ChangePanel.ts         # 变更记录列表展示
-├── utils/
-│   ├── formatHelper.ts        # 金额/日期/利率格式化
-│   └── validator.ts           # 输入验证
-├── constants/
-│   └── app.constants.ts       # 应用常量
-└── styles/                    # CSS 变量 + 组件样式
+│   ├── ui/                    # Shadcn/ui 组件
+│   ├── layout/                # 布局组件（Sidebar, BottomTabs, AppShell）
+│   └── shared/                # 通用业务组件
+├── features/
+│   ├── calculator/            # 贷款计算主页面
+│   ├── changes/               # 变更操作（利率变更、提前还款）
+│   ├── charts/                # 数据可视化 + 分析页面
+│   ├── rate-table/            # 利率表管理（自定义 + LPR）
+│   └── settings/              # 设置页面
+├── core/
+│   ├── calculator/            # 纯计算函数（零副作用）
+│   ├── types/                 # TypeScript 类型定义
+│   └── utils/                 # 格式化、验证工具
+├── stores/                    # Zustand 状态管理 + 存储适配器
+├── hooks/                     # 自定义 hooks（主题等）
+└── styles/                    # Tailwind 全局样式 + CSS 变量
 ```
 
 ### 数据流
 
 ```
-用户输入 → LoanForm → main.ts 回调 → LoanSchedule 模型
-    → LoanCalculator 计算 → 事件通知 → ScheduleTable / ChangePanel 更新 DOM
+用户输入 → React 组件 → Zustand Store → LoanCalculator 计算
+    → Store 更新 → React 组件自动重渲染 + localStorage 持久化
 ```
 
 ## 开发指南
@@ -91,28 +101,30 @@ src/
 ### 环境要求
 
 - Node.js >= 22
-- npm
+- pnpm >= 10
 
 ### 常用命令
 
 ```bash
-npm install          # 安装依赖
-npm run dev          # 启动开发服务器
-npm run build        # 生产构建
-npm run preview      # 预览构建结果
-npm run type-check   # TypeScript 类型检查
-npm run lint         # Biome 代码检查
-npm run lint:fix     # 自动修复
-npm run test         # 运行测试
-npm run test:coverage # 运行测试并生成覆盖率报告
+pnpm install          # 安装依赖
+pnpm dev              # 启动开发服务器
+pnpm build            # 生产构建
+pnpm preview          # 预览构建结果
+pnpm type-check       # TypeScript 类型检查
+pnpm lint             # Biome 代码检查
+pnpm lint:fix         # 自动修复
+pnpm test             # 运行测试
+pnpm test:coverage    # 运行测试并生成覆盖率报告
 ```
 
 ### 部署
 
-通过 GitHub Actions 自动部署到 GitHub Pages。push 到 master 分支后自动执行类型检查、lint 和构建，然后部署到 [loan.v2dl.net](https://loan.v2dl.net)。
+通过 GitHub Actions 自动部署到 GitHub Pages。push 到 master 分支后自动执行类型检查、lint、测试和构建，然后部署到 [loan.v2dl.net](https://loan.v2dl.net)。
 
 ## 更新记录
 
+* **2.0.0** (2026-03-29) — React 全量重构；Dashboard UI；暗色主题；数据分析图表；LPR 利率表；多方案管理；数据持久化
+* **0.8.0** (2026-03-29) — 提前还款变更方式（减少月供/缩短年限）
 * **0.7.0** (2026-03-29) — 迁移 TypeScript + Vite 架构；新增按天计息、撤销、输入验证
 * **0.6.1** (2025-01-13) — 首页显示版本号
 * **0.6** (2025-01-13) — 新增变更记录展示与导出
