@@ -1,62 +1,89 @@
 import ReactECharts from 'echarts-for-react';
 import { useMemo } from 'react';
-import {
-  annualToMonthlyRate,
-  calcScheduleSummary,
-  calculateLoan,
-} from '@/core/calculator/LoanCalculator';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { calcScheduleSummary } from '@/core/calculator/LoanCalculator';
 import type {
   LoanChangeRecord,
-  LoanParameters,
-  LoanScheduleSummary,
+  PaymentScheduleItem,
 } from '@/core/types/loan.types';
 import { useTheme } from '@/hooks/useTheme';
 
-interface Props {
-  params: LoanParameters;
-  summary: LoanScheduleSummary;
-  changes: LoanChangeRecord[];
+interface Snapshot {
+  schedule: PaymentScheduleItem[];
+  changeList: LoanChangeRecord[];
 }
 
-export function InterestSavingsChart({ params, summary, changes }: Props) {
+interface Props {
+  schedule: PaymentScheduleItem[];
+  changes: LoanChangeRecord[];
+  history: Snapshot[];
+}
+
+export function InterestSavingsChart({ schedule, changes, history }: Props) {
   const { resolved } = useTheme();
 
   const option = useMemo(() => {
+    if (history.length === 0) return null;
+
     const isDark = resolved === 'dark';
     const textColor = isDark ? '#ccc' : '#666';
 
-    // 原始计划的利息
-    const monthlyRate = annualToMonthlyRate(params.annualInterestRate);
-    const original = calculateLoan(
-      params.loanAmount,
-      params.loanTermMonths,
-      monthlyRate,
-      params.annualInterestRate,
-      params.startDate,
-      params.loanMethod,
-    );
-    const originalSummary = calcScheduleSummary(original.schedule);
-    const saved = originalSummary.totalInterest - summary.totalInterest;
+    const categories: string[] = [];
+    const beforeInterests: number[] = [];
+    const afterInterests: number[] = [];
+    const savedInterests: number[] = [];
+
+    for (let i = 0; i < history.length; i++) {
+      const beforeSchedule = history[i].schedule;
+      const afterSchedule =
+        i + 1 < history.length ? history[i + 1].schedule : schedule;
+
+      const beforeSummary = calcScheduleSummary(beforeSchedule);
+      const afterSummary = calcScheduleSummary(afterSchedule);
+      const saved = beforeSummary.totalInterest - afterSummary.totalInterest;
+
+      const changeRecord = changes[i + 1];
+      const label = changeRecord?.comment
+        ? `第${i + 1}次`
+        : `第${i + 1}次`;
+      categories.push(label);
+      beforeInterests.push(Math.round(beforeSummary.totalInterest));
+      afterInterests.push(Math.round(afterSummary.totalInterest));
+      savedInterests.push(Math.round(saved));
+    }
 
     return {
       tooltip: {
         trigger: 'axis',
         confine: true,
         formatter: (
-          p: Array<{ seriesName: string; value: number; color: string }>,
-        ) =>
-          p
-            .map(
-              (item) =>
-                `<span style="color:${item.color}">●</span> ${item.seriesName}: ¥${item.value.toFixed(2)}`,
-            )
-            .join('<br/>'),
+          params: Array<{ seriesName: string; value: number; color: string; dataIndex: number }>,
+        ) => {
+          if (!params.length) return '';
+          const idx = params[0].dataIndex;
+          const changeRecord = changes[idx + 1];
+          const date = changeRecord?.date instanceof Date
+            ? changeRecord.date.toISOString().split('T')[0]
+            : changeRecord?.date ? String(changeRecord.date).split('T')[0] : '';
+          let html = `<b>${categories[idx]}</b> ${date}`;
+          if (changeRecord?.comment) {
+            html += `<br/>${changeRecord.comment}`;
+          }
+          for (const p of params) {
+            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${p.value.toLocaleString()}`;
+          }
+          return html;
+        },
       },
-      grid: { top: 10, right: 10, bottom: 30, left: 55 },
+      legend: {
+        bottom: 0,
+        textStyle: { color: textColor, fontSize: 11 },
+      },
+      grid: { top: 10, right: 10, bottom: 40, left: 55 },
       xAxis: {
         type: 'category',
-        data: ['利息对比'],
-        axisLabel: { color: textColor },
+        data: categories,
+        axisLabel: { color: textColor, fontSize: 10 },
         axisLine: { lineStyle: { color: isDark ? '#444' : '#ddd' } },
       },
       yAxis: {
@@ -66,33 +93,36 @@ export function InterestSavingsChart({ params, summary, changes }: Props) {
       },
       series: [
         {
-          name: '原始利息',
+          name: '变更前利息',
           type: 'bar',
-          data: [Math.round(originalSummary.totalInterest)],
+          data: beforeInterests,
           itemStyle: { color: isDark ? '#666' : '#ccc' },
-          barMaxWidth: 40,
+          barMaxWidth: 50,
         },
         {
-          name: '实际利息',
+          name: '变更后利息',
           type: 'bar',
-          data: [Math.round(summary.totalInterest)],
+          data: afterInterests,
           itemStyle: { color: '#4f8cff' },
-          barMaxWidth: 40,
+          barMaxWidth: 50,
         },
-        ...(saved > 0
-          ? [
-              {
-                name: '节省利息',
-                type: 'bar',
-                data: [Math.round(saved)],
-                itemStyle: { color: '#4caf50' },
-                barMaxWidth: 40,
-              },
-            ]
-          : []),
+        {
+          name: '节省利息',
+          type: 'bar',
+          data: savedInterests.map((v) => ({
+            value: v,
+            itemStyle: v < 0 ? { color: '#ff6b6b' } : undefined,
+          })),
+          itemStyle: { color: '#4caf50' },
+          barMaxWidth: 50,
+        },
       ],
     };
-  }, [params, summary, changes, resolved]);
+  }, [schedule, changes, history, resolved]);
 
-  return <ReactECharts option={option} style={{ height: 280 }} />;
+  if (history.length === 0) {
+    return <EmptyState message="暂无变更记录，操作利率变更或提前还款后可查看利息对比" />;
+  }
+
+  return option ? <ReactECharts option={option} style={{ height: 280 }} /> : null;
 }
