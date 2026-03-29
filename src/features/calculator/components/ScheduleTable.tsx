@@ -1,10 +1,29 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRef } from 'react';
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  DownloadIcon,
+} from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { formatCurrency } from '@/core/utils/formatHelper';
 import { exportToExcel } from '@/services/ExcelExporter';
+import {
+  copyToClipboard,
+  exportToCsv,
+  exportToMarkdown,
+  prepareScheduleData,
+} from '@/services/export';
 import { useLoanStore } from '@/stores/useLoanStore';
 
 const columns = [
@@ -22,6 +41,9 @@ export function ScheduleTable() {
   const schedule = useLoanStore((s) => s.schedule);
   const changes = useLoanStore((s) => s.changes);
   const parentRef = useRef<HTMLDivElement>(null);
+  const [copyState, setCopyState] = useState<'idle' | 'success' | 'fail'>(
+    'idle',
+  );
 
   const virtualizer = useVirtualizer({
     count: schedule.length,
@@ -30,9 +52,23 @@ export function ScheduleTable() {
     overscan: 20,
   });
 
-  const handleExport = () => {
+  const handleExportExcel = useCallback(() => {
     exportToExcel(schedule, changes);
-  };
+  }, [schedule, changes]);
+
+  const handleExportCsv = useCallback(() => {
+    exportToCsv(prepareScheduleData(schedule));
+  }, [schedule]);
+
+  const handleExportMarkdown = useCallback(() => {
+    exportToMarkdown(prepareScheduleData(schedule));
+  }, [schedule]);
+
+  const handleCopy = useCallback(async () => {
+    const ok = await copyToClipboard(prepareScheduleData(schedule));
+    setCopyState(ok ? 'success' : 'fail');
+    setTimeout(() => setCopyState('idle'), 2000);
+  }, [schedule]);
 
   if (schedule.length === 0) {
     return (
@@ -48,9 +84,31 @@ export function ScheduleTable() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle>还款计划表</CardTitle>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          导出 Excel
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="outline" size="sm">
+                导出 <ChevronDownIcon />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportExcel}>
+              <DownloadIcon /> Excel (.xlsx)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportCsv}>
+              <DownloadIcon /> CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportMarkdown}>
+              <DownloadIcon /> Markdown
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleCopy}>
+              {copyState === 'success' ? <CheckIcon /> : <CopyIcon />}
+              {copyState === 'success' ? '已复制!' : '复制到剪贴板'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
         <div ref={parentRef} className="max-h-[500px] overflow-auto">
