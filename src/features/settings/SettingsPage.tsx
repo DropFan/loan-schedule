@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -8,6 +9,7 @@ import {
 } from '@/constants/app.constants';
 import { type Theme, useTheme } from '@/hooks/useTheme';
 import { useLoanStore } from '@/stores/useLoanStore';
+import { exportData, importData } from './data-transfer';
 
 const themeOptions: Array<{ value: Theme; label: string }> = [
   { value: 'light', label: '亮色' },
@@ -18,12 +20,28 @@ const themeOptions: Array<{ value: Theme; label: string }> = [
 export function SettingsPage() {
   const clear = useLoanStore((s) => s.clear);
   const { theme, setTheme } = useTheme();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importResult, setImportResult] = useState('');
 
   const handleClearData = () => {
     if (window.confirm('确认清除所有数据？此操作不可撤销。')) {
       clear();
       localStorage.removeItem('loan-app-state');
     }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportResult('');
+    try {
+      const result = await importData(file);
+      setImportResult(result);
+    } catch (err) {
+      setImportResult(err instanceof Error ? err.message : '导入失败');
+    }
+    // 清空 input 以便重复选择同一文件
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -56,13 +74,42 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle>数据管理</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            所有数据存储在浏览器本地，清除后无法恢复。
-          </p>
-          <Button variant="destructive" onClick={handleClearData}>
-            清除所有数据
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              导出数据到 JSON
+              文件，可在其他设备导入恢复。包含贷款方案（参数+变更记录）和利率表，导入时自动重放计算。
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={exportData}>
+                导出数据
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                导入数据
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="hidden"
+              />
+            </div>
+            {importResult && (
+              <p className="text-sm text-muted-foreground">{importResult}</p>
+            )}
+          </div>
+          <div className="border-t pt-4 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              清除所有本地数据，此操作不可撤销。
+            </p>
+            <Button variant="destructive" onClick={handleClearData}>
+              清除所有数据
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
