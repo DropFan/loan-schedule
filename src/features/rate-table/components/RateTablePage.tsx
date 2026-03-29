@@ -7,14 +7,16 @@ import { Label } from '@/components/ui/label';
 import type { RateEntry } from '@/stores/useLoanStore';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { getLprChangePoints } from '../data/lpr-history';
-import { LprRateProvider } from '../rate-provider';
+import { GjjRateProvider, LprRateProvider } from '../rate-provider';
 import { RateEntryDialog } from './RateEntryDialog';
 import { RateTableSwitcher } from './RateTableSwitcher';
 
-type RateSource = 'custom' | 'lpr';
+type RateSource = 'custom' | 'lpr' | 'gjj';
 
 function detectSource(entries: RateEntry[]): RateSource {
-  return entries.some((e) => e.source === 'lpr') ? 'lpr' : 'custom';
+  if (entries.some((e) => e.source === 'gjj')) return 'gjj';
+  if (entries.some((e) => e.source === 'lpr')) return 'lpr';
+  return 'custom';
 }
 
 function detectBasisPoints(entries: RateEntry[]): number {
@@ -40,6 +42,7 @@ export function RateTablePage() {
   const [basisPoints, setBasisPoints] = useState(() =>
     detectBasisPoints(rateTable),
   );
+  const [gjjAbove5Y, setGjjAbove5Y] = useState(true);
 
   // 加载已保存的利率表时，恢复 source 和 basisPoints
   const activeTable = savedRateTables.find((t) => t.id === activeRateTableId);
@@ -50,6 +53,7 @@ export function RateTablePage() {
       if (activeTable) {
         setSource(activeTable.source);
         setBasisPoints(activeTable.basisPoints ?? 0);
+        setGjjAbove5Y(activeTable.gjjAbove5Y ?? true);
       } else {
         setSource(detectSource(rateTable));
         setBasisPoints(detectBasisPoints(rateTable));
@@ -57,24 +61,38 @@ export function RateTablePage() {
     }
   }, [activeRateTableId, activeTable, rateTable]);
 
-  const lprTimeline = useMemo(() => {
-    const provider = new LprRateProvider(basisPoints);
+  const gjjTimeline = useMemo(() => {
+    const provider = new GjjRateProvider(gjjAbove5Y, basisPoints);
     return provider.getRateTimeline();
-  }, [basisPoints]);
+  }, [gjjAbove5Y, basisPoints]);
 
   const sorted = [...rateTable].sort((a, b) => a.date.localeCompare(b.date));
 
   const handleSourceChange = (newSource: RateSource) => {
     setSource(newSource);
     if (newSource === 'lpr') {
-      updateRateTable(lprTimeline);
+      setBasisPoints(0);
+      updateRateTable(new LprRateProvider(0).getRateTimeline());
+    } else if (newSource === 'gjj') {
+      setBasisPoints(0);
+      updateRateTable(new GjjRateProvider(gjjAbove5Y, 0).getRateTimeline());
     }
   };
 
   const handleBpChange = (bp: number) => {
     setBasisPoints(bp);
-    const provider = new LprRateProvider(bp);
-    updateRateTable(provider.getRateTimeline());
+    if (source === 'lpr') {
+      updateRateTable(new LprRateProvider(bp).getRateTimeline());
+    } else if (source === 'gjj') {
+      updateRateTable(new GjjRateProvider(gjjAbove5Y, bp).getRateTimeline());
+    }
+  };
+
+  const handleGjjTermChange = (above5Y: boolean) => {
+    setGjjAbove5Y(above5Y);
+    updateRateTable(
+      new GjjRateProvider(above5Y, basisPoints).getRateTimeline(),
+    );
   };
 
   const handleAdd = (entry: RateEntry) => {
@@ -93,7 +111,11 @@ export function RateTablePage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-2xl space-y-4">
-      <RateTableSwitcher source={source} basisPoints={basisPoints} />
+      <RateTableSwitcher
+        source={source}
+        basisPoints={basisPoints}
+        gjjAbove5Y={gjjAbove5Y}
+      />
 
       {/* 数据源切换 */}
       <Card>
@@ -124,7 +146,64 @@ export function RateTablePage() {
             >
               LPR + 基点
             </button>
+            <button
+              type="button"
+              onClick={() => handleSourceChange('gjj')}
+              className={`flex-1 px-3 py-2 rounded-md text-sm border transition-colors ${
+                source === 'gjj'
+                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                  : 'border-border text-muted-foreground hover:bg-muted/10'
+              }`}
+            >
+              公积金
+            </button>
           </div>
+
+          {source === 'gjj' && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>贷款期限</Label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleGjjTermChange(true)}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                      gjjAbove5Y
+                        ? 'border-primary bg-primary/10 text-primary font-medium'
+                        : 'border-border text-muted-foreground hover:bg-muted/10'
+                    }`}
+                  >
+                    5年以上
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGjjTermChange(false)}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                      !gjjAbove5Y
+                        ? 'border-primary bg-primary/10 text-primary font-medium'
+                        : 'border-border text-muted-foreground hover:bg-muted/10'
+                    }`}
+                  >
+                    5年以下（含）
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>基点偏移 (bp)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={basisPoints}
+                    onChange={(e) => handleBpChange(Number(e.target.value))}
+                    className="w-28"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    如二套房上浮，填正值
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {source === 'lpr' && (
             <div className="space-y-1">
@@ -158,6 +237,11 @@ export function RateTablePage() {
                 </Button>
               }
             />
+          )}
+          {source === 'gjj' && !rateTable.length && (
+            <Button size="sm" onClick={() => updateRateTable(gjjTimeline)}>
+              加载公积金利率
+            </Button>
           )}
         </CardHeader>
         <CardContent>
@@ -193,6 +277,9 @@ export function RateTablePage() {
                 {source === 'lpr' && (
                   <span className="text-xs text-muted-foreground">LPR</span>
                 )}
+                {source === 'gjj' && (
+                  <span className="text-xs text-muted-foreground">公积金</span>
+                )}
                 {source === 'custom' && (
                   <div className="flex gap-1">
                     <RateEntryDialog
@@ -220,7 +307,9 @@ export function RateTablePage() {
           <p className="text-xs text-muted-foreground mt-4">
             {source === 'lpr'
               ? `基于 LPR 5年期 ${basisPoints >= 0 ? '+' : ''}${basisPoints}bp 自动生成。数据来源：中国人民银行。`
-              : '利率表中的变更会自动应用到还款计划。'}
+              : source === 'gjj'
+                ? `公积金贷款利率（${gjjAbove5Y ? '5年以上' : '5年以下'}首套）${basisPoints !== 0 ? ` ${basisPoints >= 0 ? '+' : ''}${basisPoints}bp` : ''}。数据来源：中国人民银行。`
+                : '利率表中的变更会自动应用到还款计划。'}
           </p>
         </CardContent>
       </Card>

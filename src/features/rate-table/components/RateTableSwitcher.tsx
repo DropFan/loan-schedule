@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input';
 import { useLoanStore } from '@/stores/useLoanStore';
 
 interface RateTableSwitcherProps {
-  source: 'custom' | 'lpr';
+  source: 'custom' | 'lpr' | 'gjj';
   basisPoints?: number;
+  gjjAbove5Y?: boolean;
 }
 
 export function RateTableSwitcher({
   source,
   basisPoints,
+  gjjAbove5Y,
 }: RateTableSwitcherProps) {
   const {
     activeRateTableId,
@@ -31,10 +33,10 @@ export function RateTableSwitcher({
 
   const handleSave = () => {
     if (activeTable) {
-      saveRateTable(activeTable.name, source, basisPoints);
+      saveRateTable(activeTable.name, source, basisPoints, gjjAbove5Y);
     } else {
       const name = `利率表 ${savedRateTables.length + 1}`;
-      saveRateTable(name, source, basisPoints);
+      saveRateTable(name, source, basisPoints, gjjAbove5Y);
     }
   };
 
@@ -42,7 +44,7 @@ export function RateTableSwitcher({
     const baseName = activeTable?.name ?? '利率表';
     const name = `${baseName} (副本)`;
     useLoanStore.setState({ activeRateTableId: null });
-    saveRateTable(name, source, basisPoints);
+    saveRateTable(name, source, basisPoints, gjjAbove5Y);
   };
 
   const handleNew = () => {
