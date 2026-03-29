@@ -39,6 +39,8 @@ describe('prepareScheduleData', () => {
       '本金',
       '利息',
       '剩余本金',
+      '累计还款',
+      '累计利息',
       '剩余期数',
       '利率',
       '还款方式',
@@ -64,9 +66,21 @@ describe('prepareScheduleData', () => {
     expect(result.rows[0][5]).toBe('496359.40');
   });
 
+  it('累计还款逐行累加', () => {
+    const result = prepareScheduleData(mockSchedule);
+    expect(result.rows[0][6]).toBe('5307.27');
+    expect(result.rows[1][6]).toBe('105307.27');
+  });
+
+  it('累计利息逐行累加', () => {
+    const result = prepareScheduleData(mockSchedule);
+    expect(result.rows[0][7]).toBe('1666.67');
+    expect(result.rows[1][7]).toBe('1666.67');
+  });
+
   it('利率带百分号', () => {
     const result = prepareScheduleData(mockSchedule);
-    expect(result.rows[0][7]).toBe('4%');
+    expect(result.rows[0][9]).toBe('4%');
   });
 
   it('行数与输入一致', () => {
@@ -76,7 +90,7 @@ describe('prepareScheduleData', () => {
 
   it('空数组返回空行', () => {
     const result = prepareScheduleData([]);
-    expect(result.headers).toHaveLength(10);
+    expect(result.headers).toHaveLength(12);
     expect(result.rows).toHaveLength(0);
   });
 });
