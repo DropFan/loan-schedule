@@ -1,7 +1,26 @@
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: '/',
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: false,
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      },
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
   server: {
     host: '0.0.0.0',
   },
@@ -10,11 +29,12 @@ export default defineConfig({
     sourcemap: true,
   },
   test: {
-    environment: 'happy-dom',
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.ts'],
-      exclude: ['src/vite-env.d.ts'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/vite-env.d.ts', 'src/test-setup.ts'],
     },
   },
 });
