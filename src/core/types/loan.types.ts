@@ -65,12 +65,13 @@ export interface LoanChangeParams {
 }
 
 export interface RemainingScheduleInfo {
-  paidPeriods: number;
+  paidPeriods: number; // 截止变更日期的数组元素数量（含 period=0 行），用于 schedule.slice
+  lastRegularPeriod: number; // 最后一个常规期的 period 值，用于新计划的期数偏移
   remainingLoan: number;
   remainingTerm: number;
   annualInterestRate: number;
-  lastPaymentDate: string; // YYYY-MM-DD，最后一条记录的日期
-  lastRegularPaymentDate: string; // YYYY-MM-DD，最后一期常规还款日（排除提前还款行），用于按天计算利息差
+  lastPaymentDate: string;
+  lastRegularPaymentDate: string;
 }
 
 export interface CalculateResult {

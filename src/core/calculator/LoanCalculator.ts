@@ -104,12 +104,13 @@ export function findRemainingInfo(
 
   let paidPeriods = 0;
   let lastRegularDate = '';
+  let lastRegularPeriod = 0;
   for (let i = 0; i < schedule.length; i++) {
     if (new Date(schedule[i].paymentDate) <= changeDate) {
       paidPeriods = i + 1;
-      // period > 0 为常规还款期，period === 0 为提前还款行
       if (schedule[i].period > 0) {
         lastRegularDate = schedule[i].paymentDate;
+        lastRegularPeriod = schedule[i].period;
       }
     } else {
       break;
@@ -122,6 +123,7 @@ export function findRemainingInfo(
 
   return {
     paidPeriods,
+    lastRegularPeriod,
     remainingLoan: ref.remainingLoan,
     remainingTerm: ref.remainingTerm,
     annualInterestRate: ref.annualInterestRate,

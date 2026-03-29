@@ -220,7 +220,7 @@ export const useLoanStore = create<LoanState>()(
         );
 
         for (const item of result.schedule) {
-          item.period += remaining.paidPeriods;
+          item.period += remaining.lastRegularPeriod;
         }
 
         // 计算月供变化
