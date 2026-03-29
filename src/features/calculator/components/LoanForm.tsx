@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,16 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
-import { LoanMethod, LoanMethodName } from '@/core/types/loan.types';
+import {
+  annualToMonthlyRate,
+  calcFreeRepaymentMinPayment,
+} from '@/core/calculator/LoanCalculator';
+import {
+  LoanMethod,
+  LoanMethodName,
+  LoanType,
+  LoanTypeName,
+} from '@/core/types/loan.types';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
 
@@ -18,6 +27,9 @@ export function LoanForm() {
   const { params, initialize } = useLoanStore();
   const hasSchedule = useLoanStore((s) => s.schedule.length > 0);
 
+  const [loanType, setLoanType] = useState<LoanType>(
+    params?.loanType ?? LoanType.Commercial,
+  );
   const [amount, setAmount] = useState(params?.loanAmount?.toString() ?? '');
   const [termYears, setTermYears] = useState(
     params ? String(params.loanTermMonths / 12) : '',
@@ -36,7 +48,20 @@ export function LoanForm() {
   const [repaymentDay, setRepaymentDay] = useState(
     params?.repaymentDay?.toString() ?? String(DEFAULT_REPAYMENT_DAY),
   );
+  const [monthlyPayment, setMonthlyPayment] = useState(
+    params?.monthlyPaymentAmount?.toString() ?? '',
+  );
   const [error, setError] = useState('');
+
+  const suggestedMin = useMemo(() => {
+    const a = Number(amount);
+    const t = Number(termYears);
+    const r = Number(rate);
+    if (a > 0 && t > 0 && r > 0) {
+      return calcFreeRepaymentMinPayment(a, t * 12, annualToMonthlyRate(r));
+    }
+    return 0;
+  }, [amount, termYears, rate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,13 +102,25 @@ export function LoanForm() {
       return;
     }
 
+    let monthlyPaymentAmount: number | undefined;
+    if (method === LoanMethod.FreeRepayment) {
+      const mpNum = Number(monthlyPayment);
+      if (!mpNum || mpNum <= 0) {
+        setError('请输入每月还款额');
+        return;
+      }
+      monthlyPaymentAmount = mpNum;
+    }
+
     initialize({
+      loanType,
       loanAmount: amountNum,
       loanTermMonths: termNum * 12,
       annualInterestRate: rateNum,
       loanMethod: method,
       startDate: new Date(startDate),
       repaymentDay: repaymentDayNum,
+      monthlyPaymentAmount,
     });
   };
 
@@ -94,6 +131,22 @@ export function LoanForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="loan-type">贷款类型</Label>
+            <Select
+              value={loanType}
+              onValueChange={(v) => setLoanType(v as LoanType)}
+            >
+              <SelectTrigger>{LoanTypeName[loanType]}</SelectTrigger>
+              <SelectContent>
+                <SelectItem value={LoanType.Commercial}>商业贷款</SelectItem>
+                <SelectItem value={LoanType.ProvidentFund}>
+                  公积金贷款
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="loan-amount">贷款金额 (元)</Label>
             <Input
@@ -144,9 +197,36 @@ export function LoanForm() {
                 <SelectItem value={LoanMethod.EqualPrincipal}>
                   等额本金
                 </SelectItem>
+                <SelectItem value={LoanMethod.FreeRepayment}>
+                  自由还款
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {method === LoanMethod.FreeRepayment && (
+            <div className="space-y-2">
+              <Label htmlFor="monthly-payment">每月还款额 (元)</Label>
+              <Input
+                id="monthly-payment"
+                type="number"
+                inputMode="decimal"
+                value={monthlyPayment}
+                onChange={(e) => setMonthlyPayment(e.target.value)}
+                placeholder={
+                  suggestedMin > 0
+                    ? `建议不低于 ${suggestedMin.toFixed(2)}`
+                    : '请先填写贷款金额、期限和利率'
+                }
+              />
+              {suggestedMin > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  建议最低还款额：{suggestedMin.toFixed(2)} 元（等额本息月供的
+                  85%）
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="start-date">贷款开始日期</Label>

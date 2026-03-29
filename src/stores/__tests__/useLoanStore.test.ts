@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
-import { LoanMethod } from '@/core/types/loan.types';
+import { LoanMethod, LoanType } from '@/core/types/loan.types';
 import { useLoanStore } from '../useLoanStore';
 
 describe('useLoanStore', () => {
@@ -10,6 +10,7 @@ describe('useLoanStore', () => {
 
   it('initialize 应生成还款计划和初始变更记录', () => {
     useLoanStore.getState().initialize({
+      loanType: LoanType.Commercial,
       loanAmount: 1_000_000,
       loanTermMonths: 360,
       annualInterestRate: 3.5,
@@ -30,6 +31,7 @@ describe('useLoanStore', () => {
 
   it('clear 应重置所有状态', () => {
     useLoanStore.getState().initialize({
+      loanType: LoanType.Commercial,
       loanAmount: 500_000,
       loanTermMonths: 120,
       annualInterestRate: 4.0,

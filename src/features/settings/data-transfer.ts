@@ -1,5 +1,9 @@
 import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
-import type { LoanChangeParams, LoanParameters } from '@/core/types/loan.types';
+import {
+  type LoanChangeParams,
+  type LoanParameters,
+  LoanType,
+} from '@/core/types/loan.types';
 import type { RateEntry } from '@/stores/useLoanStore';
 import { useLoanStore } from '@/stores/useLoanStore';
 
@@ -20,8 +24,9 @@ interface ExportData {
   rateTables: Array<{
     name: string;
     entries: RateEntry[];
-    source: 'custom' | 'lpr';
+    source: 'custom' | 'lpr' | 'gjj';
     basisPoints?: number;
+    gjjAbove5Y?: boolean;
   }>;
 }
 
@@ -64,6 +69,7 @@ export function exportData() {
       entries: t.entries,
       source: t.source,
       basisPoints: t.basisPoints,
+      gjjAbove5Y: t.gjjAbove5Y,
     })),
   };
 
@@ -97,6 +103,7 @@ export function importData(file: File): Promise<string> {
           // 恢复 Date 对象，兼容旧数据
           loan.params.startDate = new Date(loan.params.startDate);
           loan.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
+          loan.params.loanType ??= LoanType.Commercial;
           for (const cp of loan.changeParams) {
             cp.date = new Date(cp.date);
           }
@@ -128,7 +135,7 @@ export function importData(file: File): Promise<string> {
           useLoanStore.getState().updateRateTable(rt.entries);
           useLoanStore
             .getState()
-            .saveRateTable(rt.name, rt.source, rt.basisPoints);
+            .saveRateTable(rt.name, rt.source, rt.basisPoints, rt.gjjAbove5Y);
         }
 
         resolve(

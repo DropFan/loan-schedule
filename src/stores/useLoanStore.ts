@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_REPAYMENT_DAY, MS_PER_DAY } from '@/constants/app.constants';
 import {
   annualToMonthlyRate,
+  calcGjjInterestSplit,
   calcScheduleSummary,
   calcTermByFixedPrincipal,
   calcTermByPayment,
@@ -17,15 +18,16 @@ import {
   LoanMethodName,
   type LoanParameters,
   type LoanScheduleSummary,
+  LoanType,
   type PaymentScheduleItem,
   PrepaymentMode,
 } from '@/core/types/loan.types';
-import { formatDate } from '@/core/utils/formatHelper';
+import { formatDate, roundTo2 } from '@/core/utils/formatHelper';
 
 export interface RateEntry {
   date: string;
   annualRate: number;
-  source: 'custom' | 'lpr' | string;
+  source: 'custom' | 'lpr' | 'gjj' | string;
 }
 
 export interface SavedRateTable {
@@ -34,8 +36,9 @@ export interface SavedRateTable {
   createdAt: string;
   updatedAt: string;
   entries: RateEntry[];
-  source: 'custom' | 'lpr';
+  source: 'custom' | 'lpr' | 'gjj';
   basisPoints?: number;
+  gjjAbove5Y?: boolean;
 }
 
 interface Snapshot {
@@ -90,8 +93,9 @@ interface LoanState {
   // multi-rate-table actions
   saveRateTable: (
     name: string,
-    source: 'custom' | 'lpr',
+    source: 'custom' | 'lpr' | 'gjj',
     basisPoints?: number,
+    gjjAbove5Y?: boolean,
   ) => string;
   loadRateTable: (id: string) => void;
   deleteRateTable: (id: string) => void;
@@ -127,6 +131,7 @@ export const useLoanStore = create<LoanState>()(
           params.startDate,
           params.loanMethod,
           repaymentDay,
+          params.monthlyPaymentAmount,
         );
 
         // 首期按天计息
@@ -226,6 +231,8 @@ export const useLoanStore = create<LoanState>()(
           MS_PER_DAY;
         let extraInterest = 0;
 
+        const isGjj = state.params.loanType === LoanType.ProvidentFund;
+
         if (
           changeParams.type === ChangeType.RateChange &&
           changeParams.newAnnualRate != null
@@ -233,7 +240,22 @@ export const useLoanStore = create<LoanState>()(
           annualRate = changeParams.newAnnualRate;
           comment = `利率变更为 ${annualRate.toFixed(2)}%`;
 
-          if (deltaDay > 0) {
+          if (isGjj) {
+            // 公积金: 30/360 按天计息，基于放款日
+            const originDay = state.params.startDate.getDate();
+            const { daysOld, daysNew } = calcGjjInterestSplit(
+              originDay,
+              changeParams.date,
+            );
+            const blendedInterest =
+              (remainingLoan *
+                (remaining.annualInterestRate * daysOld +
+                  annualRate * daysNew)) /
+              36000;
+            const normalInterest = (remainingLoan * annualRate) / 1200;
+            extraInterest = blendedInterest - normalInterest;
+          } else if (deltaDay > 0) {
+            // 商贷: 按天息差
             extraInterest =
               (((remainingLoan * (remaining.annualInterestRate - annualRate)) /
                 100 /
@@ -281,10 +303,22 @@ export const useLoanStore = create<LoanState>()(
               comment += `，期数缩短 ${termDiff} 期`;
             }
           }
+        } else if (
+          changeParams.type === ChangeType.PaymentChange &&
+          changeParams.newMonthlyPayment != null
+        ) {
+          comment = `月供调整为 ${changeParams.newMonthlyPayment.toFixed(2)} 元`;
         }
 
         const monthlyRate = annualToMonthlyRate(annualRate);
         const newStartDate = new Date(remaining.lastRegularPaymentDate);
+
+        // 自由还款调整月供时，传入新的月供额
+        const newMonthlyPaymentAmount =
+          changeParams.type === ChangeType.PaymentChange &&
+          changeParams.newMonthlyPayment != null
+            ? changeParams.newMonthlyPayment
+            : state.params.monthlyPaymentAmount;
 
         const result = calculateLoan(
           remainingLoan,
@@ -294,6 +328,9 @@ export const useLoanStore = create<LoanState>()(
           newStartDate,
           method,
           state.params.repaymentDay,
+          method === LoanMethod.FreeRepayment
+            ? newMonthlyPaymentAmount
+            : undefined,
         );
 
         for (const item of result.schedule) {
@@ -343,8 +380,39 @@ export const useLoanStore = create<LoanState>()(
           newSchedule = oldSchedule.concat([prepayItem], result.schedule);
         } else {
           if (extraInterest !== 0 && result.schedule.length > 0) {
-            result.schedule[0].monthlyPayment += extraInterest;
-            result.schedule[0].interest += extraInterest;
+            if (method === LoanMethod.FreeRepayment) {
+              // 自由还款: 月供不变，调整利息/本金拆分并级联更新后续期
+              const s0 = result.schedule[0];
+              s0.interest = roundTo2(s0.interest + extraInterest);
+              s0.principal = roundTo2(s0.principal - extraInterest);
+              s0.remainingLoan = roundTo2(s0.remainingLoan + extraInterest);
+
+              const fixedPmt = s0.monthlyPayment;
+              for (let i = 1; i < result.schedule.length; i++) {
+                const prevRem = result.schedule[i - 1].remainingLoan;
+                const int = roundTo2(prevRem * monthlyRate);
+                if (
+                  i === result.schedule.length - 1 ||
+                  prevRem + int <= fixedPmt
+                ) {
+                  const pri = roundTo2(prevRem);
+                  result.schedule[i].interest = int;
+                  result.schedule[i].principal = pri;
+                  result.schedule[i].monthlyPayment = roundTo2(pri + int);
+                  result.schedule[i].remainingLoan = 0;
+                  result.schedule.length = i + 1;
+                  break;
+                }
+                result.schedule[i].interest = int;
+                result.schedule[i].principal = roundTo2(fixedPmt - int);
+                result.schedule[i].remainingLoan = roundTo2(
+                  prevRem - result.schedule[i].principal,
+                );
+              }
+            } else {
+              result.schedule[0].monthlyPayment += extraInterest;
+              result.schedule[0].interest += extraInterest;
+            }
           }
           if (result.schedule.length > 0) {
             result.schedule[0].comment = ` ${dateStr}${comment}`;
@@ -546,8 +614,9 @@ export const useLoanStore = create<LoanState>()(
 
       saveRateTable: (
         name: string,
-        source: 'custom' | 'lpr',
+        source: 'custom' | 'lpr' | 'gjj',
         basisPoints?: number,
+        gjjAbove5Y?: boolean,
       ) => {
         const state = get();
         const now = new Date().toISOString();
@@ -565,6 +634,7 @@ export const useLoanStore = create<LoanState>()(
                   entries: state.rateTable,
                   source,
                   basisPoints,
+                  gjjAbove5Y,
                 }
               : t,
           );
@@ -581,6 +651,7 @@ export const useLoanStore = create<LoanState>()(
           entries: state.rateTable,
           source,
           basisPoints,
+          gjjAbove5Y,
         };
         set({
           savedRateTables: [...state.savedRateTables, newTable],
@@ -667,6 +738,7 @@ export const useLoanStore = create<LoanState>()(
         if (state.params?.startDate) {
           state.params.startDate = new Date(state.params.startDate);
           state.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
+          state.params.loanType ??= LoanType.Commercial;
         }
         for (const c of state.changes) {
           if (c.date && !(c.date instanceof Date)) {
@@ -678,6 +750,7 @@ export const useLoanStore = create<LoanState>()(
           if (loan.params?.startDate) {
             loan.params.startDate = new Date(loan.params.startDate);
             loan.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
+            loan.params.loanType ??= LoanType.Commercial;
           }
           for (const c of loan.changes) {
             if (c.date && !(c.date instanceof Date)) {

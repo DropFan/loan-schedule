@@ -1,11 +1,23 @@
+export enum LoanType {
+  Commercial = 'commercial',
+  ProvidentFund = 'provident-fund',
+}
+
+export const LoanTypeName: Record<LoanType, string> = {
+  [LoanType.Commercial]: '商业贷款',
+  [LoanType.ProvidentFund]: '公积金贷款',
+};
+
 export enum LoanMethod {
   EqualPrincipalInterest = 'equal-principal-interest',
   EqualPrincipal = 'equal-principal',
+  FreeRepayment = 'free-repayment',
 }
 
 export const LoanMethodName: Record<LoanMethod, string> = {
   [LoanMethod.EqualPrincipalInterest]: '等额本息',
   [LoanMethod.EqualPrincipal]: '等额本金',
+  [LoanMethod.FreeRepayment]: '自由还款',
 };
 
 export interface PaymentScheduleItem {
@@ -22,12 +34,14 @@ export interface PaymentScheduleItem {
 }
 
 export interface LoanParameters {
+  loanType: LoanType;
   loanAmount: number;
   loanTermMonths: number;
   annualInterestRate: number; // 如 3.65
   loanMethod: LoanMethod;
   startDate: Date;
   repaymentDay: number; // 每月固定还款日，1-28，默认 15
+  monthlyPaymentAmount?: number; // 自由还款时的每月还款额
 }
 
 export interface LoanChangeRecord {
@@ -45,6 +59,7 @@ export enum ChangeType {
   RateChange = 'rate-change',
   Prepayment = 'prepayment',
   MethodChange = 'method-change',
+  PaymentChange = 'payment-change',
 }
 
 export enum PrepaymentMode {
@@ -64,6 +79,7 @@ export interface LoanChangeParams {
   newAnnualRate?: number; // 利率变更时使用
   prepayAmount?: number; // 提前还款时使用
   prepaymentMode?: PrepaymentMode;
+  newMonthlyPayment?: number; // 调整月供时使用（自由还款）
 }
 
 export interface RemainingScheduleInfo {

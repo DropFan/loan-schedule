@@ -8,6 +8,44 @@ import {
 } from '@/core/types/loan.types';
 import { addMonths, formatDate, roundTo2 } from '@/core/utils/formatHelper';
 
+/** 自由还款建议最低还款额 = 等额本息月供 × 比例系数 */
+export const FREE_REPAYMENT_MIN_RATIO = 0.85;
+
+/** 30/360 天数计算 */
+export function calc30360Days(d1: Date, d2: Date): number {
+  const y1 = d1.getFullYear();
+  const m1 = d1.getMonth() + 1;
+  const day1 = d1.getDate();
+  const y2 = d2.getFullYear();
+  const m2 = d2.getMonth() + 1;
+  const day2 = d2.getDate();
+  return 360 * (y2 - y1) + 30 * (m2 - m1) + (day2 - day1);
+}
+
+/** 公积金贷款利率变更时的 30/360 天数拆分（基于放款日） */
+export function calcGjjInterestSplit(
+  originDay: number,
+  changeDate: Date,
+): { daysOld: number; daysNew: number } {
+  let periodStartYear = changeDate.getFullYear();
+  let periodStartMonth = changeDate.getMonth();
+
+  if (changeDate.getDate() < originDay) {
+    periodStartMonth -= 1;
+    if (periodStartMonth < 0) {
+      periodStartMonth = 11;
+      periodStartYear -= 1;
+    }
+  }
+
+  const periodStart = new Date(periodStartYear, periodStartMonth, originDay);
+  const periodEnd = new Date(periodStartYear, periodStartMonth + 1, originDay);
+
+  const daysOld = calc30360Days(periodStart, changeDate);
+  const daysNew = calc30360Days(changeDate, periodEnd);
+  return { daysOld, daysNew };
+}
+
 export function annualToMonthlyRate(annualRate: number): number {
   return annualRate / 100 / 12;
 }
@@ -30,18 +68,38 @@ export function calcEqualPrincipalMonthly(
   return principal / termMonths;
 }
 
-/** 计算月供（等额本金返回首月月供，用于展示） */
+/** 自由还款建议最低还款额 */
+export function calcFreeRepaymentMinPayment(
+  principal: number,
+  termMonths: number,
+  monthlyRate: number,
+): number {
+  const equalPayment = calcEqualPrincipalInterest(
+    principal,
+    termMonths,
+    monthlyRate,
+  );
+  return roundTo2(equalPayment * FREE_REPAYMENT_MIN_RATIO);
+}
+
+/** 计算月供（等额本金返回首月月供，用于展示；自由还款返回用户设定值） */
 export function calcMonthlyPayment(
   loanAmount: number,
   termMonths: number,
   monthlyRate: number,
   method: LoanMethod,
+  monthlyPaymentAmount?: number,
 ): number {
   switch (method) {
     case LoanMethod.EqualPrincipalInterest:
       return calcEqualPrincipalInterest(loanAmount, termMonths, monthlyRate);
     case LoanMethod.EqualPrincipal:
       return loanAmount / termMonths + loanAmount * monthlyRate;
+    case LoanMethod.FreeRepayment:
+      return (
+        monthlyPaymentAmount ??
+        calcFreeRepaymentMinPayment(loanAmount, termMonths, monthlyRate)
+      );
   }
 }
 
@@ -54,16 +112,34 @@ export function generateSchedule(
   startDate: Date,
   method: LoanMethod,
   repaymentDay: number,
+  monthlyPaymentAmount?: number,
 ): PaymentScheduleItem[] {
   const schedule: PaymentScheduleItem[] = [];
   let remainingLoan = loanAmount;
+
+  const fixedPayment =
+    method === LoanMethod.FreeRepayment
+      ? roundTo2(
+          monthlyPaymentAmount ??
+            calcFreeRepaymentMinPayment(loanAmount, termMonths, monthlyRate),
+        )
+      : 0;
 
   for (let i = 1; i <= termMonths; i++) {
     let monthlyPayment: number;
     let principal: number;
     const interest = roundTo2(remainingLoan * monthlyRate);
 
-    if (method === LoanMethod.EqualPrincipalInterest) {
+    if (method === LoanMethod.FreeRepayment) {
+      if (i === termMonths || remainingLoan + interest <= fixedPayment) {
+        // 最后一期或剩余不足一期：还清全部
+        principal = roundTo2(remainingLoan);
+        monthlyPayment = roundTo2(principal + interest);
+      } else {
+        monthlyPayment = fixedPayment;
+        principal = roundTo2(fixedPayment - interest);
+      }
+    } else if (method === LoanMethod.EqualPrincipalInterest) {
       monthlyPayment = roundTo2(
         calcEqualPrincipalInterest(loanAmount, termMonths, monthlyRate),
       );
@@ -90,6 +166,11 @@ export function generateSchedule(
       loanMethod: LoanMethodName[method],
       comment: '',
     });
+
+    // 自由还款提前还清时截断
+    if (method === LoanMethod.FreeRepayment && remainingLoan <= 0) {
+      break;
+    }
   }
 
   return schedule;
@@ -191,9 +272,16 @@ export function calculateLoan(
   startDate: Date,
   method: LoanMethod,
   repaymentDay: number,
+  monthlyPaymentAmount?: number,
 ): CalculateResult {
   const monthlyPayment = roundTo2(
-    calcMonthlyPayment(loanAmount, termMonths, monthlyRate, method),
+    calcMonthlyPayment(
+      loanAmount,
+      termMonths,
+      monthlyRate,
+      method,
+      monthlyPaymentAmount,
+    ),
   );
   const schedule = generateSchedule(
     loanAmount,
@@ -203,6 +291,7 @@ export function calculateLoan(
     startDate,
     method,
     repaymentDay,
+    monthlyPaymentAmount,
   );
 
   return { monthlyPayment, schedule };
