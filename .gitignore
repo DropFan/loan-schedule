@@ -246,6 +246,7 @@ tags
 
 node_modules/
 dist/
+dev-dist/
 *.local
 .gstack/
 docs/superpowers
