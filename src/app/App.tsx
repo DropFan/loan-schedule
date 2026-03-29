@@ -8,7 +8,7 @@ export function App() {
       <AppRoutes />
       <pwa-install
         manifest-url="/manifest.json"
-        disable-chrome
+        disable-chrome="true"
         manual-apple="true"
       />
     </Providers>
