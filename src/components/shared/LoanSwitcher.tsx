@@ -59,7 +59,11 @@ export function LoanSwitcher() {
   };
 
   const handleFinishRename = () => {
-    if (activeLoan && renameDraft.trim() && renameDraft.trim() !== activeLoan.name) {
+    if (
+      activeLoan &&
+      renameDraft.trim() &&
+      renameDraft.trim() !== activeLoan.name
+    ) {
       renameLoan(activeLoan.id, renameDraft.trim());
     }
     setRenaming(false);
@@ -111,10 +115,20 @@ export function LoanSwitcher() {
       {/* 重命名 + 删除（有活跃方案时） */}
       {activeLoan && !renaming && (
         <>
-          <Button variant="ghost" size="sm" onClick={handleStartRename} title="重命名">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleStartRename}
+            title="重命名"
+          >
             <Pencil className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleDelete} title="删除方案">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            title="删除方案"
+          >
             <Trash2 className="w-3.5 h-3.5 text-red-500" />
           </Button>
         </>

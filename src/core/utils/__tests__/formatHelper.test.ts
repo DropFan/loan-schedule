@@ -9,6 +9,7 @@ import {
 
 describe('roundTo2', () => {
   it('正常四舍五入到两位小数', () => {
+    // biome-ignore lint/suspicious/noApproximativeNumericConstant: 测试用例需要具体数字
     expect(roundTo2(3.1415)).toBe(3.14);
     expect(roundTo2(3.145)).toBe(3.15);
     expect(roundTo2(3.155)).toBe(3.16); // Math.round(315.5) = 316
@@ -20,6 +21,7 @@ describe('roundTo2', () => {
   });
 
   it('负数四舍五入', () => {
+    // biome-ignore lint/suspicious/noApproximativeNumericConstant: 测试用例需要具体数字
     expect(roundTo2(-3.1415)).toBe(-3.14);
     expect(roundTo2(-3.146)).toBe(-3.15);
   });
@@ -51,6 +53,7 @@ describe('formatRate', () => {
   });
 
   it('利率值会四舍五入到两位小数', () => {
+    // biome-ignore lint/suspicious/noApproximativeNumericConstant: 测试用例需要具体数字
     expect(formatRate(3.1415)).toBe('3.14%');
     expect(formatRate(3.146)).toBe('3.15%');
   });

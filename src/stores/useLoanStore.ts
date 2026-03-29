@@ -419,7 +419,8 @@ export const useLoanStore = create<LoanState>()(
               : l,
           );
           // 加载目标方案
-          const loadTarget = updated.find((l) => l.id === id)!;
+          const loadTarget = updated.find((l) => l.id === id);
+          if (!loadTarget) return;
           set({
             savedLoans: updated,
             activeLoanId: id,

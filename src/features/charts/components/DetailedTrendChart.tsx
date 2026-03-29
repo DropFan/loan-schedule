@@ -44,7 +44,14 @@ export function DetailedTrendChart({ schedule }: Props) {
       tooltip: {
         trigger: 'axis',
         confine: true,
-        formatter: (params: Array<{ dataIndex: number; seriesName: string; value: number; color: string }>) => {
+        formatter: (
+          params: Array<{
+            dataIndex: number;
+            seriesName: string;
+            value: number;
+            color: string;
+          }>,
+        ) => {
           if (!params.length) return '';
           const idx = params[0].dataIndex;
           const item = regularItems[idx];
@@ -56,8 +63,11 @@ export function DetailedTrendChart({ schedule }: Props) {
           }
           html += `<br/><span style="color:#999">●</span> 利率: ${item.annualInterestRate}%`;
           if (item.comment) {
-            const detail = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
-            if (detail) html += `<br/><span style="color:#ff6b6b">●</span> <b>${detail}</b>`;
+            const detail = item.comment
+              .replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '')
+              .trim();
+            if (detail)
+              html += `<br/><span style="color:#ff6b6b">●</span> <b>${detail}</b>`;
           }
           return html;
         },

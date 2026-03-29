@@ -24,6 +24,7 @@ export function ChangeTimeline() {
         <div className="space-y-3">
           {displayChanges.map((change, i) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: 变更记录无稳定唯一 ID
               key={`${String(change.date)}-${i}`}
               className="border-l-2 border-primary/30 pl-4 py-1"
             >

@@ -36,7 +36,7 @@ export function AnalysisPage() {
             <CardTitle>还款概览</CardTitle>
           </CardHeader>
           <CardContent>
-            <RepaymentPieChart schedule={schedule} summary={summary} />
+            <RepaymentPieChart schedule={schedule} />
           </CardContent>
         </Card>
 

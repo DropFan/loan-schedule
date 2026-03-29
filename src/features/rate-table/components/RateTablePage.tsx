@@ -151,6 +151,7 @@ export function RateTablePage() {
           <div className="space-y-1 max-h-[400px] overflow-y-auto">
             {sorted.map((entry, i) => (
               <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: 利率条目无稳定唯一 ID
                 key={`${entry.date}-${i}`}
                 className="flex items-center justify-between py-2 px-3 rounded hover:bg-muted/10"
               >

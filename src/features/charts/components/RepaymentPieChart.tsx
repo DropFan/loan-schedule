@@ -1,17 +1,13 @@
 import ReactECharts from 'echarts-for-react';
 import { useMemo, useState } from 'react';
-import type {
-  LoanScheduleSummary,
-  PaymentScheduleItem,
-} from '@/core/types/loan.types';
+import type { PaymentScheduleItem } from '@/core/types/loan.types';
 import { useTheme } from '@/hooks/useTheme';
 
 interface Props {
   schedule: PaymentScheduleItem[];
-  summary: LoanScheduleSummary;
 }
 
-export function RepaymentPieChart({ schedule, summary }: Props) {
+export function RepaymentPieChart({ schedule }: Props) {
   const { resolved } = useTheme();
 
   const regularItems = useMemo(
@@ -100,7 +96,7 @@ export function RepaymentPieChart({ schedule, summary }: Props) {
         },
       ],
     };
-  }, [regularItems, safeIndex, summary, resolved]);
+  }, [regularItems, safeIndex, schedule, resolved]);
 
   if (!option) return null;
 

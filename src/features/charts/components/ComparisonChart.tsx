@@ -76,7 +76,14 @@ export function ComparisonChart({ schedule, changes, history }: Props) {
       tooltip: {
         trigger: 'axis',
         confine: true,
-        formatter: (params: Array<{ seriesName: string; value: number; color: string; dataIndex: number }>) => {
+        formatter: (
+          params: Array<{
+            seriesName: string;
+            value: number;
+            color: string;
+            dataIndex: number;
+          }>,
+        ) => {
           if (!params.length) return '';
           const idx = params[0].dataIndex;
           const period = periods[idx];
@@ -166,6 +173,7 @@ export function ComparisonChart({ schedule, changes, history }: Props) {
           className="w-full text-sm border border-border rounded-md px-2 py-1.5 bg-card text-foreground"
         >
           {comparisonOptions.map((opt, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: 选项列表用 index 即可
             <option key={i} value={i}>
               {opt.label}
             </option>

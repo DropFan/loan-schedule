@@ -43,9 +43,7 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
       const saved = beforeSummary.totalInterest - afterSummary.totalInterest;
 
       const changeRecord = changes[i + 1];
-      const label = changeRecord?.comment
-        ? `第${i + 1}次`
-        : `第${i + 1}次`;
+      const label = changeRecord?.comment ? `第${i + 1}次` : `第${i + 1}次`;
       categories.push(label);
       beforeInterests.push(Math.round(beforeSummary.totalInterest));
       afterInterests.push(Math.round(afterSummary.totalInterest));
@@ -57,14 +55,22 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
         trigger: 'axis',
         confine: true,
         formatter: (
-          params: Array<{ seriesName: string; value: number; color: string; dataIndex: number }>,
+          params: Array<{
+            seriesName: string;
+            value: number;
+            color: string;
+            dataIndex: number;
+          }>,
         ) => {
           if (!params.length) return '';
           const idx = params[0].dataIndex;
           const changeRecord = changes[idx + 1];
-          const date = changeRecord?.date instanceof Date
-            ? changeRecord.date.toISOString().split('T')[0]
-            : changeRecord?.date ? String(changeRecord.date).split('T')[0] : '';
+          const date =
+            changeRecord?.date instanceof Date
+              ? changeRecord.date.toISOString().split('T')[0]
+              : changeRecord?.date
+                ? String(changeRecord.date).split('T')[0]
+                : '';
           let html = `<b>${categories[idx]}</b> ${date}`;
           if (changeRecord?.comment) {
             html += `<br/>${changeRecord.comment}`;
@@ -121,8 +127,12 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
   }, [schedule, changes, history, resolved]);
 
   if (history.length === 0) {
-    return <EmptyState message="暂无变更记录，操作利率变更或提前还款后可查看利息对比" />;
+    return (
+      <EmptyState message="暂无变更记录，操作利率变更或提前还款后可查看利息对比" />
+    );
   }
 
-  return option ? <ReactECharts option={option} style={{ height: 280 }} /> : null;
+  return option ? (
+    <ReactECharts option={option} style={{ height: 280 }} />
+  ) : null;
 }

@@ -37,7 +37,7 @@ export function ChangeForm() {
   );
   const [prepayError, setPrepayError] = useState('');
 
-  if (!hasSchedule) return null;
+  if (!hasSchedule || !currentMethod) return null;
 
   const handleRateChange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +59,7 @@ export function ChangeForm() {
     applyChange({
       type: ChangeType.RateChange,
       date: new Date(rateDate),
-      loanMethod: currentMethod!,
+      loanMethod: currentMethod,
       newAnnualRate: rateNum,
     });
 
@@ -87,7 +87,7 @@ export function ChangeForm() {
     applyChange({
       type: ChangeType.Prepayment,
       date: new Date(prepayDate),
-      loanMethod: currentMethod!,
+      loanMethod: currentMethod,
       prepayAmount: amountNum,
       prepaymentMode: prepayMode,
     });
