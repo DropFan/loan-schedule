@@ -1,5 +1,5 @@
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Pencil, Plus, Save, SaveAll, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -26,17 +26,39 @@ export function LoanSwitcher() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [open, setOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const activeLoan = savedLoans.find((l) => l.id === activeLoanId);
 
+  useEffect(() => {
+    setTitleDraft(activeLoan?.name ?? '');
+  }, [activeLoan?.name]);
+
+  // 保存当前方案（已有则覆盖，没有则新建）
   const handleSave = () => {
-    const name = saveName.trim() || `方案 ${savedLoans.length + 1}`;
-    saveLoan(name);
-    setSaveName('');
+    if (activeLoan) {
+      saveLoan(activeLoan.name);
+    } else {
+      const name = saveName.trim() || `方案 ${savedLoans.length + 1}`;
+      saveLoan(name);
+      setSaveName('');
+    }
   };
 
+  // 另存为新方案
+  const handleSaveAs = () => {
+    const baseName = activeLoan?.name ?? '方案';
+    const name = `${baseName} (副本)`;
+    useLoanStore.setState({ activeLoanId: null });
+    saveLoan(name);
+  };
+
+  // 新建空白方案
   const handleNew = () => {
     clear();
+    useLoanStore.setState({ activeLoanId: null });
     setOpen(false);
   };
 
@@ -45,6 +67,7 @@ export function LoanSwitcher() {
     setOpen(false);
   };
 
+  // 列表中重命名
   const handleStartRename = (id: string, currentName: string) => {
     setEditingId(id);
     setEditName(currentName);
@@ -58,6 +81,37 @@ export function LoanSwitcher() {
     setEditName('');
   };
 
+  // 顶部方案名编辑 — 只在按 Enter 时保存，Esc 取消
+  const handleTitleEdit = () => {
+    if (!activeLoan) return;
+    setEditingTitle(true);
+    setTitleDraft(activeLoan.name);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (activeLoan && titleDraft.trim()) {
+        renameLoan(activeLoan.id, titleDraft.trim());
+      }
+      setEditingTitle(false);
+    } else if (e.key === 'Escape') {
+      setTitleDraft(activeLoan?.name ?? '');
+      setEditingTitle(false);
+    }
+  };
+
+  const handleTitleBlur = () => {
+    // blur 时保存修改（如果有变化）
+    if (
+      activeLoan &&
+      titleDraft.trim() &&
+      titleDraft.trim() !== activeLoan.name
+    ) {
+      renameLoan(activeLoan.id, titleDraft.trim());
+    }
+    setEditingTitle(false);
+  };
+
   const handleDelete = (id: string) => {
     if (window.confirm('确认删除此方案？')) {
       deleteLoan(id);
@@ -65,17 +119,51 @@ export function LoanSwitcher() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium truncate">
-          {activeLoan ? activeLoan.name : '未保存的方案'}
-        </span>
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* 方案名（可编辑） */}
+      <div className="flex items-center gap-1 min-w-0">
+        {editingTitle && activeLoan ? (
+          <Input
+            ref={titleInputRef}
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            className="h-7 text-sm w-40"
+            autoFocus
+          />
+        ) : (
+          <>
+            <span
+              className={`text-sm font-medium truncate ${activeLoan ? 'cursor-pointer hover:text-primary' : ''}`}
+              onClick={activeLoan ? handleTitleEdit : undefined}
+              title={activeLoan ? '点击编辑方案名' : undefined}
+            >
+              {activeLoan ? activeLoan.name : '未保存的方案'}
+            </span>
+            {activeLoan && (
+              <Pencil
+                className="w-3 h-3 text-muted-foreground shrink-0 cursor-pointer hover:text-primary"
+                onClick={handleTitleEdit}
+              />
+            )}
+          </>
+        )}
       </div>
 
+      {/* 保存按钮：始终可用（有数据时） */}
       {params && (
         <Button variant="outline" size="sm" onClick={handleSave}>
           <Save className="w-3.5 h-3.5 mr-1" />
-          {activeLoan ? '保存' : '另存为'}
+          保存
+        </Button>
+      )}
+
+      {/* 另存为按钮：已有方案时可用 */}
+      {params && activeLoan && (
+        <Button variant="outline" size="sm" onClick={handleSaveAs}>
+          <SaveAll className="w-3.5 h-3.5 mr-1" />
+          另存为
         </Button>
       )}
 
@@ -89,27 +177,10 @@ export function LoanSwitcher() {
           </SheetHeader>
 
           <div className="mt-4 space-y-4">
-            {/* 保存当前 */}
-            {params && !activeLoan && (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="方案名称"
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                />
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            )}
-
-            {/* 新建方案 */}
             <Button variant="outline" className="w-full" onClick={handleNew}>
-              <Plus className="w-4 h-4 mr-1" /> 新建方案
+              <Plus className="w-4 h-4 mr-1" /> 新建空白方案
             </Button>
 
-            {/* 方案列表 */}
             {savedLoans.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 暂无保存的方案
@@ -143,6 +214,11 @@ export function LoanSwitcher() {
                         onClick={() => handleLoad(loan.id)}
                       >
                         {loan.name}
+                        {loan.id === activeLoanId && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (当前)
+                          </span>
+                        )}
                       </button>
                     )}
                     <Button
