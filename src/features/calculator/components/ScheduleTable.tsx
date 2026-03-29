@@ -1,8 +1,8 @@
-import { useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useRef } from 'react';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/shared/EmptyState';
 import { formatCurrency } from '@/core/utils/formatHelper';
 import { exportToExcel } from '@/services/ExcelExporter';
 import { useLoanStore } from '@/stores/useLoanStore';
@@ -53,16 +53,16 @@ export function ScheduleTable() {
         </Button>
       </CardHeader>
       <CardContent>
-        <div
-          ref={parentRef}
-          className="max-h-[500px] overflow-auto"
-        >
+        <div ref={parentRef} className="max-h-[500px] overflow-auto">
           {/* 内层定宽容器，表头和数据一起横向滚动 */}
           <div className="min-w-[840px]">
             {/* 表头 — sticky top 让纵向滚动时固定 */}
             <div className="flex border-b border-border bg-background text-xs font-medium text-muted-foreground sticky top-0 z-10">
               {columns.map((col) => (
-                <div key={col.key} className={`${col.width} shrink-0 px-2 py-2`}>
+                <div
+                  key={col.key}
+                  className={`${col.width} shrink-0 px-2 py-2`}
+                >
                   {col.label}
                 </div>
               ))}
@@ -70,7 +70,10 @@ export function ScheduleTable() {
 
             {/* 虚拟滚动区域 */}
             <div
-              style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                position: 'relative',
+              }}
             >
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const row = schedule[virtualRow.index];
@@ -95,12 +98,24 @@ export function ScheduleTable() {
                     <div className="w-14 shrink-0 px-2 py-2">
                       {row.period === 0 ? '提前' : row.period}
                     </div>
-                    <div className="w-24 shrink-0 px-2 py-2">{row.paymentDate}</div>
-                    <div className="w-24 shrink-0 px-2 py-2">{formatCurrency(row.monthlyPayment)}</div>
-                    <div className="w-24 shrink-0 px-2 py-2">{formatCurrency(row.principal)}</div>
-                    <div className="w-20 shrink-0 px-2 py-2">{formatCurrency(row.interest)}</div>
-                    <div className="w-28 shrink-0 px-2 py-2">{formatCurrency(row.remainingLoan)}</div>
-                    <div className="w-16 shrink-0 px-2 py-2">{row.annualInterestRate}%</div>
+                    <div className="w-24 shrink-0 px-2 py-2">
+                      {row.paymentDate}
+                    </div>
+                    <div className="w-24 shrink-0 px-2 py-2">
+                      {formatCurrency(row.monthlyPayment)}
+                    </div>
+                    <div className="w-24 shrink-0 px-2 py-2">
+                      {formatCurrency(row.principal)}
+                    </div>
+                    <div className="w-20 shrink-0 px-2 py-2">
+                      {formatCurrency(row.interest)}
+                    </div>
+                    <div className="w-28 shrink-0 px-2 py-2">
+                      {formatCurrency(row.remainingLoan)}
+                    </div>
+                    <div className="w-16 shrink-0 px-2 py-2">
+                      {row.annualInterestRate}%
+                    </div>
                     <div className="w-60 shrink-0 px-2 py-2 text-muted-foreground break-words">
                       {row.comment}
                     </div>

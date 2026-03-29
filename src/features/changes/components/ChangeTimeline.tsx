@@ -1,7 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LoanMethod } from '@/core/types/loan.types';
 import { LoanMethodName } from '@/core/types/loan.types';
-import { formatCurrency, formatDate, formatRate } from '@/core/utils/formatHelper';
+import {
+  formatCurrency,
+  formatDate,
+  formatRate,
+} from '@/core/utils/formatHelper';
 import { useLoanStore } from '@/stores/useLoanStore';
 
 export function ChangeTimeline() {
@@ -28,7 +32,9 @@ export function ChangeTimeline() {
                   ? formatDate(change.date)
                   : new Date(change.date).toISOString().split('T')[0]}
               </div>
-              <div className="text-sm text-muted-foreground mt-0.5">{change.comment}</div>
+              <div className="text-sm text-muted-foreground mt-0.5">
+                {change.comment}
+              </div>
               <div className="text-xs text-muted-foreground mt-1 space-x-3">
                 <span>月供 ¥{formatCurrency(change.monthlyPayment)}</span>
                 <span>剩余 ¥{formatCurrency(change.loanAmount)}</span>

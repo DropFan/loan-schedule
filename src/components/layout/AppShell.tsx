@@ -1,5 +1,9 @@
 import { Outlet } from 'react-router';
-import { APP_AUTHOR_LINK, APP_NAME, APP_VERSION } from '@/constants/app.constants';
+import {
+  APP_AUTHOR_LINK,
+  APP_NAME,
+  APP_VERSION,
+} from '@/constants/app.constants';
 import { BottomTabs } from './BottomTabs';
 import { Sidebar } from './Sidebar';
 
@@ -14,7 +18,15 @@ export function AppShell() {
           <span className="text-sm font-bold truncate">{APP_NAME}</span>
           <span className="text-xs text-muted-foreground">v{APP_VERSION}</span>
           <span className="text-xs text-muted-foreground ml-auto">
-            By <a href={APP_AUTHOR_LINK} className="hover:text-primary" target="_blank" rel="noreferrer">Tiger</a>
+            By{' '}
+            <a
+              href={APP_AUTHOR_LINK}
+              className="hover:text-primary"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Tiger
+            </a>
           </span>
         </header>
         <main className="flex-1 pb-16 lg:pb-0">

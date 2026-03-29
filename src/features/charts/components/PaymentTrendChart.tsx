@@ -1,11 +1,21 @@
-import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useMemo } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 import { useLoanStore } from '@/stores/useLoanStore';
 
 export function PaymentTrendChart() {
   const schedule = useLoanStore((s) => s.schedule);
+  const { resolved: themeMode } = useTheme();
 
   const option = useMemo(() => {
+    const isDark = themeMode === 'dark';
+    const textColor = isDark ? '#ccc' : '#666';
+    const subTextColor = isDark ? '#999' : '#999';
+    const tooltipBg = isDark ? 'rgba(30,30,30,0.95)' : 'rgba(255,255,255,0.95)';
+    const tooltipBorder = isDark ? '#555' : '#ddd';
+    const tooltipTextColor = isDark ? '#eee' : '#333';
+    const axisLineColor = isDark ? '#444' : '#ddd';
+
     const regularItems = schedule.filter((item) => item.period > 0);
 
     const periods = regularItems.map((item) => item.period);
@@ -19,8 +29,9 @@ export function PaymentTrendChart() {
 
     for (const item of schedule) {
       if (item.period === 0 && item.comment !== '') {
-        // 提前还款行，暂存 comment，等下一个常规期时标记
-        pendingPrepayComment = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
+        pendingPrepayComment = item.comment
+          .replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '')
+          .trim();
         continue;
       }
       if (item.period > 0) {
@@ -32,7 +43,9 @@ export function PaymentTrendChart() {
           changeMarks.push({ xAxis: idx });
           pendingPrepayComment = '';
         } else if (item.comment !== '') {
-          const detail = item.comment.replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '').trim();
+          const detail = item.comment
+            .replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '')
+            .trim();
           changeDetailByIndex.set(idx, detail);
           changeMarks.push({ xAxis: idx });
         }
@@ -43,19 +56,30 @@ export function PaymentTrendChart() {
       tooltip: {
         trigger: 'axis',
         confine: true,
-        formatter: (params: Array<{ dataIndex: number; axisValue: string; seriesName: string; value: number; color: string }>) => {
+        backgroundColor: tooltipBg,
+        borderColor: tooltipBorder,
+        textStyle: { color: tooltipTextColor, fontSize: 12 },
+        formatter: (
+          params: Array<{
+            dataIndex: number;
+            axisValue: string;
+            seriesName: string;
+            value: number;
+            color: string;
+          }>,
+        ) => {
           if (!params.length) return '';
           const index = params[0].dataIndex;
           const item = regularItems[index];
           if (!item) return '';
 
           let html = `<b>第 ${item.period} 期</b> ${item.paymentDate}`;
-          html += `<br/><span style="color:#666">●</span> 月供: ¥${item.monthlyPayment.toFixed(2)}`;
+          html += `<br/><span style="color:${subTextColor}">●</span> 月供: ¥${item.monthlyPayment.toFixed(2)}`;
           for (const p of params) {
             html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`;
           }
-          html += `<br/><span style="color:#999">●</span> 剩余本金: ¥${item.remainingLoan.toFixed(2)}`;
-          html += `<br/><span style="color:#999">●</span> 利率: ${item.annualInterestRate}%`;
+          html += `<br/><span style="color:${subTextColor}">●</span> 剩余本金: ¥${item.remainingLoan.toFixed(2)}`;
+          html += `<br/><span style="color:${subTextColor}">●</span> 利率: ${item.annualInterestRate}%`;
           const detail = changeDetailByIndex.get(index);
           if (detail) {
             html += `<br/><span style="color:#ff6b6b">●</span> <b>${detail}</b>`;
@@ -75,16 +99,19 @@ export function PaymentTrendChart() {
         boundaryGap: false,
         axisLabel: {
           fontSize: 10,
+          color: textColor,
           interval: (index: number) => {
             if (index === 0 || index === periods.length - 1) return true;
             const step = Math.ceil(periods.length / 15);
             return index % step === 0;
           },
         },
+        axisLine: { lineStyle: { color: axisLineColor } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { fontSize: 10 },
+        axisLabel: { fontSize: 10, color: textColor },
+        splitLine: { lineStyle: { color: isDark ? '#333' : '#eee' } },
       },
       dataZoom: [
         {
@@ -135,7 +162,7 @@ export function PaymentTrendChart() {
         },
       ],
     };
-  }, [schedule]);
+  }, [schedule, themeMode]);
 
   if (schedule.length === 0) return null;
 

@@ -13,7 +13,9 @@ export class CustomRateProvider implements RateProvider {
 
   getRate(date: Date): number {
     const dateStr = date.toISOString().split('T')[0];
-    const sorted = [...this.entries].sort((a, b) => a.date.localeCompare(b.date));
+    const sorted = [...this.entries].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
 
     let rate = sorted[0]?.annualRate ?? 0;
     for (const entry of sorted) {

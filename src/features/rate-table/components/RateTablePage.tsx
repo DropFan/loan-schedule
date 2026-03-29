@@ -42,9 +42,15 @@ export function RateTablePage() {
         <CardContent>
           {params && (
             <div className="flex items-center justify-between py-2 px-3 mb-2 rounded bg-muted/20 text-sm">
-              <span>{params.startDate instanceof Date ? params.startDate.toISOString().split('T')[0] : String(params.startDate).split('T')[0]}</span>
+              <span>
+                {params.startDate instanceof Date
+                  ? params.startDate.toISOString().split('T')[0]
+                  : String(params.startDate).split('T')[0]}
+              </span>
               <span className="font-medium">{params.annualInterestRate}%</span>
-              <span className="text-xs text-muted-foreground">初始利率（自动同步）</span>
+              <span className="text-xs text-muted-foreground">
+                初始利率（自动同步）
+              </span>
             </div>
           )}
 
@@ -72,7 +78,11 @@ export function RateTablePage() {
                       </Button>
                     }
                   />
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(i)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(i)}
+                  >
                     <Trash2 className="w-3.5 h-3.5 text-red-500" />
                   </Button>
                 </div>

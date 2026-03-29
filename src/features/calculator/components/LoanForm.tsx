@@ -43,16 +43,28 @@ export function LoanForm() {
     const rateNum = Number(rate);
 
     const amountCheck = Validator.loanAmount(amountNum);
-    if (!amountCheck.valid) { setError(amountCheck.message); return; }
+    if (!amountCheck.valid) {
+      setError(amountCheck.message);
+      return;
+    }
 
     const termCheck = Validator.loanTermYears(termNum);
-    if (!termCheck.valid) { setError(termCheck.message); return; }
+    if (!termCheck.valid) {
+      setError(termCheck.message);
+      return;
+    }
 
     const rateCheck = Validator.annualInterestRate(rateNum);
-    if (!rateCheck.valid) { setError(rateCheck.message); return; }
+    if (!rateCheck.valid) {
+      setError(rateCheck.message);
+      return;
+    }
 
     const dateCheck = Validator.date(startDate);
-    if (!dateCheck.valid) { setError(dateCheck.message); return; }
+    if (!dateCheck.valid) {
+      setError(dateCheck.message);
+      return;
+    }
 
     initialize({
       loanAmount: amountNum,
@@ -108,10 +120,11 @@ export function LoanForm() {
 
           <div className="space-y-2">
             <Label htmlFor="loan-method">还贷方式</Label>
-            <Select value={method} onValueChange={(v) => setMethod(v as LoanMethod)}>
-              <SelectTrigger>
-                {LoanMethodName[method]}
-              </SelectTrigger>
+            <Select
+              value={method}
+              onValueChange={(v) => setMethod(v as LoanMethod)}
+            >
+              <SelectTrigger>{LoanMethodName[method]}</SelectTrigger>
               <SelectContent>
                 <SelectItem value={LoanMethod.EqualPrincipalInterest}>
                   等额本息

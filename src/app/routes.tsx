@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router';
+import { type RouteObject, useRoutes } from 'react-router';
 import { AppShell } from '@/components/layout/AppShell';
 import { CalculatorPage } from '@/features/calculator';
 import { RateTablePage } from '@/features/rate-table';
@@ -13,7 +13,11 @@ function PlaceholderPage({ title }: { title: string }) {
   );
 }
 
-export const routes: RouteObject[] = [
+export function AppRoutes() {
+  return useRoutes(routes);
+}
+
+const routes: RouteObject[] = [
   {
     element: <AppShell />,
     children: [

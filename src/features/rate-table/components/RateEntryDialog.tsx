@@ -28,11 +28,17 @@ export function RateEntryDialog({ entry, onSave, trigger }: Props) {
     setError('');
 
     const dateCheck = Validator.date(date);
-    if (!dateCheck.valid) { setError(dateCheck.message); return; }
+    if (!dateCheck.valid) {
+      setError(dateCheck.message);
+      return;
+    }
 
     const rateNum = Number(rate);
     const rateCheck = Validator.annualInterestRate(rateNum);
-    if (!rateCheck.valid) { setError(rateCheck.message); return; }
+    if (!rateCheck.valid) {
+      setError(rateCheck.message);
+      return;
+    }
 
     onSave({ date, annualRate: rateNum, source: 'custom' });
     setOpen(false);
@@ -50,14 +56,26 @@ export function RateEntryDialog({ entry, onSave, trigger }: Props) {
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>生效日期</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
           </div>
           <div className="space-y-1">
             <Label>年利率 (%)</Label>
-            <Input type="number" step="0.01" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} />
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+            />
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button onClick={handleSave} className="w-full">保存</Button>
+          <Button onClick={handleSave} className="w-full">
+            保存
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

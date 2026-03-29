@@ -10,7 +10,11 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChangeType, PrepaymentMode, PrepaymentModeName } from '@/core/types/loan.types';
+import {
+  ChangeType,
+  PrepaymentMode,
+  PrepaymentModeName,
+} from '@/core/types/loan.types';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
 
@@ -41,10 +45,16 @@ export function ChangeForm() {
 
     const rateNum = Number(newRate);
     const rateCheck = Validator.annualInterestRate(rateNum);
-    if (!rateCheck.valid) { setRateError(rateCheck.message); return; }
+    if (!rateCheck.valid) {
+      setRateError(rateCheck.message);
+      return;
+    }
 
     const dateCheck = Validator.date(rateDate);
-    if (!dateCheck.valid) { setRateError(dateCheck.message); return; }
+    if (!dateCheck.valid) {
+      setRateError(dateCheck.message);
+      return;
+    }
 
     applyChange({
       type: ChangeType.RateChange,
@@ -63,10 +73,16 @@ export function ChangeForm() {
 
     const amountNum = Number(prepayAmount);
     const amountCheck = Validator.prepayAmount(amountNum, remainingLoan);
-    if (!amountCheck.valid) { setPrepayError(amountCheck.message); return; }
+    if (!amountCheck.valid) {
+      setPrepayError(amountCheck.message);
+      return;
+    }
 
     const dateCheck = Validator.date(prepayDate);
-    if (!dateCheck.valid) { setPrepayError(dateCheck.message); return; }
+    if (!dateCheck.valid) {
+      setPrepayError(dateCheck.message);
+      return;
+    }
 
     applyChange({
       type: ChangeType.Prepayment,
@@ -88,22 +104,40 @@ export function ChangeForm() {
       <CardContent>
         <Tabs defaultValue="rate">
           <TabsList className="w-full">
-            <TabsTrigger value="rate" className="flex-1">利率变更</TabsTrigger>
-            <TabsTrigger value="prepay" className="flex-1">提前还款</TabsTrigger>
+            <TabsTrigger value="rate" className="flex-1">
+              利率变更
+            </TabsTrigger>
+            <TabsTrigger value="prepay" className="flex-1">
+              提前还款
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="rate">
             <form onSubmit={handleRateChange} className="space-y-3 pt-2">
               <div className="space-y-1">
                 <Label htmlFor="new-rate">新的年利率 (%)</Label>
-                <Input id="new-rate" type="number" step="0.01" inputMode="decimal" value={newRate} onChange={(e) => setNewRate(e.target.value)} />
+                <Input
+                  id="new-rate"
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={newRate}
+                  onChange={(e) => setNewRate(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="rate-date">生效日期</Label>
-                <Input id="rate-date" type="date" value={rateDate} onChange={(e) => setRateDate(e.target.value)} />
+                <Input
+                  id="rate-date"
+                  type="date"
+                  value={rateDate}
+                  onChange={(e) => setRateDate(e.target.value)}
+                />
               </div>
               {rateError && <p className="text-sm text-red-500">{rateError}</p>}
-              <Button type="submit" className="w-full">更新利率</Button>
+              <Button type="submit" className="w-full">
+                更新利率
+              </Button>
             </form>
           </TabsContent>
 
@@ -111,24 +145,48 @@ export function ChangeForm() {
             <form onSubmit={handlePrepay} className="space-y-3 pt-2">
               <div className="space-y-1">
                 <Label htmlFor="prepay-amount">还款金额 (元)</Label>
-                <Input id="prepay-amount" type="number" inputMode="decimal" value={prepayAmount} onChange={(e) => setPrepayAmount(e.target.value)} />
+                <Input
+                  id="prepay-amount"
+                  type="number"
+                  inputMode="decimal"
+                  value={prepayAmount}
+                  onChange={(e) => setPrepayAmount(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="prepay-date">还款日期</Label>
-                <Input id="prepay-date" type="date" value={prepayDate} onChange={(e) => setPrepayDate(e.target.value)} />
+                <Input
+                  id="prepay-date"
+                  type="date"
+                  value={prepayDate}
+                  onChange={(e) => setPrepayDate(e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="prepay-mode">变更方式</Label>
-                <Select value={prepayMode} onValueChange={(v) => setPrepayMode(v as PrepaymentMode)}>
-                  <SelectTrigger>{PrepaymentModeName[prepayMode]}</SelectTrigger>
+                <Select
+                  value={prepayMode}
+                  onValueChange={(v) => setPrepayMode(v as PrepaymentMode)}
+                >
+                  <SelectTrigger>
+                    {PrepaymentModeName[prepayMode]}
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={PrepaymentMode.ReducePayment}>减少月供（期限不变）</SelectItem>
-                    <SelectItem value={PrepaymentMode.ShortenTerm}>缩短年限（月供不变）</SelectItem>
+                    <SelectItem value={PrepaymentMode.ReducePayment}>
+                      减少月供（期限不变）
+                    </SelectItem>
+                    <SelectItem value={PrepaymentMode.ShortenTerm}>
+                      缩短年限（月供不变）
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {prepayError && <p className="text-sm text-red-500">{prepayError}</p>}
-              <Button type="submit" className="w-full">提前还款</Button>
+              {prepayError && (
+                <p className="text-sm text-red-500">{prepayError}</p>
+              )}
+              <Button type="submit" className="w-full">
+                提前还款
+              </Button>
             </form>
           </TabsContent>
         </Tabs>

@@ -1,14 +1,10 @@
-import { BrowserRouter, useRoutes } from 'react-router';
-import { routes } from './routes';
-
-function AppRoutes() {
-  return useRoutes(routes);
-}
+import { Providers } from './providers';
+import { AppRoutes } from './routes';
 
 export function App() {
   return (
-    <BrowserRouter>
+    <Providers>
       <AppRoutes />
-    </BrowserRouter>
+    </Providers>
   );
 }

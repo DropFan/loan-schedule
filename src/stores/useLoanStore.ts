@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { MS_PER_DAY, REPAYMENT_DAY } from '@/constants/app.constants';
 import {
   annualToMonthlyRate,
   calcScheduleSummary,
@@ -20,7 +21,6 @@ import {
   PrepaymentMode,
 } from '@/core/types/loan.types';
 import { formatDate } from '@/core/utils/formatHelper';
-import { MS_PER_DAY, REPAYMENT_DAY } from '@/constants/app.constants';
 
 export interface RateEntry {
   date: string;
