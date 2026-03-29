@@ -15,11 +15,21 @@ import {
   PrepaymentMode,
   PrepaymentModeName,
 } from '@/core/types/loan.types';
+import { formatDate } from '@/core/utils/formatHelper';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
 
 export function ChangeForm() {
-  const { applyChange, undo, canUndo, schedule, changes } = useLoanStore();
+  const {
+    applyChange,
+    undo,
+    canUndo,
+    schedule,
+    changes,
+    params,
+    savedRateTables,
+    rateTable,
+  } = useLoanStore();
   const hasSchedule = schedule.length > 0;
   const currentMethod = changes[changes.length - 1]?.loanMethod;
   const remainingLoan = changes[changes.length - 1]?.loanAmount ?? 0;
@@ -28,6 +38,8 @@ export function ChangeForm() {
   const [newRate, setNewRate] = useState('');
   const [rateDate, setRateDate] = useState('');
   const [rateError, setRateError] = useState('');
+  const [selectedRateTableId, setSelectedRateTableId] = useState('');
+  const [applyResult, setApplyResult] = useState('');
 
   // 提前还款
   const [prepayAmount, setPrepayAmount] = useState('');
@@ -36,6 +48,51 @@ export function ChangeForm() {
     PrepaymentMode.ReducePayment,
   );
   const [prepayError, setPrepayError] = useState('');
+
+  const handleApplyRateTable = () => {
+    if (!params || !currentMethod) return;
+    setApplyResult('');
+
+    // 获取利率表条目：从选中的已保存利率表或当前利率表
+    const entries = selectedRateTableId
+      ? (savedRateTables.find((t) => t.id === selectedRateTableId)?.entries ??
+        [])
+      : rateTable;
+
+    if (entries.length === 0) {
+      setApplyResult('利率表为空');
+      return;
+    }
+
+    const startDateStr = formatDate(params.startDate);
+    // 获取已应用的利率变更日期集合
+    const appliedDates = new Set(
+      changes
+        .filter((c) => c.comment.includes('利率变更'))
+        .map((c) => formatDate(c.date)),
+    );
+
+    // 筛选：贷款开始后、未重复应用的条目
+    const toApply = entries
+      .filter((e) => e.date > startDateStr && !appliedDates.has(e.date))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (toApply.length === 0) {
+      setApplyResult('没有需要应用的利率变更');
+      return;
+    }
+
+    for (const entry of toApply) {
+      applyChange({
+        type: ChangeType.RateChange,
+        date: new Date(entry.date),
+        loanMethod: currentMethod,
+        newAnnualRate: entry.annualRate,
+      });
+    }
+
+    setApplyResult(`已应用 ${toApply.length} 条利率变更`);
+  };
 
   if (!hasSchedule || !currentMethod) return null;
 
@@ -139,6 +196,38 @@ export function ChangeForm() {
                 更新利率
               </Button>
             </form>
+
+            {(savedRateTables.length > 0 || rateTable.length > 0) && (
+              <div className="mt-4 pt-4 border-t space-y-2">
+                <Label>从利率表导入</Label>
+                <select
+                  value={selectedRateTableId}
+                  onChange={(e) => {
+                    setSelectedRateTableId(e.target.value);
+                    setApplyResult('');
+                  }}
+                  className="w-full text-sm border border-border rounded-md px-2 py-1.5 bg-card text-foreground"
+                >
+                  {rateTable.length > 0 && <option value="">当前利率表</option>}
+                  {savedRateTables.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleApplyRateTable}
+                >
+                  一键应用利率变更
+                </Button>
+                {applyResult && (
+                  <p className="text-sm text-muted-foreground">{applyResult}</p>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="prepay">
