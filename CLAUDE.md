@@ -4,71 +4,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-这是一个贷款计算器和还贷模拟器的 Web 应用，支持存量房贷的利率调整和提前还款计算。基于 TypeScript + Vite 构建，无框架依赖。
+这是一个贷款计算器和还贷模拟器的 Web 应用，支持存量房贷的利率调整和提前还款计算。基于 React + TypeScript + Vite + Zustand 构建，使用 Tailwind CSS + Base UI 组件库。
 
 线上地址：https://loan.v2dl.net
 
 ## 开发命令
 
 ```bash
-npm run dev          # 启动本地开发服务器
-npm run type-check   # TypeScript 类型检查
-npm run build        # 生产构建
-npm run preview      # 预览构建结果
-npm run lint         # Biome 检查（lint + format + import 排序）
-npm run lint:fix     # 自动修复可安全修复的问题
-npm run format       # 仅格式化
+pnpm dev             # 启动本地开发服务器
+pnpm type-check      # TypeScript 类型检查
+pnpm build           # 生产构建
+pnpm preview         # 预览构建结果
+pnpm lint            # Biome 检查（lint + format + import 排序）
+pnpm lint:fix        # 自动修复可安全修复的问题
+pnpm format          # 仅格式化
 ```
 
 ## 部署
 
-通过 GitHub Actions 自动部署到 GitHub Pages，触发条件为 push 到 master 分支。部署配置在 `.github/workflows/static.yml`，执行 `npm ci && npm run build` 后上传 `dist/` 目录。
+通过 GitHub Actions 自动部署到 GitHub Pages，触发条件为 push 到 master 分支。部署配置在 `.github/workflows/static.yml`，执行 `pnpm install && pnpm build` 后上传 `dist/` 目录。
 
 ## 架构
 
 ```
 src/
-├── main.ts                    # 应用入口，组件实例化与事件连接
-├── vite-env.d.ts              # Vite 客户端类型声明（TS6+ 必需）
-├── types/
-│   └── loan.types.ts          # TypeScript 类型/接口/枚举定义
-├── models/
-│   └── LoanSchedule.ts        # 数据模型：状态管理 + 发布订阅
-├── services/
-│   ├── LoanCalculator.ts      # 纯计算函数（零副作用）
-│   └── ExcelExporter.ts       # Excel 导出（动态 import xlsx）
+├── main.tsx                       # 应用入口
+├── app/
+│   ├── App.tsx                    # 根组件（Providers + PWA Install）
+│   ├── routes.tsx                 # 路由定义（AnalysisPage 懒加载）
+│   └── providers.tsx              # Context providers
+├── core/
+│   ├── types/loan.types.ts        # TypeScript 类型/接口/枚举定义
+│   ├── calculator/LoanCalculator.ts  # 纯计算函数（零副作用）
+│   └── utils/
+│       ├── formatHelper.ts        # 金额/日期/利率格式化
+│       └── validator.ts           # 输入验证
+├── stores/
+│   └── useLoanStore.ts            # Zustand 状态管理 + localStorage 持久化
+├── features/
+│   ├── calculator/                # 贷款计算页（表单、汇总、还款表）
+│   ├── changes/                   # 变更操作（利率变更、提前还款、利率表导入）
+│   ├── charts/                    # 数据分析页（echarts 懒加载）
+│   ├── rate-table/                # 利率表管理（自定义/LPR+基点、保存/加载）
+│   └── settings/                  # 设置页
 ├── components/
-│   ├── BaseComponent.ts       # 组件基类
-│   ├── LoanForm.ts            # 贷款表单 + 变更表单
-│   ├── ScheduleTable.ts       # 还款计划表格
-│   └── ChangePanel.ts         # 变更记录列表展示
-├── utils/
-│   ├── formatHelper.ts        # 金额/日期/利率格式化 + roundTo2
-│   └── validator.ts           # 输入验证
-├── constants/
-│   └── app.constants.ts       # 应用常量
-└── styles/
-    ├── variables.css           # CSS 变量
-    ├── main.css                # 全局样式入口
-    └── components/
-        ├── form.css
-        ├── table.css
-        └── button.css
+│   ├── ui/                        # Base UI 封装组件
+│   ├── shared/LoanSwitcher.tsx    # 多方案切换器
+│   └── layout/                    # AppShell、Sidebar、BottomTabs
+├── constants/app.constants.ts     # 应用常量
+└── styles/globals.css             # Tailwind 全局样式
 ```
 
 ### 数据流
 
 ```
-用户输入 → LoanForm 组件 → main.ts 回调 → LoanSchedule 模型
-    → LoanCalculator 计算 → 事件通知 → ScheduleTable/ChangePanel 更新 DOM
+用户输入 → LoanForm → useLoanStore.initialize() → LoanCalculator 计算
+    → Zustand 状态更新 → React 组件自动响应渲染
+变更操作 → useLoanStore.applyChange() → 重算还款计划 → 同步利率表
 ```
 
 ### 核心设计
 
-- **LoanSchedule 模型**: 管理还款计划和变更记录状态，通过 `on(event, callback)` 发布订阅通知 UI
-- **applyChange()**: 统一处理利率变更和提前还款，通过 `ChangeType` 区分
+- **useLoanStore**: Zustand store，管理贷款参数、还款计划、变更记录、利率表、多方案/多利率表。通过 `persist` 中间件持久化到 localStorage
+- **applyChange()**: 统一处理利率变更和提前还款，支持乱序插入（自动全量重放）。每条变更保存原始 `changeParams` 用于重放
 - **LoanCalculator**: 纯计算函数，无副作用，所有金额使用 `roundTo2()` 控制精度
-- **组件层**: BaseComponent 提供容器内查询和事件绑定，各组件只负责 DOM 渲染
+- **多方案管理**: `SavedLoan` 支持保存/加载/重命名/删除，`LoanSwitcher` 组件提供 UI
+- **利率表管理**: `SavedRateTable` 独立于方案管理，支持自定义和 LPR+基点两种数据源，利率变更自动同步
+- **echarts 懒加载**: 通过 `React.lazy` 将 echarts（~1MB）拆分为独立 chunk，首屏不加载
 
 ### 计算逻辑要点
 
@@ -77,16 +79,20 @@ src/
 - 等额本金每期重新计算月供（固定本金 + 当期利息）
 - `findRemainingInfo()` 返回 `null` 替代越界访问
 - 变更操作当月生效，当月利息与银行可能有差异（银行按天计算）
+- 乱序变更时自动收集所有 `changeParams` 按时间重放，确保还款计划正确
 
 ## 代码规范
 
 - 使用 Biome 统一 lint + format，配置在 `biome.json`（2 空格缩进、单引号、自动 import 排序）
-- 修改代码后运行 `npm run lint` 验证，提交前确保零错误
-- 无测试框架，修改后通过 `npm run type-check` 和 `npm run build` 验证正确性
+- 修改代码后运行 `pnpm lint` 验证，提交前确保零错误
+- 修改后通过 `pnpm type-check` 和 `pnpm build` 验证正确性
 
 ## 注意事项
 
-- xlsx 通过 npm 安装，动态 `import()` 按需加载（xlsx 0.18.5 有已知漏洞但无修复版，仅用于导出，风险可控）
-- 静态资源（logo、favicon、manifest、service-worker）在 `public/` 目录
+- 包管理使用 **pnpm**，不使用 npm
+- xlsx 通过 pnpm 安装，动态 `import()` 按需加载（xlsx 0.18.5 有已知漏洞但无修复版，仅用于导出，风险可控）
+- echarts 通过 `React.lazy` 懒加载，在 `echarts-setup.ts` 中按需注册模块
+- 静态资源（logo、favicon、manifest、screenshots）在 `public/` 目录
+- PWA: vite-plugin-pwa 生成 `service-worker.js`（workbox precache），`@khmyznikov/pwa-install` 处理 Safari 安装引导
 - `LoanMethod` 枚举替代字符串字面量
-- CSS 使用变量统一管理颜色和间距，支持响应式布局
+- CSS 使用 Tailwind CSS，支持亮色/暗色主题切换

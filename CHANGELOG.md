@@ -1,6 +1,33 @@
 Changelog
 ===
 
+[2.1.0] - 2026-03-29
+---
+
+### 新功能
+
+* [New] 利率表独立管理 — 利率表支持保存、加载、重命名、删除，独立于贷款方案。
+* [New] 利率变更自动同步 — 利率变更操作自动将新利率写入自定义利率表。
+* [New] 一键导入利率表 — 利率变更 tab 支持选择已保存的利率表，一键批量应用所有利率变更。
+* [New] 数据导入导出 — 设置页支持导出/导入 JSON 文件，跨设备同步贷款方案和利率表数据。导出仅保存参数和变更记录，导入时自动重放计算。
+
+### 性能优化
+
+* [Perf] echarts 懒加载 — 将 echarts 从主包拆分为独立 chunk（React.lazy），主包体积从 1.67MB 降至 612KB，首屏加载大幅提升。
+
+### 修复
+
+* [Fix] 修复乱序变更导致后续变更失效 — applyChange 检测到乱序插入时自动全量重放，确保还款计划按时间先后正确计算。
+* [Fix] 修复 Select 下拉选项文字重叠问题。
+* [Fix] 统一提前还款变更方式的显示文案（trigger 与选项一致）。
+
+### PWA 优化
+
+* 优化 manifest.json — 新增 lang/dir/orientation/categories/display_override/launch_handler/shortcuts/screenshots。
+* 新增 192x192 图标，拆分 512 的 any/maskable 为独立条目。
+* workbox SW 输出改为 service-worker.js，修复系统安装提示识别问题。
+* pwa-install 组件不再拦截 Chrome 原生安装提示。
+
 [2.0.0] - 2026-03-29
 ---
 
