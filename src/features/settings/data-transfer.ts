@@ -1,4 +1,4 @@
-import { DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
+import { APP_VERSION, DEFAULT_REPAYMENT_DAY } from '@/constants/app.constants';
 import {
   type LoanChangeParams,
   type LoanParameters,
@@ -62,7 +62,7 @@ export function exportData() {
   const data: ExportData = {
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    appVersion: '2.1.0',
+    appVersion: APP_VERSION,
     loans,
     rateTables: state.savedRateTables.map((t) => ({
       name: t.name,
