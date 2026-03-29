@@ -3,12 +3,12 @@ import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import './styles/globals.css';
 
-// 清理旧版 service-worker.js：触发更新让其拉取过渡版本（网络优先 + 清缓存）
+// 清理旧版 sw.js 注册：vite-plugin-pwa 已改用 service-worker.js 输出
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     for (const reg of registrations) {
-      if (reg.active?.scriptURL?.includes('service-worker.js')) {
-        reg.update();
+      if (reg.active?.scriptURL?.endsWith('/sw.js')) {
+        reg.unregister();
       }
     }
   });

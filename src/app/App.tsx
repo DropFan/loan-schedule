@@ -8,9 +8,8 @@ export function App() {
       <AppRoutes />
       <pwa-install
         manifest-url="/manifest.json"
+        disable-chrome
         manual-apple="true"
-        manual-chrome="true"
-        disable-screenshots="true"
       />
     </Providers>
   );
