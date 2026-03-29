@@ -33,12 +33,28 @@ interface Snapshot {
   changeList: LoanChangeRecord[];
 }
 
+export interface SavedLoan {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  params: LoanParameters | null;
+  schedule: PaymentScheduleItem[];
+  changes: LoanChangeRecord[];
+  rateTable: RateEntry[];
+  history: Snapshot[];
+}
+
 interface LoanState {
   params: LoanParameters | null;
   schedule: PaymentScheduleItem[];
   changes: LoanChangeRecord[];
   rateTable: RateEntry[];
   history: Snapshot[];
+
+  // multi-loan
+  savedLoans: SavedLoan[];
+  activeLoanId: string | null;
 
   // derived
   summary: LoanScheduleSummary | null;
@@ -50,6 +66,12 @@ interface LoanState {
   undo: () => void;
   clear: () => void;
   updateRateTable: (entries: RateEntry[]) => void;
+
+  // multi-loan actions
+  saveLoan: (name: string) => string;
+  loadLoan: (id: string) => void;
+  deleteLoan: (id: string) => void;
+  renameLoan: (id: string, name: string) => void;
 }
 
 const STORAGE_KEY = 'loan-app-state';
@@ -63,6 +85,8 @@ export const useLoanStore = create<LoanState>()(
       changes: [],
       rateTable: [],
       history: [],
+      savedLoans: [],
+      activeLoanId: null,
       summary: null,
       canUndo: false,
 
@@ -325,6 +349,125 @@ export const useLoanStore = create<LoanState>()(
       updateRateTable: (entries: RateEntry[]) => {
         set({ rateTable: entries });
       },
+
+      saveLoan: (name: string) => {
+        const state = get();
+        const now = new Date().toISOString();
+        const existing = state.activeLoanId
+          ? state.savedLoans.find((l) => l.id === state.activeLoanId)
+          : null;
+
+        if (existing) {
+          // 更新已有方案
+          const updated = state.savedLoans.map((l) =>
+            l.id === existing.id
+              ? {
+                  ...l,
+                  name,
+                  updatedAt: now,
+                  params: state.params,
+                  schedule: state.schedule,
+                  changes: state.changes,
+                  rateTable: state.rateTable,
+                  history: state.history,
+                }
+              : l,
+          );
+          set({ savedLoans: updated });
+          return existing.id;
+        }
+
+        // 新建方案
+        const id = `loan-${Date.now()}`;
+        const newLoan: SavedLoan = {
+          id,
+          name,
+          createdAt: now,
+          updatedAt: now,
+          params: state.params,
+          schedule: state.schedule,
+          changes: state.changes,
+          rateTable: state.rateTable,
+          history: state.history,
+        };
+        set({
+          savedLoans: [...state.savedLoans, newLoan],
+          activeLoanId: id,
+        });
+        return id;
+      },
+
+      loadLoan: (id: string) => {
+        const state = get();
+        const target = state.savedLoans.find((l) => l.id === id);
+        if (!target) return;
+
+        // 先保存当前活跃方案
+        if (state.activeLoanId && state.params) {
+          const now = new Date().toISOString();
+          const updated = state.savedLoans.map((l) =>
+            l.id === state.activeLoanId
+              ? {
+                  ...l,
+                  updatedAt: now,
+                  params: state.params,
+                  schedule: state.schedule,
+                  changes: state.changes,
+                  rateTable: state.rateTable,
+                  history: state.history,
+                }
+              : l,
+          );
+          // 加载目标方案
+          const loadTarget = updated.find((l) => l.id === id)!;
+          set({
+            savedLoans: updated,
+            activeLoanId: id,
+            params: loadTarget.params,
+            schedule: loadTarget.schedule,
+            changes: loadTarget.changes,
+            rateTable: loadTarget.rateTable,
+            history: loadTarget.history,
+            summary:
+              loadTarget.schedule.length > 0
+                ? calcScheduleSummary(loadTarget.schedule)
+                : null,
+            canUndo: loadTarget.history.length > 0,
+          });
+        } else {
+          set({
+            activeLoanId: id,
+            params: target.params,
+            schedule: target.schedule,
+            changes: target.changes,
+            rateTable: target.rateTable,
+            history: target.history,
+            summary:
+              target.schedule.length > 0
+                ? calcScheduleSummary(target.schedule)
+                : null,
+            canUndo: target.history.length > 0,
+          });
+        }
+      },
+
+      deleteLoan: (id: string) => {
+        const state = get();
+        const filtered = state.savedLoans.filter((l) => l.id !== id);
+        const updates: Partial<LoanState> = { savedLoans: filtered };
+        if (state.activeLoanId === id) {
+          updates.activeLoanId = null;
+        }
+        set(updates as LoanState);
+      },
+
+      renameLoan: (id: string, name: string) => {
+        const state = get();
+        const updated = state.savedLoans.map((l) =>
+          l.id === id ? { ...l, name, updatedAt: new Date().toISOString() } : l,
+        );
+        set({ savedLoans: updated });
+      },
     }),
     {
       name: STORAGE_KEY,
@@ -347,6 +490,8 @@ export const useLoanStore = create<LoanState>()(
         changes: state.changes,
         rateTable: state.rateTable,
         history: state.history,
+        savedLoans: state.savedLoans,
+        activeLoanId: state.activeLoanId,
       }),
       onRehydrateStorage: () => (state) => {
         if (state && state.schedule.length > 0) {
