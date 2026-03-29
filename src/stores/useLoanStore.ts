@@ -28,6 +28,16 @@ export interface RateEntry {
   source: 'custom' | 'lpr' | string;
 }
 
+export interface SavedRateTable {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  entries: RateEntry[];
+  source: 'custom' | 'lpr';
+  basisPoints?: number;
+}
+
 interface Snapshot {
   schedule: PaymentScheduleItem[];
   changeList: LoanChangeRecord[];
@@ -56,6 +66,10 @@ interface LoanState {
   savedLoans: SavedLoan[];
   activeLoanId: string | null;
 
+  // multi-rate-table
+  savedRateTables: SavedRateTable[];
+  activeRateTableId: string | null;
+
   // derived
   summary: LoanScheduleSummary | null;
   canUndo: boolean;
@@ -72,6 +86,16 @@ interface LoanState {
   loadLoan: (id: string) => void;
   deleteLoan: (id: string) => void;
   renameLoan: (id: string, name: string) => void;
+
+  // multi-rate-table actions
+  saveRateTable: (
+    name: string,
+    source: 'custom' | 'lpr',
+    basisPoints?: number,
+  ) => string;
+  loadRateTable: (id: string) => void;
+  deleteRateTable: (id: string) => void;
+  renameRateTable: (id: string, name: string) => void;
 }
 
 const STORAGE_KEY = 'loan-app-state';
@@ -87,6 +111,8 @@ export const useLoanStore = create<LoanState>()(
       history: [],
       savedLoans: [],
       activeLoanId: null,
+      savedRateTables: [],
+      activeRateTableId: null,
       summary: null,
       canUndo: false,
 
@@ -310,9 +336,29 @@ export const useLoanStore = create<LoanState>()(
         };
 
         const newHistory = [...state.history, snapshot];
+
+        // 利率变更时自动同步到自定义利率表
+        let newRateTable = state.rateTable;
+        if (
+          changeParams.type === ChangeType.RateChange &&
+          changeParams.newAnnualRate != null
+        ) {
+          const dateStr = formatDate(changeParams.date);
+          const filtered = state.rateTable.filter((e) => e.date !== dateStr);
+          newRateTable = [
+            ...filtered,
+            {
+              date: dateStr,
+              annualRate: changeParams.newAnnualRate,
+              source: 'custom',
+            },
+          ].sort((a, b) => a.date.localeCompare(b.date));
+        }
+
         set({
           schedule: newSchedule,
           changes: [...state.changes, newChange],
+          rateTable: newRateTable,
           history: newHistory,
           summary: calcScheduleSummary(newSchedule),
           canUndo: true,
@@ -469,6 +515,97 @@ export const useLoanStore = create<LoanState>()(
         );
         set({ savedLoans: updated });
       },
+
+      saveRateTable: (
+        name: string,
+        source: 'custom' | 'lpr',
+        basisPoints?: number,
+      ) => {
+        const state = get();
+        const now = new Date().toISOString();
+        const existing = state.activeRateTableId
+          ? state.savedRateTables.find((t) => t.id === state.activeRateTableId)
+          : null;
+
+        if (existing) {
+          const updated = state.savedRateTables.map((t) =>
+            t.id === existing.id
+              ? {
+                  ...t,
+                  name,
+                  updatedAt: now,
+                  entries: state.rateTable,
+                  source,
+                  basisPoints,
+                }
+              : t,
+          );
+          set({ savedRateTables: updated });
+          return existing.id;
+        }
+
+        const id = `rate-${Date.now()}`;
+        const newTable: SavedRateTable = {
+          id,
+          name,
+          createdAt: now,
+          updatedAt: now,
+          entries: state.rateTable,
+          source,
+          basisPoints,
+        };
+        set({
+          savedRateTables: [...state.savedRateTables, newTable],
+          activeRateTableId: id,
+        });
+        return id;
+      },
+
+      loadRateTable: (id: string) => {
+        const state = get();
+        const target = state.savedRateTables.find((t) => t.id === id);
+        if (!target) return;
+
+        // 先保存当前活跃利率表
+        if (state.activeRateTableId && state.rateTable.length > 0) {
+          const now = new Date().toISOString();
+          const updated = state.savedRateTables.map((t) =>
+            t.id === state.activeRateTableId
+              ? { ...t, updatedAt: now, entries: state.rateTable }
+              : t,
+          );
+          const loadTarget = updated.find((t) => t.id === id);
+          if (!loadTarget) return;
+          set({
+            savedRateTables: updated,
+            activeRateTableId: id,
+            rateTable: loadTarget.entries,
+          });
+        } else {
+          set({
+            activeRateTableId: id,
+            rateTable: target.entries,
+          });
+        }
+      },
+
+      deleteRateTable: (id: string) => {
+        const state = get();
+        const filtered = state.savedRateTables.filter((t) => t.id !== id);
+        const updates: Partial<LoanState> = { savedRateTables: filtered };
+        if (state.activeRateTableId === id) {
+          updates.activeRateTableId = null;
+        }
+        set(updates as LoanState);
+      },
+
+      renameRateTable: (id: string, name: string) => {
+        const state = get();
+        const updated = state.savedRateTables.map((t) =>
+          t.id === id ? { ...t, name, updatedAt: new Date().toISOString() } : t,
+        );
+        set({ savedRateTables: updated });
+      },
     }),
     {
       name: STORAGE_KEY,
@@ -493,6 +630,8 @@ export const useLoanStore = create<LoanState>()(
         history: state.history,
         savedLoans: state.savedLoans,
         activeLoanId: state.activeLoanId,
+        savedRateTables: state.savedRateTables,
+        activeRateTableId: state.activeRateTableId,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

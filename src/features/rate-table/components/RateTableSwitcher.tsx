@@ -1,0 +1,156 @@
+import { Pencil, Save, SaveAll, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useLoanStore } from '@/stores/useLoanStore';
+
+interface RateTableSwitcherProps {
+  source: 'custom' | 'lpr';
+  basisPoints?: number;
+}
+
+export function RateTableSwitcher({
+  source,
+  basisPoints,
+}: RateTableSwitcherProps) {
+  const {
+    activeRateTableId,
+    savedRateTables,
+    rateTable,
+    saveRateTable,
+    loadRateTable,
+    deleteRateTable,
+    renameRateTable,
+    updateRateTable,
+  } = useLoanStore();
+  const [renaming, setRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
+
+  const activeTable = savedRateTables.find((t) => t.id === activeRateTableId);
+  const hasUnsavedChanges = rateTable.length > 0 && !activeTable;
+
+  const handleSave = () => {
+    if (activeTable) {
+      saveRateTable(activeTable.name, source, basisPoints);
+    } else {
+      const name = `利率表 ${savedRateTables.length + 1}`;
+      saveRateTable(name, source, basisPoints);
+    }
+  };
+
+  const handleSaveAs = () => {
+    const baseName = activeTable?.name ?? '利率表';
+    const name = `${baseName} (副本)`;
+    useLoanStore.setState({ activeRateTableId: null });
+    saveRateTable(name, source, basisPoints);
+  };
+
+  const handleNew = () => {
+    updateRateTable([]);
+    useLoanStore.setState({ activeRateTableId: null });
+  };
+
+  const handleSelect = (value: string) => {
+    if (value === '__new__') {
+      handleNew();
+    } else {
+      loadRateTable(value);
+    }
+  };
+
+  const handleStartRename = () => {
+    if (!activeTable) return;
+    setRenameDraft(activeTable.name);
+    setRenaming(true);
+  };
+
+  const handleFinishRename = () => {
+    if (
+      activeTable &&
+      renameDraft.trim() &&
+      renameDraft.trim() !== activeTable.name
+    ) {
+      renameRateTable(activeTable.id, renameDraft.trim());
+    }
+    setRenaming(false);
+  };
+
+  const handleDelete = () => {
+    if (!activeTable) return;
+    if (window.confirm(`确认删除利率表「${activeTable.name}」？`)) {
+      deleteRateTable(activeTable.id);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {renaming ? (
+        <Input
+          value={renameDraft}
+          onChange={(e) => setRenameDraft(e.target.value)}
+          onBlur={handleFinishRename}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleFinishRename();
+            if (e.key === 'Escape') setRenaming(false);
+          }}
+          className="h-8 text-sm w-44"
+          autoFocus
+        />
+      ) : (
+        <select
+          value={activeRateTableId ?? '__unsaved__'}
+          onChange={(e) => handleSelect(e.target.value)}
+          className="text-sm border border-border rounded-md px-2 py-1.5 bg-card text-foreground max-w-[200px] truncate"
+        >
+          {hasUnsavedChanges && (
+            <option value="__unsaved__">● 未保存的利率表</option>
+          )}
+          {!hasUnsavedChanges && !activeTable && (
+            <option value="__unsaved__">选择利率表</option>
+          )}
+          {savedRateTables.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+          <option value="__new__">＋ 新建利率表</option>
+        </select>
+      )}
+
+      {activeTable && !renaming && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleStartRename}
+            title="重命名"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            title="删除利率表"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+          </Button>
+        </>
+      )}
+
+      {rateTable.length > 0 && (
+        <Button variant="outline" size="sm" onClick={handleSave}>
+          <Save className="w-3.5 h-3.5 mr-1" />
+          保存
+        </Button>
+      )}
+
+      {rateTable.length > 0 && activeTable && (
+        <Button variant="outline" size="sm" onClick={handleSaveAs}>
+          <SaveAll className="w-3.5 h-3.5 mr-1" />
+          另存为
+        </Button>
+      )}
+    </div>
+  );
+}

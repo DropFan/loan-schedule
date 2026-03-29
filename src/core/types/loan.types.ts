@@ -51,8 +51,8 @@ export enum PrepaymentMode {
 }
 
 export const PrepaymentModeName: Record<PrepaymentMode, string> = {
-  [PrepaymentMode.ReducePayment]: '减少月供',
-  [PrepaymentMode.ShortenTerm]: '缩短年限',
+  [PrepaymentMode.ReducePayment]: '减少月供（期限不变）',
+  [PrepaymentMode.ShortenTerm]: '缩短年限（月供不变）',
 };
 
 export interface LoanChangeParams {

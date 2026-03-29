@@ -1,5 +1,5 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,22 +9,53 @@ import { useLoanStore } from '@/stores/useLoanStore';
 import { getLprChangePoints } from '../data/lpr-history';
 import { LprRateProvider } from '../rate-provider';
 import { RateEntryDialog } from './RateEntryDialog';
+import { RateTableSwitcher } from './RateTableSwitcher';
 
 type RateSource = 'custom' | 'lpr';
 
+function detectSource(entries: RateEntry[]): RateSource {
+  return entries.some((e) => e.source === 'lpr') ? 'lpr' : 'custom';
+}
+
+function detectBasisPoints(entries: RateEntry[]): number {
+  if (entries.length > 0 && entries[0].source === 'lpr') {
+    const lprPoints = getLprChangePoints();
+    const firstLpr = lprPoints[0]?.rate ?? 0;
+    return Math.round((entries[0].annualRate - firstLpr) * 100);
+  }
+  return 0;
+}
+
 export function RateTablePage() {
-  const { rateTable, updateRateTable, params } = useLoanStore();
-  const [source, setSource] = useState<RateSource>(
-    rateTable.some((e) => e.source === 'lpr') ? 'lpr' : 'custom',
+  const {
+    rateTable,
+    updateRateTable,
+    params,
+    activeRateTableId,
+    savedRateTables,
+  } = useLoanStore();
+  const [source, setSource] = useState<RateSource>(() =>
+    detectSource(rateTable),
   );
-  const [basisPoints, setBasisPoints] = useState(() => {
-    if (rateTable.length > 0 && rateTable[0].source === 'lpr') {
-      const lprPoints = getLprChangePoints();
-      const firstLpr = lprPoints[0]?.rate ?? 0;
-      return Math.round((rateTable[0].annualRate - firstLpr) * 100);
+  const [basisPoints, setBasisPoints] = useState(() =>
+    detectBasisPoints(rateTable),
+  );
+
+  // 加载已保存的利率表时，恢复 source 和 basisPoints
+  const activeTable = savedRateTables.find((t) => t.id === activeRateTableId);
+  const prevTableIdRef = useRef(activeRateTableId);
+  useEffect(() => {
+    if (activeRateTableId !== prevTableIdRef.current) {
+      prevTableIdRef.current = activeRateTableId;
+      if (activeTable) {
+        setSource(activeTable.source);
+        setBasisPoints(activeTable.basisPoints ?? 0);
+      } else {
+        setSource(detectSource(rateTable));
+        setBasisPoints(detectBasisPoints(rateTable));
+      }
     }
-    return 0;
-  });
+  }, [activeRateTableId, activeTable, rateTable]);
 
   const lprTimeline = useMemo(() => {
     const provider = new LprRateProvider(basisPoints);
@@ -62,6 +93,8 @@ export function RateTablePage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-2xl space-y-4">
+      <RateTableSwitcher source={source} basisPoints={basisPoints} />
+
       {/* 数据源切换 */}
       <Card>
         <CardHeader>
