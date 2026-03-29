@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router';
 import {
   APP_AUTHOR_LINK,
@@ -7,7 +8,48 @@ import {
 import { BottomTabs } from './BottomTabs';
 import { Sidebar } from './Sidebar';
 
+function usePwaInstallPrompt() {
+  useEffect(() => {
+    const popupCount = Number(localStorage.getItem('pwaPopupCount') || '0');
+    if (popupCount >= 2) return;
+
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      ('standalone' in navigator &&
+        (navigator as { standalone?: boolean }).standalone);
+    if (isStandalone) return;
+
+    const timer = setTimeout(() => {
+      const el = document.querySelector('pwa-install') as HTMLElement & {
+        isInstallAvailable?: boolean;
+        isAppleMobilePlatform?: boolean;
+        isAppleDesktopPlatform?: boolean;
+        showDialog?: (force?: boolean) => void;
+      };
+      if (!el?.showDialog) return;
+
+      const ua = navigator.userAgent;
+      const isIOS =
+        /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isMacSafari =
+        /Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua);
+
+      el.isAppleMobilePlatform = isIOS;
+      el.isAppleDesktopPlatform = isMacSafari;
+
+      if (el.isInstallAvailable || isIOS || isMacSafari) {
+        el.showDialog(true);
+        localStorage.setItem('pwaPopupCount', String(popupCount + 1));
+      }
+    }, 15000);
+
+    return () => clearTimeout(timer);
+  }, []);
+}
+
 export function AppShell() {
+  usePwaInstallPrompt();
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
