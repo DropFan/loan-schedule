@@ -349,7 +349,12 @@ export function ChangeForm() {
                   <button
                     type="button"
                     className="text-xs text-primary hover:underline"
-                    onClick={() => setPrepayAmount(String(prepayRemainingLoan))}
+                    onClick={() => {
+                      setPrepayAmount(String(prepayRemainingLoan));
+                      if (!prepayDate) {
+                        setPrepayDate(new Date().toISOString().split('T')[0]);
+                      }
+                    }}
                   >
                     全部还清（剩余本金 {prepayRemainingLoan.toFixed(2)} 元）
                   </button>
