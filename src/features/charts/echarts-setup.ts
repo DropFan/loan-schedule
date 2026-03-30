@@ -4,6 +4,7 @@ import {
   GridComponent,
   LegendComponent,
   MarkLineComponent,
+  MarkPointComponent,
   TitleComponent,
   TooltipComponent,
 } from 'echarts/components';
@@ -18,6 +19,7 @@ echarts.use([
   TooltipComponent,
   DataZoomComponent,
   MarkLineComponent,
+  MarkPointComponent,
   TitleComponent,
   LegendComponent,
   CanvasRenderer,
