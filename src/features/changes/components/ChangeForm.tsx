@@ -59,6 +59,11 @@ export function ChangeForm() {
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentError, setPaymentError] = useState('');
 
+  // 变更还款日
+  const [newRepayDay, setNewRepayDay] = useState('');
+  const [repayDayDate, setRepayDayDate] = useState('');
+  const [repayDayError, setRepayDayError] = useState('');
+
   const isFreeRepayment = currentMethod === LoanMethod.FreeRepayment;
   const currentMinPayment =
     isFreeRepayment && remainingLoan > 0
@@ -145,6 +150,39 @@ export function ChangeForm() {
     setPaymentDate('');
   };
 
+  const handleRepayDayChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRepayDayError('');
+
+    const dayNum = Number(newRepayDay);
+    const dayCheck = Validator.repaymentDay(dayNum);
+    if (!dayCheck.valid) {
+      setRepayDayError(dayCheck.message);
+      return;
+    }
+
+    if (dayNum === params?.repaymentDay) {
+      setRepayDayError('新还款日与当前还款日相同');
+      return;
+    }
+
+    const dateCheck = Validator.date(repayDayDate);
+    if (!dateCheck.valid) {
+      setRepayDayError(dateCheck.message);
+      return;
+    }
+
+    applyChange({
+      type: ChangeType.RepaymentDayChange,
+      date: new Date(repayDayDate),
+      loanMethod: currentMethod,
+      newRepaymentDay: dayNum,
+    });
+
+    setNewRepayDay('');
+    setRepayDayDate('');
+  };
+
   const handleRateChange = (e: React.FormEvent) => {
     e.preventDefault();
     setRateError('');
@@ -222,6 +260,9 @@ export function ChangeForm() {
                 提前还款
               </TabsTrigger>
             )}
+            <TabsTrigger value="repayDay" className="flex-1">
+              变更还款日
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="rate">
@@ -377,6 +418,40 @@ export function ChangeForm() {
               </form>
             </TabsContent>
           )}
+          <TabsContent value="repayDay">
+            <form onSubmit={handleRepayDayChange} className="space-y-3 pt-2">
+              <div className="space-y-1">
+                <Label htmlFor="new-repay-day">新还款日（1-28 日）</Label>
+                <Input
+                  id="new-repay-day"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={28}
+                  value={newRepayDay}
+                  onChange={(e) => setNewRepayDay(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  当前还款日：每月 {params?.repaymentDay} 日
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="repay-day-date">生效日期</Label>
+                <Input
+                  id="repay-day-date"
+                  type="date"
+                  value={repayDayDate}
+                  onChange={(e) => setRepayDayDate(e.target.value)}
+                />
+              </div>
+              {repayDayError && (
+                <p className="text-sm text-red-500">{repayDayError}</p>
+              )}
+              <Button type="submit" className="w-full">
+                变更还款日
+              </Button>
+            </form>
+          </TabsContent>
         </Tabs>
 
         <Button

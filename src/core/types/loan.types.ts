@@ -60,6 +60,7 @@ export enum ChangeType {
   Prepayment = 'prepayment',
   MethodChange = 'method-change',
   PaymentChange = 'payment-change',
+  RepaymentDayChange = 'repayment-day-change',
 }
 
 export enum PrepaymentMode {
@@ -80,6 +81,7 @@ export interface LoanChangeParams {
   prepayAmount?: number; // 提前还款时使用
   prepaymentMode?: PrepaymentMode;
   newMonthlyPayment?: number; // 调整月供时使用（自由还款）
+  newRepaymentDay?: number; // 变更还款日时使用
 }
 
 export interface RemainingScheduleInfo {

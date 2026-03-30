@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_REPAYMENT_DAY, MS_PER_DAY } from '@/constants/app.constants';
 import {
   annualToMonthlyRate,
+  calc30360Days,
   calcGjjInterestSplit,
   calcScheduleSummary,
   calcTermByFixedPrincipal,
@@ -22,7 +23,7 @@ import {
   type PaymentScheduleItem,
   PrepaymentMode,
 } from '@/core/types/loan.types';
-import { formatDate, roundTo2 } from '@/core/utils/formatHelper';
+import { addMonths, formatDate, roundTo2 } from '@/core/utils/formatHelper';
 
 export interface RateEntry {
   date: string;
@@ -44,6 +45,7 @@ export interface SavedRateTable {
 interface Snapshot {
   schedule: PaymentScheduleItem[];
   changeList: LoanChangeRecord[];
+  params?: LoanParameters | null;
 }
 
 export interface SavedLoan {
@@ -217,6 +219,7 @@ export const useLoanStore = create<LoanState>()(
         const snapshot: Snapshot = {
           schedule: state.schedule.map((item) => ({ ...item })),
           changeList: [...state.changes],
+          params: state.params ? { ...state.params } : null,
         };
 
         let remainingLoan = remaining.remainingLoan;
@@ -308,10 +311,16 @@ export const useLoanStore = create<LoanState>()(
           changeParams.newMonthlyPayment != null
         ) {
           comment = `月供调整为 ${changeParams.newMonthlyPayment.toFixed(2)} 元`;
+        } else if (
+          changeParams.type === ChangeType.RepaymentDayChange &&
+          changeParams.newRepaymentDay != null
+        ) {
+          comment = `还款日由每月 ${state.params.repaymentDay} 日变更为 ${changeParams.newRepaymentDay} 日`;
+          // extraInterest 保持 0，首期利息在 calculateLoan 后按实际天数直接替换
         }
 
         const monthlyRate = annualToMonthlyRate(annualRate);
-        const newStartDate = new Date(remaining.lastRegularPaymentDate);
+        let newStartDate = new Date(remaining.lastRegularPaymentDate);
 
         // 自由还款调整月供时，传入新的月供额
         const newMonthlyPaymentAmount =
@@ -320,6 +329,28 @@ export const useLoanStore = create<LoanState>()(
             ? changeParams.newMonthlyPayment
             : state.params.monthlyPaymentAmount;
 
+        // 还款日变更时使用新还款日
+        const effectiveRepaymentDay =
+          changeParams.type === ChangeType.RepaymentDayChange &&
+          changeParams.newRepaymentDay != null
+            ? changeParams.newRepaymentDay
+            : state.params.repaymentDay;
+
+        // 还款日变更：确保首期还款日在生效日之后
+        if (
+          changeParams.type === ChangeType.RepaymentDayChange &&
+          changeParams.newRepaymentDay != null
+        ) {
+          const firstDate = addMonths(
+            newStartDate,
+            1,
+            changeParams.newRepaymentDay,
+          );
+          if (firstDate <= changeParams.date) {
+            newStartDate = addMonths(newStartDate, 1, newStartDate.getDate());
+          }
+        }
+
         const result = calculateLoan(
           remainingLoan,
           remainingTerm,
@@ -327,7 +358,7 @@ export const useLoanStore = create<LoanState>()(
           annualRate,
           newStartDate,
           method,
-          state.params.repaymentDay,
+          effectiveRepaymentDay,
           method === LoanMethod.FreeRepayment
             ? newMonthlyPaymentAmount
             : undefined,
@@ -355,6 +386,68 @@ export const useLoanStore = create<LoanState>()(
 
         if (extraInterest !== 0) {
           comment += `，按天息差 ${extraInterest.toFixed(2)} 元`;
+        }
+
+        // 还款日变更：首期按实际天数计息（直接替换，不用差值修补）
+        if (
+          changeParams.type === ChangeType.RepaymentDayChange &&
+          changeParams.newRepaymentDay != null &&
+          result.schedule.length > 0
+        ) {
+          const lastRegDate = new Date(remaining.lastRegularPaymentDate);
+          const firstNewDate = addMonths(
+            newStartDate,
+            1,
+            changeParams.newRepaymentDay,
+          );
+          const actualDays = isGjj
+            ? calc30360Days(lastRegDate, firstNewDate)
+            : Math.round(
+                (firstNewDate.getTime() - lastRegDate.getTime()) / MS_PER_DAY,
+              );
+
+          if (actualDays !== 30) {
+            const actualInterest = roundTo2(
+              (remainingLoan * annualRate * actualDays) / 36000,
+            );
+            const s0 = result.schedule[0];
+
+            if (method === LoanMethod.FreeRepayment) {
+              // 自由还款：月供不变，按实际天数重算利息/本金，级联更新后续期
+              s0.interest = actualInterest;
+              s0.principal = roundTo2(s0.monthlyPayment - actualInterest);
+              s0.remainingLoan = roundTo2(remainingLoan - s0.principal);
+
+              const fixedPmt = s0.monthlyPayment;
+              for (let i = 1; i < result.schedule.length; i++) {
+                const prevRem = result.schedule[i - 1].remainingLoan;
+                const int = roundTo2(prevRem * monthlyRate);
+                if (
+                  i === result.schedule.length - 1 ||
+                  prevRem + int <= fixedPmt
+                ) {
+                  const pri = roundTo2(prevRem);
+                  result.schedule[i].interest = int;
+                  result.schedule[i].principal = pri;
+                  result.schedule[i].monthlyPayment = roundTo2(pri + int);
+                  result.schedule[i].remainingLoan = 0;
+                  result.schedule.length = i + 1;
+                  break;
+                }
+                result.schedule[i].interest = int;
+                result.schedule[i].principal = roundTo2(fixedPmt - int);
+                result.schedule[i].remainingLoan = roundTo2(
+                  prevRem - result.schedule[i].principal,
+                );
+              }
+            } else {
+              // 等额本息/等额本金：本金不变，按实际利息调整月供
+              s0.interest = actualInterest;
+              s0.monthlyPayment = roundTo2(s0.principal + actualInterest);
+            }
+
+            comment += `，首期按 ${actualDays} 天计息 ${actualInterest.toFixed(2)} 元`;
+          }
         }
 
         const dateStr = formatDate(changeParams.date);
@@ -451,7 +544,16 @@ export const useLoanStore = create<LoanState>()(
           ].sort((a, b) => a.date.localeCompare(b.date));
         }
 
+        // 还款日变更时更新 params
+        const newParams =
+          changeParams.type === ChangeType.RepaymentDayChange &&
+          changeParams.newRepaymentDay != null &&
+          state.params
+            ? { ...state.params, repaymentDay: changeParams.newRepaymentDay }
+            : state.params;
+
         set({
+          params: newParams,
           schedule: newSchedule,
           changes: [...state.changes, newChange],
           rateTable: newRateTable,
@@ -468,6 +570,7 @@ export const useLoanStore = create<LoanState>()(
 
         const newHistory = state.history.slice(0, -1);
         set({
+          params: prev.params ?? state.params,
           schedule: prev.schedule,
           changes: prev.changeList,
           history: newHistory,
