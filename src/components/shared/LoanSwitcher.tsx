@@ -9,6 +9,8 @@ export function LoanSwitcher() {
     activeLoanId,
     savedLoans,
     params,
+    autoSave,
+    loanDirty,
     saveLoan,
     loadLoan,
     deleteLoan,
@@ -21,6 +23,7 @@ export function LoanSwitcher() {
 
   const activeLoan = savedLoans.find((l) => l.id === activeLoanId);
   const hasUnsavedChanges = params && !activeLoan;
+  const isDirty = !autoSave && loanDirty;
 
   const handleSave = () => {
     if (activeLoan) {
@@ -45,6 +48,9 @@ export function LoanSwitcher() {
   };
 
   const handleSelect = (value: string) => {
+    if (isDirty) {
+      if (!window.confirm('当前方案有未保存的修改，是否放弃？')) return;
+    }
     if (value === '__new__') {
       handleNew();
     } else {
@@ -115,7 +121,9 @@ export function LoanSwitcher() {
           )}
           {savedLoans.map((loan) => (
             <option key={loan.id} value={loan.id}>
-              {loan.name}
+              {loan.id === activeLoanId && isDirty
+                ? `● ${loan.name}`
+                : loan.name}
             </option>
           ))}
           <option value="__new__">＋ 新建方案</option>
@@ -146,7 +154,12 @@ export function LoanSwitcher() {
 
       {/* 保存 */}
       {params && (
-        <Button variant="outline" size="sm" onClick={handleSave}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSave}
+          disabled={!hasUnsavedChanges && !isDirty}
+        >
           <Save className="w-3.5 h-3.5 mr-1" />
           保存
         </Button>

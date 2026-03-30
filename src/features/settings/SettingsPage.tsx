@@ -19,6 +19,8 @@ const themeOptions: Array<{ value: Theme; label: string }> = [
 
 export function SettingsPage() {
   const clear = useLoanStore((s) => s.clear);
+  const autoSave = useLoanStore((s) => s.autoSave);
+  const setAutoSave = useLoanStore((s) => s.setAutoSave);
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState('');
@@ -67,6 +69,37 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>通用</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">自动保存</p>
+              <p className="text-xs text-muted-foreground">
+                开启后，每次操作自动保存当前方案和利率表
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoSave}
+              onClick={() => setAutoSave(!autoSave)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                autoSave ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                  autoSave ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </label>
         </CardContent>
       </Card>
 

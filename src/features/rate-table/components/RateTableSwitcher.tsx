@@ -19,6 +19,8 @@ export function RateTableSwitcher({
     activeRateTableId,
     savedRateTables,
     rateTable,
+    autoSave,
+    rateTableDirty,
     saveRateTable,
     loadRateTable,
     deleteRateTable,
@@ -30,6 +32,7 @@ export function RateTableSwitcher({
 
   const activeTable = savedRateTables.find((t) => t.id === activeRateTableId);
   const hasUnsavedChanges = rateTable.length > 0 && !activeTable;
+  const isDirty = !autoSave && rateTableDirty;
 
   const handleSave = () => {
     if (activeTable) {
@@ -53,6 +56,9 @@ export function RateTableSwitcher({
   };
 
   const handleSelect = (value: string) => {
+    if (isDirty) {
+      if (!window.confirm('当前利率表有未保存的修改，是否放弃？')) return;
+    }
     if (value === '__new__') {
       handleNew();
     } else {
@@ -122,7 +128,7 @@ export function RateTableSwitcher({
           )}
           {savedRateTables.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.name}
+              {t.id === activeRateTableId && isDirty ? `● ${t.name}` : t.name}
             </option>
           ))}
           <option value="__new__">＋ 新建利率表</option>
@@ -151,7 +157,12 @@ export function RateTableSwitcher({
       )}
 
       {rateTable.length > 0 && (
-        <Button variant="outline" size="sm" onClick={handleSave}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSave}
+          disabled={!hasUnsavedChanges && !isDirty}
+        >
           <Save className="w-3.5 h-3.5 mr-1" />
           保存
         </Button>
