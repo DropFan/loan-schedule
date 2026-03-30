@@ -59,13 +59,23 @@ export function LoanSwitcher() {
   };
 
   const handleFinishRename = () => {
-    if (
-      activeLoan &&
-      renameDraft.trim() &&
-      renameDraft.trim() !== activeLoan.name
-    ) {
-      renameLoan(activeLoan.id, renameDraft.trim());
+    const newName = renameDraft.trim();
+    if (!activeLoan || !newName || newName === activeLoan.name) {
+      setRenaming(false);
+      return;
     }
+    const conflict = savedLoans.find(
+      (l) => l.id !== activeLoan.id && l.name === newName,
+    );
+    if (conflict) {
+      setRenaming(false);
+      if (window.confirm(`已存在同名方案「${newName}」，是否覆盖？`)) {
+        deleteLoan(conflict.id);
+        renameLoan(activeLoan.id, newName);
+      }
+      return;
+    }
+    renameLoan(activeLoan.id, newName);
     setRenaming(false);
   };
 

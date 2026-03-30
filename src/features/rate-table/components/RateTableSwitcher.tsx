@@ -67,13 +67,23 @@ export function RateTableSwitcher({
   };
 
   const handleFinishRename = () => {
-    if (
-      activeTable &&
-      renameDraft.trim() &&
-      renameDraft.trim() !== activeTable.name
-    ) {
-      renameRateTable(activeTable.id, renameDraft.trim());
+    const newName = renameDraft.trim();
+    if (!activeTable || !newName || newName === activeTable.name) {
+      setRenaming(false);
+      return;
     }
+    const conflict = savedRateTables.find(
+      (t) => t.id !== activeTable.id && t.name === newName,
+    );
+    if (conflict) {
+      setRenaming(false);
+      if (window.confirm(`已存在同名利率表「${newName}」，是否覆盖？`)) {
+        deleteRateTable(conflict.id);
+        renameRateTable(activeTable.id, newName);
+      }
+      return;
+    }
+    renameRateTable(activeTable.id, newName);
     setRenaming(false);
   };
 

@@ -83,6 +83,14 @@ export function exportData() {
   URL.revokeObjectURL(url);
 }
 
+/** 同名自动追加序号：如果 existingNames 中已有 name，返回 "name (2)"、"name (3)"... */
+function deduplicateName(name: string, existingNames: Set<string>): string {
+  if (!existingNames.has(name)) return name;
+  let i = 2;
+  while (existingNames.has(`${name} (${i})`)) i++;
+  return `${name} (${i})`;
+}
+
 export function importData(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -96,6 +104,10 @@ export function importData(file: File): Promise<string> {
 
         const store = useLoanStore.getState();
         let importedCount = 0;
+
+        // 收集已有名称用于去重
+        const loanNames = new Set(store.savedLoans.map((l) => l.name));
+        const rtNames = new Set(store.savedRateTables.map((t) => t.name));
 
         for (const loan of data.loans) {
           if (!loan.params) continue;
@@ -125,17 +137,27 @@ export function importData(file: File): Promise<string> {
             useLoanStore.getState().updateRateTable(loan.rateTable);
           }
 
-          // 保存为方案
-          useLoanStore.getState().saveLoan(loan.name);
+          // 保存为方案（同名自动重命名）
+          const uniqueName = deduplicateName(loan.name, loanNames);
+          loanNames.add(uniqueName);
+          useLoanStore.getState().saveLoan(uniqueName);
           importedCount++;
         }
 
         // 导入利率表
         for (const rt of data.rateTables ?? []) {
+          const uniqueRtName = deduplicateName(rt.name, rtNames);
+          rtNames.add(uniqueRtName);
+          useLoanStore.setState({ activeRateTableId: null });
           useLoanStore.getState().updateRateTable(rt.entries);
           useLoanStore
             .getState()
-            .saveRateTable(rt.name, rt.source, rt.basisPoints, rt.gjjAbove5Y);
+            .saveRateTable(
+              uniqueRtName,
+              rt.source,
+              rt.basisPoints,
+              rt.gjjAbove5Y,
+            );
         }
 
         resolve(
