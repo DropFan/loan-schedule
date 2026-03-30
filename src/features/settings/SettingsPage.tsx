@@ -21,6 +21,8 @@ export function SettingsPage() {
   const clear = useLoanStore((s) => s.clear);
   const autoSave = useLoanStore((s) => s.autoSave);
   const setAutoSave = useLoanStore((s) => s.setAutoSave);
+  const autoUpdate = useLoanStore((s) => s.autoUpdate);
+  const setAutoUpdate = useLoanStore((s) => s.setAutoUpdate);
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState('');
@@ -96,6 +98,31 @@ export function SettingsPage() {
               <span
                 className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
                   autoSave ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </label>
+          <label className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">自动更新</p>
+              <p className="text-xs text-muted-foreground">
+                {autoUpdate
+                  ? '检测到新版本时自动更新'
+                  : '检测到新版本时弹窗提示'}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoUpdate}
+              onClick={() => setAutoUpdate(!autoUpdate)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                autoUpdate ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                  autoUpdate ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
             </button>

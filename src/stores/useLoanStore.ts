@@ -77,6 +77,7 @@ interface LoanState {
 
   // settings
   autoSave: boolean;
+  autoUpdate: boolean;
 
   // dirty flags (only used when autoSave is off)
   loanDirty: boolean;
@@ -88,6 +89,7 @@ interface LoanState {
 
   // actions
   setAutoSave: (value: boolean) => void;
+  setAutoUpdate: (value: boolean) => void;
   initialize: (params: LoanParameters) => void;
   applyChange: (change: LoanChangeParams) => void;
   undo: () => void;
@@ -161,12 +163,14 @@ export const useLoanStore = create<LoanState>()(
         savedRateTables: [],
         activeRateTableId: null,
         autoSave: true,
+        autoUpdate: true,
         loanDirty: false,
         rateTableDirty: false,
         summary: null,
         canUndo: false,
 
         setAutoSave: (value: boolean) => set({ autoSave: value }),
+        setAutoUpdate: (value: boolean) => set({ autoUpdate: value }),
 
         initialize: (params: LoanParameters) => {
           const monthlyRate = annualToMonthlyRate(params.annualInterestRate);
@@ -866,6 +870,7 @@ export const useLoanStore = create<LoanState>()(
         savedRateTables: state.savedRateTables,
         activeRateTableId: state.activeRateTableId,
         autoSave: state.autoSave,
+        autoUpdate: state.autoUpdate,
         loanDirty: state.loanDirty,
         rateTableDirty: state.rateTableDirty,
       }),
