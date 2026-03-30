@@ -7,6 +7,9 @@ interface Props {
   schedule: PaymentScheduleItem[];
 }
 
+const fmtAmt = (v: number) =>
+  `¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export function RepaymentPieChart({ schedule }: Props) {
   const { resolved } = useTheme();
 
@@ -15,7 +18,6 @@ export function RepaymentPieChart({ schedule }: Props) {
     [schedule],
   );
 
-  // 找到默认位置：今天对应的期数
   const defaultIndex = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     let idx = regularItems.length - 1;
@@ -31,13 +33,9 @@ export function RepaymentPieChart({ schedule }: Props) {
   const [currentIndex, setCurrentIndex] = useState(defaultIndex);
   const safeIndex = Math.min(currentIndex, regularItems.length - 1);
 
-  const option = useMemo(() => {
+  const data = useMemo(() => {
     if (regularItems.length === 0) return null;
-    const isDark = resolved === 'dark';
-    const textColor = isDark ? '#ccc' : '#333';
-
     const item = regularItems[safeIndex];
-    // 截至当前期的累计（含提前还款行 period=0）
     let paidPrincipal = 0;
     let paidInterest = 0;
     for (const row of schedule) {
@@ -45,50 +43,58 @@ export function RepaymentPieChart({ schedule }: Props) {
       paidPrincipal += row.principal;
       paidInterest += row.interest;
     }
-    const remainingPrincipal = item.remainingLoan;
+    return {
+      item,
+      paidPrincipal: Math.round(paidPrincipal * 100) / 100,
+      paidInterest: Math.round(paidInterest * 100) / 100,
+      totalPaid: Math.round((paidPrincipal + paidInterest) * 100) / 100,
+    };
+  }, [regularItems, safeIndex, schedule]);
+
+  const option = useMemo(() => {
+    if (!data) return null;
+    const isDark = resolved === 'dark';
+    const textColor = isDark ? '#ccc' : '#333';
 
     return {
       tooltip: {
         trigger: 'item',
         confine: true,
         formatter: (params: { name: string; value: number; percent: number }) =>
-          `<b>第 ${item.period} 期</b> ${item.paymentDate}<br/>${params.name}: ¥${params.value.toLocaleString()} (${params.percent}%)`,
+          `${params.name}: ${fmtAmt(params.value)} (${params.percent}%)`,
       },
       legend: {
         bottom: 0,
         textStyle: { color: textColor, fontSize: 11 },
       },
-      title: {
-        text: `第 ${item.period} 期  ${item.paymentDate}`,
-        left: 'center',
-        top: 0,
-        textStyle: { color: textColor, fontSize: 12, fontWeight: 'normal' },
-      },
       series: [
         {
           type: 'pie',
-          radius: ['35%', '65%'],
-          center: ['50%', '48%'],
+          radius: ['45%', '72%'],
+          center: ['50%', '45%'],
           avoidLabelOverlap: false,
-          label: {
-            show: true,
-            position: 'inside',
-            fontSize: 10,
-            formatter: '{d}%',
+          label: { show: false },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 12,
+              fontWeight: 'bold',
+              formatter: '{b}\n{d}%',
+            },
           },
           data: [
             {
-              value: Math.round(paidPrincipal),
+              value: Math.round(data.paidPrincipal),
               name: '已还本金',
               itemStyle: { color: '#4caf50' },
             },
             {
-              value: Math.round(paidInterest),
+              value: Math.round(data.paidInterest),
               name: '已还利息',
               itemStyle: { color: '#4f8cff' },
             },
             {
-              value: Math.round(remainingPrincipal),
+              value: Math.round(data.item.remainingLoan),
               name: '未还本金',
               itemStyle: { color: isDark ? '#555' : '#ddd' },
             },
@@ -96,13 +102,53 @@ export function RepaymentPieChart({ schedule }: Props) {
         },
       ],
     };
-  }, [regularItems, safeIndex, schedule, resolved]);
+  }, [data, resolved]);
 
-  if (!option) return null;
+  if (!option || !data) return null;
+
+  const { item } = data;
 
   return (
     <div className="space-y-2">
-      <ReactECharts option={option} style={{ height: 240 }} />
+      {/* 标题行 */}
+      <div className="flex items-baseline justify-between px-1">
+        <span className="text-sm font-medium">
+          第 {item.period} 期
+          <span className="ml-2 text-xs text-muted-foreground">
+            {item.paymentDate}
+          </span>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          累计还款 <b className="text-foreground">{fmtAmt(data.totalPaid)}</b>
+        </span>
+      </div>
+
+      <ReactECharts option={option} style={{ height: 200 }} />
+
+      {/* 当期明细 */}
+      <div className="grid grid-cols-3 gap-x-2 gap-y-1.5 px-1 text-xs text-muted-foreground">
+        <span>
+          月供 <b className="text-foreground">{fmtAmt(item.monthlyPayment)}</b>
+        </span>
+        <span>
+          本金 <b className="text-foreground">{fmtAmt(item.principal)}</b>
+        </span>
+        <span>
+          利息 <b className="text-foreground">{fmtAmt(item.interest)}</b>
+        </span>
+        <span>
+          剩余本金{' '}
+          <b className="text-foreground">{fmtAmt(item.remainingLoan)}</b>
+        </span>
+        <span>
+          利率 <b className="text-foreground">{item.annualInterestRate}%</b>
+        </span>
+        <span>
+          剩余 <b className="text-foreground">{item.remainingTerm} 期</b>
+        </span>
+      </div>
+
+      {/* 滑块 */}
       <div className="px-2">
         <input
           type="range"
