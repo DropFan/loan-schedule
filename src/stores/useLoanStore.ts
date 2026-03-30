@@ -140,7 +140,15 @@ export const useLoanStore = create<LoanState>()(
         const startDay = params.startDate.getDate();
         let firstPeriodComment = '';
 
-        if (startDay !== repaymentDay && result.schedule.length > 0) {
+        const isGjjFree =
+          params.loanType === LoanType.ProvidentFund &&
+          params.loanMethod === LoanMethod.FreeRepayment;
+
+        if (
+          !isGjjFree &&
+          startDay !== repaymentDay &&
+          result.schedule.length > 0
+        ) {
           const dailyRate = monthlyRate / 30;
           let extraDays: number;
 
