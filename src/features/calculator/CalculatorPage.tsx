@@ -13,8 +13,8 @@ export function CalculatorPage() {
       <LoanSwitcher />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         <div className="space-y-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-          <LoanForm key={activeLoanId} />
-          <ChangeForm />
+          <LoanForm key={`loan-${activeLoanId}`} />
+          <ChangeForm key={`change-${activeLoanId}`} />
           <ChangeTimeline />
         </div>
         <div className="space-y-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
