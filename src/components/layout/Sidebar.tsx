@@ -9,6 +9,10 @@ import {
 import { useTheme } from '@/hooks/useTheme';
 import { navItems } from './nav-items';
 
+const DEV_TIME = import.meta.env.DEV
+  ? new Date().toLocaleTimeString('zh-CN', { hour12: false })
+  : '';
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -59,6 +63,9 @@ export function Sidebar() {
               <div className="text-sm font-bold truncate">{APP_NAME}</div>
               <div className="text-[10px] text-muted-foreground">
                 v{APP_VERSION}
+                {DEV_TIME && (
+                  <span className="ml-1 opacity-50">{DEV_TIME}</span>
+                )}
               </div>
             </div>
             <button

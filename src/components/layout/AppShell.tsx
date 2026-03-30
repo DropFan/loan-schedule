@@ -8,6 +8,10 @@ import {
 import { BottomTabs } from './BottomTabs';
 import { Sidebar } from './Sidebar';
 
+const DEV_TIME = import.meta.env.DEV
+  ? new Date().toLocaleTimeString('zh-CN', { hour12: false })
+  : '';
+
 function usePwaInstallPrompt() {
   useEffect(() => {
     const popupCount = Number(localStorage.getItem('pwaPopupCount') || '0');
@@ -58,7 +62,10 @@ export function AppShell() {
         <header className="lg:hidden flex items-center gap-2 px-4 py-2 border-b border-border bg-card">
           <img src="/logo-128.png" alt={APP_NAME} className="w-6 h-6 rounded" />
           <span className="text-sm font-bold truncate">{APP_NAME}</span>
-          <span className="text-xs text-muted-foreground">v{APP_VERSION}</span>
+          <span className="text-xs text-muted-foreground">
+            v{APP_VERSION}
+            {DEV_TIME && <span className="ml-1 opacity-50">{DEV_TIME}</span>}
+          </span>
           <span className="text-xs text-muted-foreground ml-auto">
             By{' '}
             <a
