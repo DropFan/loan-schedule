@@ -1,6 +1,6 @@
 {
   "name": "loan-schedule",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "贷款计算器 & 还贷模拟器 — 支持商贷/公积金、利率变更、提前还款、自由还款",
   "license": "CC-BY-NC-SA-4.0",
   "author": "Tiger <DropFan@Gmail.com>",

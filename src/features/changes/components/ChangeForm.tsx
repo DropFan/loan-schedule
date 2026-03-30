@@ -416,13 +416,13 @@ export function ChangeForm() {
                     onChange={(e) => setNewPayment(e.target.value)}
                     placeholder={
                       currentMinPayment > 0
-                        ? `不低于 ${currentMinPayment.toFixed(2)}`
+                        ? `建议不低于 ${currentMinPayment.toFixed(2)}`
                         : ''
                     }
                   />
                   {currentMinPayment > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      当前最低还款额：{currentMinPayment.toFixed(2)} 元
+                      建议最低还款额：{currentMinPayment.toFixed(2)} 元
                     </p>
                   )}
                   <button
