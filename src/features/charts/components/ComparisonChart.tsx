@@ -1,11 +1,15 @@
 import ReactECharts from 'echarts-for-react';
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { calcScheduleSummary } from '@/core/calculator/LoanCalculator';
 import type {
   LoanChangeRecord,
   PaymentScheduleItem,
 } from '@/core/types/loan.types';
 import { useTheme } from '@/hooks/useTheme';
+
+const fmtAmt = (v: number) =>
+  `¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 interface Snapshot {
   schedule: PaymentScheduleItem[];
@@ -92,14 +96,21 @@ export function ComparisonChart({ schedule, changes, history }: Props) {
           const date = aItem?.paymentDate || bItem?.paymentDate || '';
           let html = `<b>第 ${period} 期</b> ${date}`;
           for (const p of params) {
-            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`;
+            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ${fmtAmt(Number(p.value))}`;
           }
           if (bItem && aItem) {
             const diff = aItem.monthlyPayment - bItem.monthlyPayment;
             if (Math.abs(diff) > 0.01) {
               const sign = diff > 0 ? '+' : '';
-              html += `<br/><span style="color:${subTextColor}">●</span> 差额: ${sign}¥${diff.toFixed(2)}`;
+              html += `<br/><span style="color:${subTextColor}">●</span> 月供差额: ${sign}${fmtAmt(diff)}`;
             }
+          }
+          const cur = aItem || bItem;
+          if (cur) {
+            html += '<br/>──────────';
+            html += `<br/>本金: ${fmtAmt(cur.principal)}　利息: ${fmtAmt(cur.interest)}`;
+            html += `<br/>剩余本金: ${fmtAmt(cur.remainingLoan)}　剩余 ${cur.remainingTerm} 期`;
+            html += `<br/>利率: ${cur.annualInterestRate}%`;
           }
           return html;
         },
@@ -181,6 +192,49 @@ export function ComparisonChart({ schedule, changes, history }: Props) {
         </select>
       )}
       {option && <ReactECharts option={option} style={{ height: 260 }} />}
+      {comparisonOptions[safeIndex] && (
+        <ComparisonSummary {...comparisonOptions[safeIndex]} />
+      )}
+    </div>
+  );
+}
+
+function ComparisonSummary({
+  before,
+  after,
+}: {
+  before: PaymentScheduleItem[];
+  after: PaymentScheduleItem[];
+}) {
+  const bSummary = useMemo(() => calcScheduleSummary(before), [before]);
+  const aSummary = useMemo(() => calcScheduleSummary(after), [after]);
+  const diffPayment = aSummary.totalPayment - bSummary.totalPayment;
+  const diffInterest = aSummary.totalInterest - bSummary.totalInterest;
+  const diffTerm = aSummary.termMonths - bSummary.termMonths;
+
+  const diffLabel = (v: number, unit = '') => {
+    if (Math.abs(v) < 0.01) return '不变';
+    const sign = v > 0 ? '+' : '';
+    return unit ? `${sign}${v}${unit}` : `${sign}${fmtAmt(v)}`;
+  };
+
+  return (
+    <div className="grid grid-cols-3 gap-x-2 gap-y-1 px-1 pt-1 text-xs text-muted-foreground border-t border-border mt-2">
+      <span>
+        总还款 <b className="text-foreground">{diffLabel(diffPayment)}</b>
+      </span>
+      <span>
+        总利息 <b className="text-foreground">{diffLabel(diffInterest)}</b>
+      </span>
+      <span>
+        期数 <b className="text-foreground">{diffLabel(diffTerm, ' 期')}</b>
+      </span>
+      <span>变更前 {fmtAmt(bSummary.totalPayment)}</span>
+      <span>变更前 {fmtAmt(bSummary.totalInterest)}</span>
+      <span>变更前 {bSummary.termMonths} 期</span>
+      <span>变更后 {fmtAmt(aSummary.totalPayment)}</span>
+      <span>变更后 {fmtAmt(aSummary.totalInterest)}</span>
+      <span>变更后 {aSummary.termMonths} 期</span>
     </div>
   );
 }

@@ -8,6 +8,9 @@ import type {
 } from '@/core/types/loan.types';
 import { useTheme } from '@/hooks/useTheme';
 
+const fmtAmt = (v: number) =>
+  `¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 interface Snapshot {
   schedule: PaymentScheduleItem[];
   changeList: LoanChangeRecord[];
@@ -32,6 +35,11 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
     const beforeInterests: number[] = [];
     const afterInterests: number[] = [];
     const savedInterests: number[] = [];
+    const summaries: Array<{
+      before: ReturnType<typeof calcScheduleSummary>;
+      after: ReturnType<typeof calcScheduleSummary>;
+      changeRecord?: LoanChangeRecord;
+    }> = [];
 
     for (let i = 0; i < history.length; i++) {
       const beforeSchedule = history[i].schedule;
@@ -43,11 +51,15 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
       const saved = beforeSummary.totalInterest - afterSummary.totalInterest;
 
       const changeRecord = changes[i + 1];
-      const label = changeRecord?.comment ? `第${i + 1}次` : `第${i + 1}次`;
-      categories.push(label);
+      categories.push(`第${i + 1}次`);
       beforeInterests.push(Math.round(beforeSummary.totalInterest));
       afterInterests.push(Math.round(afterSummary.totalInterest));
       savedInterests.push(Math.round(saved));
+      summaries.push({
+        before: beforeSummary,
+        after: afterSummary,
+        changeRecord,
+      });
     }
 
     return {
@@ -64,19 +76,24 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
         ) => {
           if (!params.length) return '';
           const idx = params[0].dataIndex;
-          const changeRecord = changes[idx + 1];
+          const s = summaries[idx];
           const date =
-            changeRecord?.date instanceof Date
-              ? changeRecord.date.toISOString().split('T')[0]
-              : changeRecord?.date
-                ? String(changeRecord.date).split('T')[0]
+            s?.changeRecord?.date instanceof Date
+              ? s.changeRecord.date.toISOString().split('T')[0]
+              : s?.changeRecord?.date
+                ? String(s.changeRecord.date).split('T')[0]
                 : '';
           let html = `<b>${categories[idx]}</b> ${date}`;
-          if (changeRecord?.comment) {
-            html += `<br/>${changeRecord.comment}`;
+          if (s?.changeRecord?.comment) {
+            html += `<br/>${s.changeRecord.comment}`;
           }
           for (const p of params) {
-            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${p.value.toLocaleString()}`;
+            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ${fmtAmt(p.value)}`;
+          }
+          if (s) {
+            html += '<br/>──────────';
+            html += `<br/>变更前总还款: ${fmtAmt(s.before.totalPayment)}（${s.before.termMonths} 期）`;
+            html += `<br/>变更后总还款: ${fmtAmt(s.after.totalPayment)}（${s.after.termMonths} 期）`;
           }
           return html;
         },
@@ -126,6 +143,14 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
     };
   }, [schedule, changes, history, resolved]);
 
+  // 总计：初始方案 vs 最终方案
+  const totalSummary = useMemo(() => {
+    if (history.length === 0) return null;
+    const initial = calcScheduleSummary(history[0].schedule);
+    const final = calcScheduleSummary(schedule);
+    return { initial, final };
+  }, [history, schedule]);
+
   if (history.length === 0) {
     return (
       <EmptyState message="暂无变更记录，操作利率变更或提前还款后可查看利息对比" />
@@ -133,6 +158,43 @@ export function InterestSavingsChart({ schedule, changes, history }: Props) {
   }
 
   return option ? (
-    <ReactECharts option={option} style={{ height: 280 }} />
+    <div className="space-y-2">
+      <ReactECharts option={option} style={{ height: 280 }} />
+      {totalSummary && (
+        <div className="grid grid-cols-3 gap-x-2 gap-y-1 px-1 pt-1 text-xs text-muted-foreground border-t border-border">
+          <span>
+            累计节省利息{' '}
+            <b className="text-foreground">
+              {fmtAmt(
+                totalSummary.initial.totalInterest -
+                  totalSummary.final.totalInterest,
+              )}
+            </b>
+          </span>
+          <span>
+            累计节省还款{' '}
+            <b className="text-foreground">
+              {fmtAmt(
+                totalSummary.initial.totalPayment -
+                  totalSummary.final.totalPayment,
+              )}
+            </b>
+          </span>
+          <span>
+            期数变化{' '}
+            <b className="text-foreground">
+              {totalSummary.final.termMonths - totalSummary.initial.termMonths}{' '}
+              期
+            </b>
+          </span>
+          <span>初始 {fmtAmt(totalSummary.initial.totalInterest)}</span>
+          <span>初始 {fmtAmt(totalSummary.initial.totalPayment)}</span>
+          <span>初始 {totalSummary.initial.termMonths} 期</span>
+          <span>当前 {fmtAmt(totalSummary.final.totalInterest)}</span>
+          <span>当前 {fmtAmt(totalSummary.final.totalPayment)}</span>
+          <span>当前 {totalSummary.final.termMonths} 期</span>
+        </div>
+      )}
+    </div>
   ) : null;
 }
