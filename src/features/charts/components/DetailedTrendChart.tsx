@@ -18,7 +18,27 @@ export function DetailedTrendChart({ schedule }: Props) {
     const periods = regularItems.map((item) => item.period);
     const principals = regularItems.map((item) => item.principal);
     const interests = regularItems.map((item) => item.interest);
+    const payments = regularItems.map((item) => item.monthlyPayment);
     const remainingLoans = regularItems.map((item) => item.remainingLoan);
+
+    // 累计已还（含 period=0 的提前还款行）
+    const cumPrincipal: number[] = [];
+    const cumInterest: number[] = [];
+    let sumP = 0;
+    let sumI = 0;
+    let regIdx = 0;
+    for (const row of schedule) {
+      sumP += row.principal;
+      sumI += row.interest;
+      if (row.period > 0) {
+        cumPrincipal[regIdx] = Math.round(sumP * 100) / 100;
+        cumInterest[regIdx] = Math.round(sumI * 100) / 100;
+        regIdx++;
+      }
+    }
+
+    const fmtAmt = (v: number) =>
+      `¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     // 变更线（含提前还款 period=0 映射到下一常规期）
     const changeMarks: Array<{ xAxis: number }> = [];
@@ -57,11 +77,16 @@ export function DetailedTrendChart({ schedule }: Props) {
           const item = regularItems[idx];
           if (!item) return '';
           let html = `<b>第 ${item.period} 期</b> ${item.paymentDate}`;
-          html += `<br/><span style="color:#666">●</span> 月供: ¥${item.monthlyPayment.toFixed(2)}`;
+          html += `<br/><span style="color:#666">●</span> 月供: ${fmtAmt(item.monthlyPayment)}`;
           for (const p of params) {
-            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ¥${Number(p.value).toFixed(2)}`;
+            html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ${fmtAmt(Number(p.value))}`;
           }
           html += `<br/><span style="color:#999">●</span> 利率: ${item.annualInterestRate}%`;
+          html += `<br/><span style="color:#999">●</span> 剩余期数: ${item.remainingTerm} 期`;
+          html += '<br/>──────────';
+          html += `<br/>累计已还本金: ${fmtAmt(cumPrincipal[idx] ?? 0)}`;
+          html += `<br/>累计已还利息: ${fmtAmt(cumInterest[idx] ?? 0)}`;
+          html += `<br/>累计已还总额: ${fmtAmt((cumPrincipal[idx] ?? 0) + (cumInterest[idx] ?? 0))}`;
           if (item.comment) {
             const detail = item.comment
               .replace(/^[\s]*\d{4}-\d{2}-\d{2}/, '')
@@ -155,6 +180,14 @@ export function DetailedTrendChart({ schedule }: Props) {
           showSymbol: false,
           lineStyle: { width: 1 },
           itemStyle: { color: '#4f8cff' },
+        },
+        {
+          name: '月供',
+          type: 'line',
+          data: payments,
+          showSymbol: false,
+          lineStyle: { width: 1.5 },
+          itemStyle: { color: '#e040fb' },
         },
         {
           name: '剩余本金',
