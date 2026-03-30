@@ -470,7 +470,10 @@ export const useLoanStore = create<LoanState>()(
             loanMethod: LoanMethodName[method],
             comment: ` ${dateStr}${comment}`,
           };
-          newSchedule = oldSchedule.concat([prepayItem], result.schedule);
+          newSchedule =
+            remainingLoan <= 0
+              ? oldSchedule.concat([prepayItem])
+              : oldSchedule.concat([prepayItem], result.schedule);
         } else {
           if (extraInterest !== 0 && result.schedule.length > 0) {
             if (method === LoanMethod.FreeRepayment) {

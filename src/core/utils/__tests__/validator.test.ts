@@ -195,16 +195,15 @@ describe('Validator.prepayAmount', () => {
     expect(result.message).toBe('提前还款金额必须大于 0');
   });
 
-  it('等于剩余本金返回失败', () => {
+  it('等于剩余本金返回成功（全部还清）', () => {
     const result = Validator.prepayAmount(100_000, 100_000);
-    expect(result.valid).toBe(false);
-    expect(result.message).toBe('提前还款金额不能大于等于剩余本金');
+    expect(result.valid).toBe(true);
   });
 
   it('大于剩余本金返回失败', () => {
     const result = Validator.prepayAmount(150_000, 100_000);
     expect(result.valid).toBe(false);
-    expect(result.message).toBe('提前还款金额不能大于等于剩余本金');
+    expect(result.message).toBe('提前还款金额不能超过剩余本金');
   });
 
   it('正常提前还款金额返回成功', () => {

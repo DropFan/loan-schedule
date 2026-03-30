@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   annualToMonthlyRate,
   calcFreeRepaymentMinPayment,
+  findRemainingInfo,
 } from '@/core/calculator/LoanCalculator';
 import {
   ChangeType,
@@ -63,6 +64,13 @@ export function ChangeForm() {
   const [newRepayDay, setNewRepayDay] = useState('');
   const [repayDayDate, setRepayDayDate] = useState('');
   const [repayDayError, setRepayDayError] = useState('');
+
+  // 按提前还款日期从计划表中查出实际剩余本金（未填日期则用今天）
+  const prepayRemainingLoan = useMemo(() => {
+    if (schedule.length === 0) return remainingLoan;
+    const date = prepayDate ? new Date(prepayDate) : new Date();
+    return findRemainingInfo(schedule, date)?.remainingLoan ?? remainingLoan;
+  }, [schedule, prepayDate, remainingLoan]);
 
   const isFreeRepayment = currentMethod === LoanMethod.FreeRepayment;
   const currentMinPayment =
@@ -216,7 +224,7 @@ export function ChangeForm() {
     setPrepayError('');
 
     const amountNum = Number(prepayAmount);
-    const amountCheck = Validator.prepayAmount(amountNum, remainingLoan);
+    const amountCheck = Validator.prepayAmount(amountNum, prepayRemainingLoan);
     if (!amountCheck.valid) {
       setPrepayError(amountCheck.message);
       return;
@@ -338,6 +346,13 @@ export function ChangeForm() {
                     value={prepayAmount}
                     onChange={(e) => setPrepayAmount(e.target.value)}
                   />
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => setPrepayAmount(String(prepayRemainingLoan))}
+                  >
+                    全部还清（剩余本金 {prepayRemainingLoan.toFixed(2)} 元）
+                  </button>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="prepay-date">还款日期</Label>

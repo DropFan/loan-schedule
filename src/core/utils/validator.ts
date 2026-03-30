@@ -48,7 +48,7 @@ export const Validator = {
   prepayAmount(value: number, remainingLoan: number): ValidationResult {
     if (Number.isNaN(value) || value <= 0)
       return fail('提前还款金额必须大于 0');
-    if (value >= remainingLoan) return fail('提前还款金额不能大于等于剩余本金');
+    if (value > remainingLoan) return fail('提前还款金额不能超过剩余本金');
     return ok();
   },
 
