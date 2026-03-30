@@ -31,8 +31,8 @@ export function LoanForm() {
     params?.loanType ?? LoanType.Commercial,
   );
   const [amount, setAmount] = useState(params?.loanAmount?.toString() ?? '');
-  const [termYears, setTermYears] = useState(
-    params ? String(params.loanTermMonths / 12) : '',
+  const [termMonths, setTermMonths] = useState(
+    params ? String(params.loanTermMonths) : '',
   );
   const [rate, setRate] = useState(
     params?.annualInterestRate?.toString() ?? '',
@@ -55,20 +55,20 @@ export function LoanForm() {
 
   const suggestedMin = useMemo(() => {
     const a = Number(amount);
-    const t = Number(termYears);
+    const m = Number(termMonths);
     const r = Number(rate);
-    if (a > 0 && t > 0 && r > 0) {
-      return calcFreeRepaymentMinPayment(a, t * 12, annualToMonthlyRate(r));
+    if (a > 0 && m > 0 && r > 0) {
+      return calcFreeRepaymentMinPayment(a, m, annualToMonthlyRate(r));
     }
     return 0;
-  }, [amount, termYears, rate]);
+  }, [amount, termMonths, rate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     const amountNum = Number(amount);
-    const termNum = Number(termYears);
+    const termNum = Number(termMonths);
     const rateNum = Number(rate);
 
     const amountCheck = Validator.loanAmount(amountNum);
@@ -77,7 +77,7 @@ export function LoanForm() {
       return;
     }
 
-    const termCheck = Validator.loanTermYears(termNum);
+    const termCheck = Validator.loanTermMonths(termNum);
     if (!termCheck.valid) {
       setError(termCheck.message);
       return;
@@ -115,7 +115,7 @@ export function LoanForm() {
     initialize({
       loanType,
       loanAmount: amountNum,
-      loanTermMonths: termNum * 12,
+      loanTermMonths: termNum,
       annualInterestRate: rateNum,
       loanMethod: method,
       startDate: new Date(startDate),
@@ -160,14 +160,31 @@ export function LoanForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="loan-term">贷款期限 (年)</Label>
+            <Label htmlFor="loan-term">贷款期限 (月)</Label>
             <Input
               id="loan-term"
               type="number"
-              value={termYears}
-              onChange={(e) => setTermYears(e.target.value)}
-              placeholder="例如 30"
+              inputMode="numeric"
+              value={termMonths}
+              onChange={(e) => setTermMonths(e.target.value)}
+              placeholder="例如 360"
             />
+            <div className="flex flex-wrap gap-1.5">
+              {[5, 10, 15, 20, 25, 30].map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  className={`rounded-md border px-2 py-0.5 text-xs transition-colors ${
+                    Number(termMonths) === y * 12
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                  onClick={() => setTermMonths(String(y * 12))}
+                >
+                  {y}年
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">

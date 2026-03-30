@@ -25,6 +25,13 @@ export const Validator = {
     return ok();
   },
 
+  loanTermMonths(value: number): ValidationResult {
+    if (Number.isNaN(value) || !Number.isInteger(value))
+      return fail('贷款期限必须为整数月');
+    if (value < 1) return fail('贷款期限必须大于 0');
+    return ok();
+  },
+
   annualInterestRate(value: number): ValidationResult {
     if (Number.isNaN(value) || value <= 0) return fail('年利率必须大于 0');
     if (value > 30) return fail('年利率不能超过 30%');

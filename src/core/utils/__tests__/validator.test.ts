@@ -92,6 +92,48 @@ describe('Validator.loanTermYears', () => {
   });
 });
 
+describe('Validator.loanTermMonths', () => {
+  it('NaN 返回失败', () => {
+    const result = Validator.loanTermMonths(Number.NaN);
+    expect(result.valid).toBe(false);
+    expect(result.message).toBe('贷款期限必须为整数月');
+  });
+
+  it('非整数返回失败', () => {
+    const result = Validator.loanTermMonths(6.5);
+    expect(result.valid).toBe(false);
+    expect(result.message).toBe('贷款期限必须为整数月');
+  });
+
+  it('0 返回失败', () => {
+    const result = Validator.loanTermMonths(0);
+    expect(result.valid).toBe(false);
+    expect(result.message).toBe('贷款期限必须大于 0');
+  });
+
+  it('负数返回失败', () => {
+    const result = Validator.loanTermMonths(-12);
+    expect(result.valid).toBe(false);
+    expect(result.message).toBe('贷款期限必须大于 0');
+  });
+
+  it('边界值 1 返回成功', () => {
+    const result = Validator.loanTermMonths(1);
+    expect(result.valid).toBe(true);
+    expect(result.message).toBe('');
+  });
+
+  it('360 返回成功', () => {
+    const result = Validator.loanTermMonths(360);
+    expect(result.valid).toBe(true);
+  });
+
+  it('超过 360 也返回成功（无上限）', () => {
+    const result = Validator.loanTermMonths(480);
+    expect(result.valid).toBe(true);
+  });
+});
+
 describe('Validator.annualInterestRate', () => {
   it('NaN 返回失败', () => {
     const result = Validator.annualInterestRate(Number.NaN);
