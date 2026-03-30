@@ -65,12 +65,18 @@ export function ChangeForm() {
   const [repayDayDate, setRepayDayDate] = useState('');
   const [repayDayError, setRepayDayError] = useState('');
 
-  // 按提前还款日期从计划表中查出实际剩余本金（未填日期则用今天）
+  // 按日期从计划表中查出实际剩余本金（未填日期则用今天）
   const prepayRemainingLoan = useMemo(() => {
     if (schedule.length === 0) return remainingLoan;
     const date = prepayDate ? new Date(prepayDate) : new Date();
     return findRemainingInfo(schedule, date)?.remainingLoan ?? remainingLoan;
   }, [schedule, prepayDate, remainingLoan]);
+
+  const paymentRemainingLoan = useMemo(() => {
+    if (schedule.length === 0) return remainingLoan;
+    const date = paymentDate ? new Date(paymentDate) : new Date();
+    return findRemainingInfo(schedule, date)?.remainingLoan ?? remainingLoan;
+  }, [schedule, paymentDate, remainingLoan]);
 
   const isFreeRepayment = currentMethod === LoanMethod.FreeRepayment;
   const currentMinPayment =
@@ -419,6 +425,24 @@ export function ChangeForm() {
                       当前最低还款额：{currentMinPayment.toFixed(2)} 元
                     </p>
                   )}
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => {
+                      const rate = annualToMonthlyRate(
+                        changes[changes.length - 1]?.annualInterestRate ?? 0,
+                      );
+                      const payoff =
+                        Math.ceil(paymentRemainingLoan * (1 + rate) * 100) /
+                        100;
+                      setNewPayment(String(payoff));
+                      if (!paymentDate) {
+                        setPaymentDate(new Date().toISOString().split('T')[0]);
+                      }
+                    }}
+                  >
+                    全部还清（剩余本金 {paymentRemainingLoan.toFixed(2)} 元）
+                  </button>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="payment-date">生效日期</Label>
