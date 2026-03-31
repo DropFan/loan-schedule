@@ -1,7 +1,17 @@
 import ReactECharts from 'echarts-for-react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import type { Dimension, SelectedLoan } from '../ComparePage';
+
+type ChartInstance = {
+  getZr: () => {
+    on: (event: string, handler: (params: { offsetX: number }) => void) => void;
+  };
+  convertFromPixel: (
+    opt: { seriesIndex: number },
+    point: number[],
+  ) => number[] | undefined;
+};
 
 const DIMENSION_LABELS: Record<Dimension, string> = {
   payment: '月供',
@@ -26,6 +36,8 @@ export function ComparisonOverlay({
   onPeriodSelect,
 }: Props) {
   const { resolved } = useTheme();
+  const chartRef = useRef<ChartInstance | null>(null);
+  const maxPeriodRef = useRef(0);
 
   const option = useMemo(() => {
     const isDark = resolved === 'dark';
@@ -38,6 +50,7 @@ export function ComparisonOverlay({
         return regular.length > 0 ? regular[regular.length - 1].period : 0;
       }),
     );
+    maxPeriodRef.current = maxPeriod;
     const periods = Array.from({ length: maxPeriod }, (_, i) => i + 1);
 
     const fmtAmt = (v: number) =>
@@ -192,16 +205,32 @@ export function ComparisonOverlay({
     };
   }, [loans, dimension, resolved, selectedPeriod]);
 
-  const handleClick = useCallback(
-    (params: { dataIndex: number }) => {
-      // dataIndex 对应 periods 数组的索引，期数 = index + 1
-      const period = params.dataIndex + 1;
-      onPeriodSelect(selectedPeriod === period ? null : period);
-    },
-    [onPeriodSelect, selectedPeriod],
-  );
+  // 用 ref 保存最新的回调和状态，避免 zrender handler 闭包过期
+  const callbackRef = useRef({ onPeriodSelect, selectedPeriod });
+  callbackRef.current = { onPeriodSelect, selectedPeriod };
 
-  const onEvents = useMemo(() => ({ click: handleClick }), [handleClick]);
+  // biome-ignore lint/suspicious/noExplicitAny: echarts-for-react onChartReady 类型
+  const onChartReady = useCallback((instance: any) => {
+    // 避免重复绑定
+    if (chartRef.current === instance) return;
+    chartRef.current = instance;
+
+    instance.getZr().on('click', (params: { offsetX: number }) => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      // 像素坐标 → 数据坐标（x 轴索引）
+      const point = chart.convertFromPixel({ seriesIndex: 0 }, [
+        params.offsetX,
+        0,
+      ]);
+      if (!point) return;
+      const dataIndex = Math.round(point[0]);
+      if (dataIndex < 0 || dataIndex >= maxPeriodRef.current) return;
+      const period = dataIndex + 1;
+      const { onPeriodSelect: cb, selectedPeriod: cur } = callbackRef.current;
+      cb(cur === period ? null : period);
+    });
+  }, []);
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
@@ -226,7 +255,7 @@ export function ComparisonOverlay({
       <ReactECharts
         option={option}
         style={{ height: 350 }}
-        onEvents={onEvents}
+        onChartReady={onChartReady}
       />
     </div>
   );
