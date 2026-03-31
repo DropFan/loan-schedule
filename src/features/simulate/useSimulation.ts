@@ -98,16 +98,13 @@ function buildEnhancedResult(
   const interestSavingRate =
     totalInvestment > 0 ? roundTo2(interestSaved / totalInvestment) : 0;
 
-  // 机会成本：投入金额按理财利率复利到原还清日的收益
-  const investmentMonths =
-    originalSummary.termMonths - simulatedSummary.termMonths > 0
-      ? originalSummary.termMonths
-      : originalSummary.termMonths;
+  // 机会成本：投入金额（取绝对值）按理财利率复利到原还清日的收益
   const investmentReturn = calcInvestmentReturn(
-    totalInvestment,
+    Math.abs(totalInvestment),
     investmentRate,
-    investmentMonths,
+    originalSummary.termMonths,
   );
+  // 正值=提前还贷更划算（增加月供场景），负值=理财更划算
   const netBenefit = roundTo2(interestSaved - investmentReturn);
 
   return {
