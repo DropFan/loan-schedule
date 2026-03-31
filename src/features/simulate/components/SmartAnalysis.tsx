@@ -6,6 +6,7 @@ import type {
   LoanParameters,
   PaymentScheduleItem,
 } from '@/core/types/loan.types';
+import { roundTo2 } from '@/core/utils/formatHelper';
 import { useTheme } from '@/hooks/useTheme';
 import {
   type SimulateInput,
@@ -29,6 +30,9 @@ interface SamplePoint {
 
 interface TimePointAnalysis {
   period: number;
+  paymentDate: string;
+  remainingLoan: number;
+  annualInterestRate: number;
   bestAmount: number;
   bestInterestSaved: number;
   bestTermReduced: number;
@@ -72,10 +76,16 @@ function findMarginalBest(pts: SamplePoint[]): SamplePoint | null {
   return pts[bestIdx];
 }
 
-/** 生成等间隔时间点采样序列（10-15 个点） */
-function sampleTimePeriods(schedule: PaymentScheduleItem[]): number[] {
-  const regular = schedule.filter((s) => s.period > 0);
+/** 生成等间隔时间点采样序列（从用户选定的起始期开始，10-15 个点） */
+function sampleTimePeriods(
+  schedule: PaymentScheduleItem[],
+  startPeriod: number,
+): number[] {
+  const regular = schedule.filter(
+    (s) => s.period > 0 && s.period >= startPeriod,
+  );
   if (regular.length === 0) return [];
+
   const first = regular[0].period;
   const last = regular[regular.length - 1].period;
   const total = last - first + 1;
@@ -207,7 +217,10 @@ function useAnalysisMatrix(
 ): AnalysisMatrix {
   return useMemo(() => {
     const isLumpSum = input.mode === 'lump-sum';
-    const periods = sampleTimePeriods(schedule);
+    const userPeriod = isLumpSum
+      ? (input.lumpSumPeriod ?? 1)
+      : (input.startPeriod ?? 1);
+    const periods = sampleTimePeriods(schedule, userPeriod);
     if (periods.length === 0) return { timePoints: [], recommendations: [] };
 
     const regularItems = schedule.filter((s) => s.period > 0);
@@ -236,9 +249,9 @@ function useAnalysisMatrix(
           if (r) samples.push({ amount, ...r });
         }
       } else {
-        const cur = Math.round(currentMonthlyPayment);
-        const sampleMin = Math.max(Math.round(cur * 0.5), 1);
-        const sampleMax = Math.round(cur * 3);
+        const cur = roundTo2(currentMonthlyPayment);
+        const sampleMin = Math.max(roundTo2(cur * 0.5), 1);
+        const sampleMax = roundTo2(cur * 3);
         const step = Math.max(
           Math.floor((sampleMax - sampleMin) / 12 / 100) * 100,
           100,
@@ -257,6 +270,9 @@ function useAnalysisMatrix(
       const best = findMarginalBest(samples) ?? samples[samples.length - 1];
       timePoints.push({
         period,
+        paymentDate: item.paymentDate,
+        remainingLoan: item.remainingLoan,
+        annualInterestRate: item.annualInterestRate,
         bestAmount: best.amount,
         bestInterestSaved: best.interestSaved,
         bestTermReduced: best.termReduced,
@@ -271,7 +287,13 @@ function useAnalysisMatrix(
     );
 
     return { timePoints, recommendations };
-  }, [schedule, input.mode, currentMonthlyPayment]);
+  }, [
+    schedule,
+    input.mode,
+    input.lumpSumPeriod,
+    input.startPeriod,
+    currentMonthlyPayment,
+  ]);
 }
 
 const recColors: Record<string, string> = {
@@ -297,10 +319,15 @@ export function SmartAnalysis({
     currentMonthlyPayment,
   );
 
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const safeIdx = Math.min(selectedIdx, Math.max(timePoints.length - 1, 0));
-  const selectedTP = timePoints[safeIdx] ?? null;
   const isLumpSum = input.mode === 'lump-sum';
+
+  // 当前表单期数对应的图 1 高亮 index（找不到时取第一个）
+  const activePeriod = isLumpSum
+    ? (input.lumpSumPeriod ?? 0)
+    : (input.startPeriod ?? 0);
+  const rawIdx = timePoints.findIndex((t) => t.period === activePeriod);
+  const activeTimeIdx = rawIdx >= 0 ? rawIdx : 0;
+  const selectedTP = timePoints[activeTimeIdx] ?? null;
 
   // 图 1：最佳时间点分析
   const timeChartOption = useMemo(() => {
@@ -316,24 +343,21 @@ export function SmartAnalysis({
           ps: Array<{
             seriesName: string;
             value: number;
-            axisValue: string;
+            dataIndex: number;
           }>,
         ) => {
           if (!ps.length) return '';
-          let html = `<b>第 ${ps[0].axisValue} 期</b>`;
+          const tp = timePoints[ps[0].dataIndex];
+          if (!tp) return '';
+          let html = `<b>第 ${tp.period} 期（${tp.paymentDate}）</b>`;
+          html += `<br/>剩余本金: ${fmtMoney(tp.remainingLoan)}`;
+          html += `<br/>当前利率: ${tp.annualInterestRate}%`;
           for (const p of ps) {
             html += `<br/>${p.seriesName}: ${
-              p.seriesName === '缩短期数'
-                ? `${p.value} 期`
-                : `¥${p.value.toLocaleString()}`
+              p.seriesName === '缩短期数' ? `${p.value} 期` : fmtMoney(p.value)
             }`;
           }
-          const tp = timePoints.find(
-            (t) => String(t.period) === ps[0].axisValue,
-          );
-          if (tp) {
-            html += `<br/>最优${isLumpSum ? '金额' : '月供'}: ${isLumpSum ? fmtWan(tp.bestAmount) : `${tp.bestAmount}元`}`;
-          }
+          html += `<br/>最优${isLumpSum ? '金额' : '月供'}: ${isLumpSum ? fmtWan(tp.bestAmount) : `${tp.bestAmount}元`}`;
           return html;
         },
       },
@@ -344,11 +368,9 @@ export function SmartAnalysis({
       grid: { top: 30, right: 60, bottom: 40, left: 60 },
       xAxis: {
         type: 'category',
-        data: timePoints.map((t) => String(t.period)),
-        axisLabel: { fontSize: 10, color: textColor },
+        data: timePoints.map((t) => t.paymentDate.slice(0, 7)),
+        axisLabel: { fontSize: 10, color: textColor, rotate: 30 },
         axisLine: { lineStyle: { color: isDark ? '#444' : '#ddd' } },
-        name: '期数',
-        nameTextStyle: { color: textColor, fontSize: 10 },
       },
       yAxis: [
         {
@@ -373,7 +395,7 @@ export function SmartAnalysis({
           data: timePoints.map((t) => t.bestInterestSaved),
           itemStyle: {
             color: (p: { dataIndex: number }) =>
-              p.dataIndex === safeIdx ? '#2563eb' : '#93c5fd',
+              p.dataIndex === activeTimeIdx ? '#2563eb' : '#93c5fd',
             borderRadius: [4, 4, 0, 0],
           },
           barMaxWidth: 32,
@@ -390,7 +412,7 @@ export function SmartAnalysis({
         },
       ],
     };
-  }, [timePoints, resolved, safeIdx, isLumpSum]);
+  }, [timePoints, resolved, activeTimeIdx, isLumpSum]);
 
   // 图 2：当前选中时间点的金额分析
   const amountChartOption = useMemo(() => {
@@ -424,18 +446,23 @@ export function SmartAnalysis({
           ps: Array<{
             seriesName: string;
             value: number;
-            axisValue: string;
+            dataIndex: number;
           }>,
         ) => {
           if (!ps.length) return '';
-          let html = `<b>${isLumpSum ? '还款金额' : '月供'}: ${ps[0].axisValue}${isLumpSum ? '' : ' 元'}</b>`;
+          const sp = samples[ps[0].dataIndex];
+          let html = `<b>第 ${selectedTP.period} 期（${selectedTP.paymentDate}）</b>`;
+          html += `<br/>剩余本金: ${fmtMoney(selectedTP.remainingLoan)} | 利率: ${selectedTP.annualInterestRate}%`;
+          if (sp) {
+            html += `<br/>${isLumpSum ? '还款金额' : '月供'}: ${isLumpSum ? fmtWan(sp.amount) : `${sp.amount} 元`}`;
+          }
           for (const p of ps) {
             html += `<br/>${p.seriesName}: ${
-              p.seriesName === '缩短期数'
-                ? `${p.value} 期`
-                : `¥${p.value.toLocaleString()}`
+              p.seriesName === '缩短期数' ? `${p.value} 期` : fmtMoney(p.value)
             }`;
           }
+          html +=
+            '<br/><span style="color:#999;font-size:11px">点击选择此方案</span>';
           return html;
         },
       },
@@ -471,7 +498,8 @@ export function SmartAnalysis({
           name: '节省利息',
           type: 'line',
           data: samples.map((s) => s.interestSaved),
-          showSymbol: false,
+          showSymbol: true,
+          symbolSize: 6,
           lineStyle: { width: 2, color: '#4f8cff' },
           itemStyle: { color: '#4f8cff' },
           markLine:
@@ -500,7 +528,8 @@ export function SmartAnalysis({
           type: 'line',
           yAxisIndex: 1,
           data: samples.map((s) => s.termReduced),
-          showSymbol: false,
+          showSymbol: true,
+          symbolSize: 6,
           lineStyle: { width: 2, color: '#ff9800' },
           itemStyle: { color: '#ff9800' },
         },
@@ -515,10 +544,28 @@ export function SmartAnalysis({
     isLumpSum,
   ]);
 
+  // 图 1 点击：同步期数 + 该时间点的最优金额（两个维度都设置才能触发完整计算）
   const handleTimeChartClick = (p: { dataIndex?: number }) => {
-    if (p.dataIndex != null) {
-      setSelectedIdx(p.dataIndex);
-    }
+    if (p.dataIndex == null) return;
+    const tp = timePoints[p.dataIndex];
+    if (!tp) return;
+    onApply(
+      isLumpSum
+        ? { lumpSumPeriod: tp.period, lumpSumAmount: tp.bestAmount }
+        : { startPeriod: tp.period, newMonthly: tp.bestAmount },
+    );
+  };
+
+  // 图 2 点击：同步金额 + 当前选中时间点的期数
+  const handleAmountChartClick = (p: { dataIndex?: number }) => {
+    if (p.dataIndex == null || !selectedTP) return;
+    const sp = selectedTP.samples[p.dataIndex];
+    if (!sp) return;
+    onApply(
+      isLumpSum
+        ? { lumpSumPeriod: selectedTP.period, lumpSumAmount: sp.amount }
+        : { startPeriod: selectedTP.period, newMonthly: sp.amount },
+    );
   };
 
   return (
@@ -582,13 +629,14 @@ export function SmartAnalysis({
           {amountChartOption && selectedTP && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">
-                第 {selectedTP.period} 期 — {isLumpSum ? '还款金额' : '月供'}
-                与收益关系
+                第 {selectedTP.period} 期（{selectedTP.paymentDate}） —{' '}
+                {isLumpSum ? '还款金额' : '月供'}与收益关系
               </p>
               <ReactECharts
                 option={amountChartOption}
                 notMerge
                 style={{ height: 260 }}
+                onEvents={{ click: handleAmountChartClick }}
               />
             </div>
           )}
