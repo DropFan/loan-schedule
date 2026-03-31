@@ -15,7 +15,7 @@ export function BottomTabs() {
           }
         >
           <item.icon className="w-5 h-5" />
-          <span>{item.label}</span>
+          <span>{item.shortLabel ?? item.label}</span>
         </NavLink>
       ))}
     </nav>

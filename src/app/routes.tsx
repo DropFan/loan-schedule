@@ -9,6 +9,10 @@ const AnalysisPage = lazy(() =>
   import('@/features/charts').then((m) => ({ default: m.AnalysisPage })),
 );
 
+const ComparePage = lazy(() => import('@/features/compare'));
+
+const SimulatePage = lazy(() => import('@/features/simulate'));
+
 export function AppRoutes() {
   return useRoutes(routes);
 }
@@ -23,6 +27,22 @@ const routes: RouteObject[] = [
         element: (
           <Suspense>
             <AnalysisPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'compare',
+        element: (
+          <Suspense>
+            <ComparePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'simulate',
+        element: (
+          <Suspense>
+            <SimulatePage />
           </Suspense>
         ),
       },
