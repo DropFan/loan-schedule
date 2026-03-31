@@ -32,13 +32,17 @@ const ADJUST_MONTHLY_QUICK = [
   { label: '+5000', value: 5000 },
 ];
 
-const OBSERVATION_OPTIONS: Array<{ label: string; value: number | undefined }> =
-  [
-    { label: '3年', value: 3 },
-    { label: '5年', value: 5 },
-    { label: '10年', value: 10 },
-    { label: '到期', value: undefined },
-  ];
+const OBSERVATION_PRESETS: Array<{
+  label: string;
+  months: number | undefined;
+}> = [
+  { label: '1年', months: 12 },
+  { label: '2年', months: 24 },
+  { label: '3年', months: 36 },
+  { label: '5年', months: 60 },
+  { label: '10年', months: 120 },
+  { label: '到期', months: undefined },
+];
 
 const INVESTMENT_RATE_OPTIONS = [
   { label: '1.5% 货基', value: 1.5 },
@@ -67,6 +71,15 @@ export function SimulateForm({
 
   const sliderMin = -Math.round(currentMonthlyPayment * 0.5);
   const sliderMax = Math.round(currentMonthlyPayment * 2);
+
+  // 观察期截止日期（从 observationMonths 反推）
+  const observationEndDate = input.observationMonths
+    ? (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + input.observationMonths);
+        return d.toISOString().split('T')[0];
+      })()
+    : '';
 
   // 根据选定期数取对应的剩余本金作为滑块上限
   const periodMap = new Map(regularItems.map((s) => [s.period, s]));
@@ -326,22 +339,50 @@ export function SimulateForm({
           观察期（机会成本计算周期）
         </span>
         <div className="mt-1 flex flex-wrap gap-1.5">
-          {OBSERVATION_OPTIONS.map((opt) => (
-            <button
-              key={opt.label}
-              type="button"
-              onClick={() =>
-                onChange({ ...input, observationYears: opt.value })
+          {OBSERVATION_PRESETS.map((opt) => {
+            const isActive = input.observationMonths === opt.months;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() =>
+                  onChange({ ...input, observationMonths: opt.months })
+                }
+                className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                  isActive
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-muted/30'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <span className="text-xs text-muted-foreground shrink-0">
+            截止日期
+          </span>
+          <input
+            type="date"
+            value={observationEndDate}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) {
+                onChange({ ...input, observationMonths: undefined });
+                return;
               }
-              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                input.observationYears === opt.value
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted/30'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+              const endDate = new Date(v);
+              const today = new Date();
+              const diffMonths =
+                (endDate.getFullYear() - today.getFullYear()) * 12 +
+                (endDate.getMonth() - today.getMonth());
+              if (diffMonths > 0) {
+                onChange({ ...input, observationMonths: diffMonths });
+              }
+            }}
+            className="flex-1 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
         </div>
       </div>
     </div>
