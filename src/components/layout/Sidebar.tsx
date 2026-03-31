@@ -1,6 +1,6 @@
 import { Moon, PanelLeft, PanelLeftClose, Sun } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink } from 'react-router';
+import { Link, NavLink } from 'react-router';
 import {
   APP_AUTHOR_LINK,
   APP_NAME,
@@ -125,8 +125,15 @@ export function Sidebar() {
               rel="noreferrer"
               title={`v${APP_VERSION} By Tiger`}
             >
-              T
+              👨🏻‍💻
             </a>
+            <Link
+              to="/settings#donate"
+              className="block text-center hover:text-primary"
+              title="请喝咖啡"
+            >
+              ☕
+            </Link>
           </>
         ) : (
           <>
@@ -152,7 +159,14 @@ export function Sidebar() {
               >
                 Tiger
               </a>
+              <span className="text-muted-foreground"> · v{APP_VERSION}</span>
             </div>
+            <Link
+              to="/settings#donate"
+              className="block px-1 text-muted-foreground hover:text-primary text-xs"
+            >
+              ☕ 请喝咖啡
+            </Link>
           </>
         )}
       </div>

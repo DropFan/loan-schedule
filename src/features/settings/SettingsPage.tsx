@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -26,6 +27,13 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState('');
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash === '#donate') {
+      document.getElementById('donate')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [location.hash]);
 
   const handleClearData = () => {
     if (window.confirm('确认清除所有数据？此操作不可撤销。')) {
@@ -178,6 +186,21 @@ export function SettingsPage() {
           <CardTitle>关于</CardTitle>
         </CardHeader>
         <CardContent className="text-sm space-y-2">
+          <div id="donate" className="border-t pt-4 mt-4">
+            <p className="text-center text-muted-foreground mb-3">
+              如果觉得好用，请作者喝杯咖啡 ☕
+            </p>
+            <div className="flex justify-center">
+              <div className="text-center">
+                <img
+                  src="/donate-wechat.jpg"
+                  alt="微信赞赏码"
+                  className="w-40 rounded"
+                />
+                <p className="text-muted-foreground mt-1">微信</p>
+              </div>
+            </div>
+          </div>
           <p>贷款计算器 & 还贷模拟器</p>
           <p className="text-muted-foreground">
             版本 v{APP_VERSION} (Release {APP_RELEASE})
@@ -203,6 +226,10 @@ export function SettingsPage() {
               GitHub 源码
             </a>
           </p>
+          <p className="text-muted-foreground">
+            所有数据仅存储在您的设备本地，不会上传到任何服务器
+          </p>
+
         </CardContent>
       </Card>
     </div>
