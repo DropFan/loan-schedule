@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { LoanSwitcher } from '@/components/shared/LoanSwitcher';
+import type { PaymentScheduleItem } from '@/core/types/loan.types';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { OpportunityCost } from './components/OpportunityCost';
 import { SimulateChart } from './components/SimulateChart';
@@ -23,30 +24,39 @@ export function SimulatePage() {
     investmentRate: 2.5,
   });
 
-  // 计算当前月供、剩余本金、默认下一期
-  const { currentMonthlyPayment, remainingLoan, defaultNextPeriod } =
-    useMemo(() => {
-      const regular = schedule.filter((s) => s.period > 0);
-      if (regular.length === 0)
-        return {
-          currentMonthlyPayment: 0,
-          remainingLoan: 0,
-          defaultNextPeriod: 1,
-        };
-      const today = new Date().toISOString().split('T')[0];
-      let nextPeriod = regular[regular.length - 1].period;
-      for (const item of regular) {
-        if (item.paymentDate > today) {
-          nextPeriod = item.period;
-          break;
-        }
-      }
+  // 计算默认下一期和初始贷款余额
+  const { remainingLoan, defaultNextPeriod, periodMap } = useMemo(() => {
+    const regular = schedule.filter((s) => s.period > 0);
+    if (regular.length === 0)
       return {
-        currentMonthlyPayment: regular[0].monthlyPayment,
-        remainingLoan: regular[0].remainingLoan + regular[0].principal,
-        defaultNextPeriod: nextPeriod,
+        remainingLoan: 0,
+        defaultNextPeriod: 1,
+        periodMap: new Map<number, PaymentScheduleItem>(),
       };
-    }, [schedule]);
+    const today = new Date().toISOString().split('T')[0];
+    let nextPeriod = regular[regular.length - 1].period;
+    for (const item of regular) {
+      if (item.paymentDate > today) {
+        nextPeriod = item.period;
+        break;
+      }
+    }
+    return {
+      remainingLoan: regular[0].remainingLoan + regular[0].principal,
+      defaultNextPeriod: nextPeriod,
+      periodMap: new Map(regular.map((s) => [s.period, s])),
+    };
+  }, [schedule]);
+
+  // 当前月供：取选定期数对应的月供
+  const activePeriod =
+    input.mode === 'adjust-monthly'
+      ? (input.startPeriod ?? defaultNextPeriod)
+      : (input.lumpSumPeriod ?? defaultNextPeriod);
+  const currentMonthlyPayment =
+    periodMap.get(activePeriod)?.monthlyPayment ??
+    periodMap.get(defaultNextPeriod)?.monthlyPayment ??
+    0;
 
   // 实际生效的 input（用默认值填充 undefined 的期数）
   const effectiveInput = useMemo(

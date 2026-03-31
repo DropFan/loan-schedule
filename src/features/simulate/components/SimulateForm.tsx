@@ -72,6 +72,19 @@ export function SimulateForm({
   const sliderMin = -Math.round(currentMonthlyPayment * 0.5);
   const sliderMax = Math.round(currentMonthlyPayment * 2);
 
+  // 滑块关键刻度
+  const sliderRange = Math.abs(sliderMin) + sliderMax;
+  const sliderTicks = [
+    { value: sliderMin, label: `${sliderMin}`, pct: 0 },
+    { value: 0, label: '0', pct: (Math.abs(sliderMin) / sliderRange) * 100 },
+    {
+      value: Math.round(currentMonthlyPayment),
+      label: `+${Math.round(currentMonthlyPayment)}`,
+      pct: ((Math.abs(sliderMin) + currentMonthlyPayment) / sliderRange) * 100,
+    },
+    { value: sliderMax, label: `+${sliderMax}`, pct: 100 },
+  ];
+
   // 观察期截止日期（从 observationMonths 反推）
   const observationEndDate = input.observationMonths
     ? (() => {
@@ -141,17 +154,24 @@ export function SimulateForm({
               }
               className="mt-2 w-full accent-primary"
             />
-            <div className="relative text-[10px] text-muted-foreground/60 mt-0.5 h-4">
-              <span className="absolute left-0">-{Math.abs(sliderMin)}</span>
-              <span
-                className="absolute -translate-x-1/2"
-                style={{
-                  left: `${(Math.abs(sliderMin) / (Math.abs(sliderMin) + sliderMax)) * 100}%`,
-                }}
-              >
-                0
-              </span>
-              <span className="absolute right-0">+{sliderMax}</span>
+            <div className="relative text-[10px] mt-0.5 h-4">
+              {sliderTicks.map((tick) => (
+                <button
+                  key={tick.value}
+                  type="button"
+                  onClick={() =>
+                    onChange({ ...input, monthlyAdjust: tick.value })
+                  }
+                  className={`absolute -translate-x-1/2 hover:text-primary transition-colors ${
+                    input.monthlyAdjust === tick.value
+                      ? 'text-primary font-medium'
+                      : 'text-muted-foreground/60'
+                  }`}
+                  style={{ left: `${tick.pct}%` }}
+                >
+                  {tick.label}
+                </button>
+              ))}
             </div>
           </label>
 
