@@ -111,6 +111,7 @@ export function RateTablePage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-2xl space-y-4">
+      <h2 className="text-lg font-semibold">利率表</h2>
       <RateTableSwitcher
         source={source}
         basisPoints={basisPoints}

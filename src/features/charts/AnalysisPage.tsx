@@ -22,6 +22,7 @@ export function AnalysisPage() {
   if (!params || !summary || schedule.length === 0) {
     return (
       <div className="p-4 lg:p-6 space-y-4">
+        <h2 className="text-lg font-semibold">数据分析</h2>
         <LoanSwitcher />
         <Card>
           <CardContent className="pt-6">
@@ -36,6 +37,7 @@ export function AnalysisPage() {
 
   return (
     <div className="p-4 lg:p-6 space-y-4">
+      <h2 className="text-lg font-semibold">数据分析</h2>
       <LoanSwitcher />
 
       {/* 还款进度 */}

@@ -29,13 +29,13 @@ export function SimulatePage() {
       : (input.lumpSumPeriod ?? 1);
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 lg:p-6 space-y-4">
+      <h2 className="text-lg font-semibold">还款模拟</h2>
       <LoanSwitcher />
 
       {!hasSchedule && (
         <div className="max-w-lg mx-auto mt-12 text-center">
           <div className="bg-card border border-border rounded-xl p-8 space-y-4">
-            <h2 className="text-lg font-semibold">还款模拟</h2>
             <p className="text-muted-foreground">
               请先在贷款计算页面设置贷款参数并生成还款计划
             </p>

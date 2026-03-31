@@ -73,9 +73,9 @@ export function ComparePage() {
   // 空状态
   if (loanOptions.length < 2) {
     return (
-      <div className="max-w-lg mx-auto mt-20 text-center">
-        <div className="bg-card border border-border rounded-xl p-8 space-y-4">
-          <h2 className="text-lg font-semibold">方案对比</h2>
+      <div className="p-4 lg:p-6 space-y-4">
+        <h2 className="text-lg font-semibold">方案对比</h2>
+        <div className="max-w-lg mx-auto mt-12 bg-card border border-border rounded-xl p-8 space-y-4 text-center">
           <p className="text-muted-foreground">
             保存至少 2 个贷款方案即可进行对比
           </p>
@@ -106,7 +106,7 @@ export function ComparePage() {
     .filter((l): l is SelectedLoan => l !== null);
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 lg:p-6 space-y-4">
       <h2 className="text-lg font-semibold">方案对比</h2>
 
       <LoanSelector

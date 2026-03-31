@@ -58,6 +58,7 @@ export function SettingsPage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-2xl space-y-4">
+      <h2 className="text-lg font-semibold">设置</h2>
       <Card>
         <CardHeader>
           <CardTitle>外观</CardTitle>

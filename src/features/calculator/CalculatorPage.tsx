@@ -10,6 +10,7 @@ export function CalculatorPage() {
 
   return (
     <div className="p-4 lg:p-6 space-y-4">
+      <h2 className="text-lg font-semibold">贷款计算</h2>
       <LoanSwitcher />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         <div className="space-y-4 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
