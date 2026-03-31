@@ -559,3 +559,54 @@ export function simulateNewMonthlyOnce(
     termReduced: originalSummary.termMonths - totalSimTerms,
   };
 }
+
+/** 快速一次性还款模拟（逐期累加，不生成完整计划） */
+export function simulateLumpSumFast(
+  schedule: PaymentScheduleItem[],
+  lumpSumAmount: number,
+  lumpSumPeriod: number,
+): { interestSaved: number; termReduced: number } | null {
+  const regularItems = getRegularItems(schedule);
+  const periodMap = new Map(regularItems.map((item) => [item.period, item]));
+  const targetItem = periodMap.get(lumpSumPeriod);
+  if (!targetItem) return null;
+
+  const remainingLoan = targetItem.remainingLoan;
+  if (lumpSumAmount >= remainingLoan || lumpSumAmount <= 0) return null;
+
+  const newRemainingLoan = roundTo2(remainingLoan - lumpSumAmount);
+  const monthlyRate = targetItem.annualInterestRate / 100 / 12;
+  const monthlyPayment = targetItem.monthlyPayment;
+
+  let rem = newRemainingLoan;
+  let simInterest = 0;
+  let simTerms = 0;
+  while (rem > 0) {
+    const interest = roundTo2(rem * monthlyRate);
+    simInterest += interest;
+    const principal = roundTo2(monthlyPayment - interest);
+    if (principal <= 0) return null;
+    if (principal >= rem) {
+      simTerms++;
+      break;
+    }
+    rem = roundTo2(rem - principal);
+    simTerms++;
+  }
+
+  let prefixInterest = 0;
+  for (const item of schedule) {
+    if (item.period >= 0 && item.period <= lumpSumPeriod) {
+      prefixInterest += item.interest;
+    }
+  }
+
+  const originalSummary = calcScheduleSummary(schedule);
+  const totalSimInterest = roundTo2(prefixInterest + simInterest);
+  const totalSimTerms = lumpSumPeriod + simTerms;
+
+  return {
+    interestSaved: roundTo2(originalSummary.totalInterest - totalSimInterest),
+    termReduced: originalSummary.termMonths - totalSimTerms,
+  };
+}
