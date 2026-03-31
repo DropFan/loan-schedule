@@ -8,8 +8,8 @@ import type {
 import { useTheme } from '@/hooks/useTheme';
 import {
   type SimulateInput,
-  simulateExtraMonthlyOnce,
   simulateLumpSumOnce,
+  simulateMonthlyAdjustOnce,
 } from '../useSimulation';
 
 interface Props {
@@ -37,7 +37,7 @@ function fmtWan(v: number): string {
 }
 
 function fmtMoney(v: number): string {
-  return `¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `¥${Math.abs(v).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function findMarginalBest(pts: SamplePoint[]): SamplePoint | null {
@@ -121,7 +121,7 @@ function useLumpSumAnalysis(
   }, [schedule, params, input.lumpSumPeriod, input.lumpSumStrategy]);
 }
 
-function useExtraMonthlyAnalysis(
+function useMonthlyAdjustAnalysis(
   schedule: PaymentScheduleItem[],
   input: SimulateInput,
   currentMonthlyPayment: number,
@@ -129,60 +129,65 @@ function useExtraMonthlyAnalysis(
   return useMemo(() => {
     const startPeriod = input.startPeriod ?? 1;
 
-    const maxExtra = Math.round(currentMonthlyPayment * 2);
-    const sampleCount = 20;
-    const step = Math.max(Math.floor(maxExtra / sampleCount / 100) * 100, 100);
+    // 采样范围：-50% ~ +200% 月供
+    const negMax = Math.round(currentMonthlyPayment * 0.5);
+    const posMax = Math.round(currentMonthlyPayment * 2);
+    const step = Math.max(Math.floor(posMax / 15 / 100) * 100, 100);
 
     const pts: SamplePoint[] = [];
-    for (let i = 1; i <= sampleCount; i++) {
-      const amount = step * i;
-      const r = simulateExtraMonthlyOnce(schedule, amount, startPeriod);
+
+    // 负方向采样（减少月供）
+    for (let amount = -negMax; amount < 0; amount += step) {
+      if (amount === 0) continue;
+      const r = simulateMonthlyAdjustOnce(schedule, amount, startPeriod);
       if (r) pts.push({ amount, ...r });
     }
 
+    // 正方向采样（增加月供）
+    for (let amount = step; amount <= posMax; amount += step) {
+      const r = simulateMonthlyAdjustOnce(schedule, amount, startPeriod);
+      if (r) pts.push({ amount, ...r });
+    }
+
+    // 按 amount 排序
+    pts.sort((a, b) => a.amount - b.amount);
+
     const recs: Recommendation[] = [];
 
-    const y1 = pts.find((p) => p.termReduced >= 12);
+    // 增加方向推荐
+    const positivePts = pts.filter((p) => p.amount > 0);
+    const y1 = positivePts.find((p) => p.termReduced >= 12);
     if (y1) {
       recs.push({
         label: '提前 1 年',
-        description: `每月多还 ${y1.amount}，节省利息 ${fmtMoney(y1.interestSaved)}`,
-        patch: { extraMonthly: y1.amount },
+        description: `月供 +${y1.amount}，节省 ${fmtMoney(y1.interestSaved)}`,
+        patch: { monthlyAdjust: y1.amount },
       });
     }
 
-    const y3 = pts.find((p) => p.termReduced >= 36);
+    const y3 = positivePts.find((p) => p.termReduced >= 36);
     if (y3) {
       recs.push({
         label: '提前 3 年',
-        description: `每月多还 ${y3.amount}，节省利息 ${fmtMoney(y3.interestSaved)}`,
-        patch: { extraMonthly: y3.amount },
+        description: `月供 +${y3.amount}，节省 ${fmtMoney(y3.interestSaved)}`,
+        patch: { monthlyAdjust: y3.amount },
       });
     }
 
-    const y5 = pts.find((p) => p.termReduced >= 60);
-    if (y5 && !recs.some((r) => r.patch.extraMonthly === y5.amount)) {
-      recs.push({
-        label: '提前 5 年',
-        description: `每月多还 ${y5.amount}，节省利息 ${fmtMoney(y5.interestSaved)}`,
-        patch: { extraMonthly: y5.amount },
-      });
-    }
-
-    if (
-      recs.length < 3 &&
-      pts.length >= 3 &&
-      !recs.some((r) => {
-        const best = findMarginalBest(pts);
-        return best && r.patch.extraMonthly === best.amount;
-      })
-    ) {
-      const best = findMarginalBest(pts);
-      if (best) {
+    // 减少方向推荐：找到一个合理的减少点
+    const negativePts = pts.filter((p) => p.amount < 0);
+    if (negativePts.length > 0) {
+      // 取减少幅度最大但利息增加可控（<20%原利息）的点
+      const origInterest =
+        pts.length > 0 ? Math.abs(positivePts[0]?.interestSaved ?? 0) : 0;
+      const moderate = [...negativePts]
+        .reverse()
+        .find((p) => Math.abs(p.interestSaved) < origInterest * 2);
+      if (moderate) {
         recs.push({
-          label: '边际最优',
-          description: `每月多还 ${best.amount}，性价比最高`,
-          patch: { extraMonthly: best.amount },
+          label: '减少月供',
+          description: `月供 ${moderate.amount}，多付 ${fmtMoney(moderate.interestSaved)} 利息`,
+          patch: { monthlyAdjust: moderate.amount },
         });
       }
     }
@@ -204,7 +209,7 @@ export function SmartAnalysis({
   const isLumpSum = input.mode === 'lump-sum';
 
   const lumpSumData = useLumpSumAnalysis(schedule, params, input);
-  const extraMonthlyData = useExtraMonthlyAnalysis(
+  const monthlyAdjustData = useMonthlyAdjustAnalysis(
     schedule,
     input,
     currentMonthlyPayment,
@@ -212,23 +217,37 @@ export function SmartAnalysis({
 
   const { samples, recommendations } = isLumpSum
     ? lumpSumData
-    : extraMonthlyData;
+    : monthlyAdjustData;
 
   const currentAmount = isLumpSum
     ? (input.lumpSumAmount ?? 0)
-    : (input.extraMonthly ?? 0);
+    : (input.monthlyAdjust ?? 0);
 
-  const xAxisLabel = isLumpSum ? '提前还款金额' : '每月额外还款';
+  const xAxisLabel = isLumpSum ? '提前还款金额' : '月供调整额';
 
   const option = useMemo(() => {
     if (samples.length === 0) return null;
     const isDark = resolved === 'dark';
     const textColor = isDark ? '#ccc' : '#666';
 
-    const currentIdx = samples.findIndex((s) => s.amount >= currentAmount);
+    const currentIdx = samples.findIndex((s) =>
+      isLumpSum ? s.amount >= currentAmount : s.amount === currentAmount,
+    );
+    // 对于调整月供，找最近的采样点
+    const nearestIdx =
+      currentIdx >= 0
+        ? currentIdx
+        : samples.reduce(
+            (best, s, i) =>
+              Math.abs(s.amount - currentAmount) <
+              Math.abs(samples[best].amount - currentAmount)
+                ? i
+                : best,
+            0,
+          );
 
     const xLabels = samples.map((s) =>
-      isLumpSum ? fmtWan(s.amount) : `${s.amount}`,
+      isLumpSum ? fmtWan(s.amount) : `${s.amount > 0 ? '+' : ''}${s.amount}`,
     );
 
     return {
@@ -265,7 +284,7 @@ export function SmartAnalysis({
         axisLabel: {
           fontSize: 10,
           color: textColor,
-          rotate: isLumpSum ? 30 : 0,
+          rotate: isLumpSum ? 30 : 30,
         },
         axisLine: { lineStyle: { color: isDark ? '#444' : '#ddd' } },
       },
@@ -294,7 +313,7 @@ export function SmartAnalysis({
           lineStyle: { width: 2, color: '#4f8cff' },
           itemStyle: { color: '#4f8cff' },
           markLine:
-            currentIdx >= 0
+            currentAmount !== 0 && nearestIdx >= 0
               ? {
                   silent: true,
                   symbol: 'none',
@@ -310,7 +329,7 @@ export function SmartAnalysis({
                     color: '#f43f5e',
                     formatter: '当前',
                   },
-                  data: [{ xAxis: currentIdx }],
+                  data: [{ xAxis: nearestIdx }],
                 }
               : undefined,
         },

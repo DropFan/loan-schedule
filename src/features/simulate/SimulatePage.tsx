@@ -14,8 +14,8 @@ export function SimulatePage() {
   const { schedule, params } = useLoanStore();
 
   const [input, setInput] = useState<SimulateInput>({
-    mode: 'extra-monthly',
-    extraMonthly: undefined,
+    mode: 'adjust-monthly',
+    monthlyAdjust: undefined,
     startPeriod: undefined,
     lumpSumAmount: undefined,
     lumpSumPeriod: undefined,
@@ -28,7 +28,7 @@ export function SimulatePage() {
   const hasSchedule = schedule.length > 0 && params !== null;
 
   const startPeriod =
-    input.mode === 'extra-monthly'
+    input.mode === 'adjust-monthly'
       ? (input.startPeriod ?? 1)
       : (input.lumpSumPeriod ?? 1);
 

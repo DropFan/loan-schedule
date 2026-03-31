@@ -14,8 +14,8 @@ import {
 import { roundTo2 } from '@/core/utils/formatHelper';
 
 export interface SimulateInput {
-  mode: 'extra-monthly' | 'lump-sum';
-  extraMonthly?: number;
+  mode: 'adjust-monthly' | 'lump-sum';
+  monthlyAdjust?: number;
   startPeriod?: number;
   lumpSumAmount?: number;
   lumpSumPeriod?: number;
@@ -159,9 +159,9 @@ function buildErrorResult(
   };
 }
 
-function simulateExtraMonthly(
+function simulateMonthlyAdjust(
   schedule: PaymentScheduleItem[],
-  extraMonthly: number,
+  monthlyAdjust: number,
   startPeriod: number,
   investmentRate: number,
 ): SimulateResult {
@@ -188,6 +188,17 @@ function simulateExtraMonthly(
 
   const monthlyRate = startItem.annualInterestRate / 100 / 12;
   const originalPayment = startItem.monthlyPayment;
+  const adjustedPayment = roundTo2(originalPayment + monthlyAdjust);
+
+  // 校验：调整后月供必须大于首期利息
+  const firstInterest = roundTo2(remainingLoan * monthlyRate);
+  if (adjustedPayment <= firstInterest) {
+    return buildErrorResult(
+      schedule,
+      investmentRate,
+      `调整后月供 ${adjustedPayment.toFixed(2)} 不足以覆盖利息 ${firstInterest.toFixed(2)}`,
+    );
+  }
 
   const prefix = schedule.filter(
     (s) => s.period < startPeriod || s.period === 0,
@@ -195,19 +206,19 @@ function simulateExtraMonthly(
   const simulated: PaymentScheduleItem[] = [...prefix];
 
   let period = startPeriod;
-  let totalExtraPaid = 0;
+  let totalAdjustment = 0;
   while (remainingLoan > 0) {
     const interest = roundTo2(remainingLoan * monthlyRate);
-    let actualPayment = roundTo2(originalPayment + extraMonthly);
+    let actualPayment = adjustedPayment;
     let principal = roundTo2(actualPayment - interest);
 
     if (principal >= remainingLoan) {
       principal = roundTo2(remainingLoan);
       actualPayment = roundTo2(principal + interest);
-      totalExtraPaid += roundTo2(actualPayment - originalPayment);
+      totalAdjustment += roundTo2(actualPayment - originalPayment);
       remainingLoan = 0;
     } else {
-      totalExtraPaid += extraMonthly;
+      totalAdjustment += monthlyAdjust;
       remainingLoan = roundTo2(remainingLoan - principal);
     }
 
@@ -232,7 +243,7 @@ function simulateExtraMonthly(
   return buildEnhancedResult(
     schedule,
     simulated,
-    roundTo2(totalExtraPaid),
+    roundTo2(totalAdjustment),
     null,
     originalPayment,
     investmentRate,
@@ -350,14 +361,15 @@ export function useSimulation(
   return useMemo(() => {
     if (!params || schedule.length === 0) return null;
 
-    if (input.mode === 'extra-monthly') {
-      const extraMonthly = input.extraMonthly;
+    if (input.mode === 'adjust-monthly') {
+      const monthlyAdjust = input.monthlyAdjust;
       const startPeriod = input.startPeriod;
-      if (!extraMonthly || extraMonthly <= 0 || !startPeriod) return null;
+      if (monthlyAdjust == null || monthlyAdjust === 0 || !startPeriod)
+        return null;
 
-      return simulateExtraMonthly(
+      return simulateMonthlyAdjust(
         schedule,
-        extraMonthly,
+        monthlyAdjust,
         startPeriod,
         input.investmentRate,
       );
@@ -381,7 +393,7 @@ export function useSimulation(
     schedule,
     params,
     input.mode,
-    input.extraMonthly,
+    input.monthlyAdjust,
     input.startPeriod,
     input.lumpSumAmount,
     input.lumpSumPeriod,
@@ -457,10 +469,10 @@ export function simulateLumpSumOnce(
   };
 }
 
-/** 额外月供单次模拟（供 SmartAnalysis 批量调用） */
-export function simulateExtraMonthlyOnce(
+/** 调整月供单次模拟（供 SmartAnalysis 批量调用） */
+export function simulateMonthlyAdjustOnce(
   schedule: PaymentScheduleItem[],
-  extraMonthly: number,
+  monthlyAdjust: number,
   startPeriod: number,
 ): { interestSaved: number; termReduced: number } | null {
   const regularItems = getRegularItems(schedule);
@@ -478,6 +490,10 @@ export function simulateExtraMonthlyOnce(
   const monthlyRate = startItem.annualInterestRate / 100 / 12;
   const originalPayment = startItem.monthlyPayment;
 
+  const adjustedPayment = roundTo2(originalPayment + monthlyAdjust);
+  const firstInterest = roundTo2(remainingLoan * monthlyRate);
+  if (adjustedPayment <= firstInterest) return null;
+
   // 快速逐期模拟，只计算总利息和期数
   let simInterest = 0;
   let simTerms = 0;
@@ -485,9 +501,8 @@ export function simulateExtraMonthlyOnce(
   while (rem > 0) {
     const interest = roundTo2(rem * monthlyRate);
     simInterest += interest;
-    const principal = roundTo2(originalPayment + extraMonthly - interest);
+    const principal = roundTo2(adjustedPayment - interest);
     if (principal >= rem) {
-      simInterest += interest - interest; // 最后一期利息已加
       simTerms++;
       break;
     }

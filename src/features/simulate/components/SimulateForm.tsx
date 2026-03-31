@@ -10,7 +10,7 @@ interface SimulateFormProps {
 }
 
 const MODE_LABELS = {
-  'extra-monthly': '额外月供',
+  'adjust-monthly': '调整月供',
   'lump-sum': '一次性还款',
 } as const;
 
@@ -22,11 +22,13 @@ const LUMP_SUM_QUICK = [
   { label: '100万', value: 1000000 },
 ];
 
-const EXTRA_MONTHLY_QUICK = [
-  { label: '500', value: 500 },
-  { label: '1000', value: 1000 },
-  { label: '2000', value: 2000 },
-  { label: '5000', value: 5000 },
+const ADJUST_MONTHLY_QUICK = [
+  { label: '-1000', value: -1000 },
+  { label: '-500', value: -500 },
+  { label: '+500', value: 500 },
+  { label: '+1000', value: 1000 },
+  { label: '+2000', value: 2000 },
+  { label: '+5000', value: 5000 },
 ];
 
 const INVESTMENT_RATE_OPTIONS = [
@@ -53,8 +55,8 @@ export function SimulateForm({
     (o) => o.value === input.investmentRate,
   );
 
-  const pct10 = Math.round(currentMonthlyPayment * 0.1);
-  const pct50 = Math.round(currentMonthlyPayment * 0.5);
+  const sliderMin = -Math.round(currentMonthlyPayment * 0.5);
+  const sliderMax = Math.round(currentMonthlyPayment * 2);
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-4 h-fit lg:sticky lg:top-4">
@@ -78,51 +80,54 @@ export function SimulateForm({
         )}
       </div>
 
-      {/* 模式 A：额外月供 */}
-      {input.mode === 'extra-monthly' && (
+      {/* 模式 A：调整月供 */}
+      {input.mode === 'adjust-monthly' && (
         <div className="space-y-3">
           <label className="block">
             <span className="text-sm text-muted-foreground">
-              每月额外还款（元）
+              月供调整额（元）
             </span>
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="如 2000"
-                value={input.extraMonthly ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onChange({
-                    ...input,
-                    extraMonthly: v === '' ? undefined : Number(v),
-                  });
-                }}
-                className={inputClass}
-              />
-            </div>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="正数增加、负数减少"
+              value={input.monthlyAdjust ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                onChange({
+                  ...input,
+                  monthlyAdjust: v === '' || v === '-' ? undefined : Number(v),
+                });
+              }}
+              className={inputClass}
+            />
             <input
               type="range"
-              min={0}
-              max={Math.round(currentMonthlyPayment * 2)}
+              min={sliderMin}
+              max={sliderMax}
               step={100}
-              value={input.extraMonthly ?? 0}
+              value={input.monthlyAdjust ?? 0}
               onChange={(e) =>
-                onChange({ ...input, extraMonthly: Number(e.target.value) })
+                onChange({ ...input, monthlyAdjust: Number(e.target.value) })
               }
               className="mt-2 w-full accent-primary"
             />
+            <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-0.5">
+              <span>-{Math.abs(sliderMin)}</span>
+              <span>0</span>
+              <span>+{sliderMax}</span>
+            </div>
           </label>
 
-          {/* 快捷金额 */}
+          {/* 快捷按钮 */}
           <div className="flex flex-wrap gap-1.5">
-            {EXTRA_MONTHLY_QUICK.map((q) => (
+            {ADJUST_MONTHLY_QUICK.map((q) => (
               <button
                 key={q.value}
                 type="button"
-                onClick={() => onChange({ ...input, extraMonthly: q.value })}
+                onClick={() => onChange({ ...input, monthlyAdjust: q.value })}
                 className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                  input.extraMonthly === q.value
+                  input.monthlyAdjust === q.value
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:bg-muted/30'
                 }`}
@@ -133,22 +138,10 @@ export function SimulateForm({
           </div>
           {currentMonthlyPayment > 0 && (
             <p className="text-xs text-muted-foreground">
-              当前月供的{' '}
-              <button
-                type="button"
-                className="text-primary hover:underline"
-                onClick={() => onChange({ ...input, extraMonthly: pct10 })}
-              >
-                10%={pct10}
-              </button>
-              {' / '}
-              <button
-                type="button"
-                className="text-primary hover:underline"
-                onClick={() => onChange({ ...input, extraMonthly: pct50 })}
-              >
-                50%={pct50}
-              </button>
+              当前月供 {currentMonthlyPayment.toFixed(0)}，调整后{' '}
+              {input.monthlyAdjust != null
+                ? (currentMonthlyPayment + input.monthlyAdjust).toFixed(0)
+                : '-'}
             </p>
           )}
 
