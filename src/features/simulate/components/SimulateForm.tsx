@@ -141,10 +141,17 @@ export function SimulateForm({
               }
               className="mt-2 w-full accent-primary"
             />
-            <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-0.5">
-              <span>-{Math.abs(sliderMin)}</span>
-              <span>0</span>
-              <span>+{sliderMax}</span>
+            <div className="relative text-[10px] text-muted-foreground/60 mt-0.5 h-4">
+              <span className="absolute left-0">-{Math.abs(sliderMin)}</span>
+              <span
+                className="absolute -translate-x-1/2"
+                style={{
+                  left: `${(Math.abs(sliderMin) / (Math.abs(sliderMin) + sliderMax)) * 100}%`,
+                }}
+              >
+                0
+              </span>
+              <span className="absolute right-0">+{sliderMax}</span>
             </div>
           </label>
 
