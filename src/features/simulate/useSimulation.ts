@@ -565,9 +565,14 @@ export function simulateLumpSumFast(
   schedule: PaymentScheduleItem[],
   lumpSumAmount: number,
   lumpSumPeriod: number,
+  precomputed?: {
+    periodMap: Map<number, PaymentScheduleItem>;
+    originalSummary: LoanScheduleSummary;
+  },
 ): { interestSaved: number; termReduced: number } | null {
-  const regularItems = getRegularItems(schedule);
-  const periodMap = new Map(regularItems.map((item) => [item.period, item]));
+  const periodMap =
+    precomputed?.periodMap ??
+    new Map(getRegularItems(schedule).map((item) => [item.period, item]));
   const targetItem = periodMap.get(lumpSumPeriod);
   if (!targetItem) return null;
 
@@ -601,7 +606,8 @@ export function simulateLumpSumFast(
     }
   }
 
-  const originalSummary = calcScheduleSummary(schedule);
+  const originalSummary =
+    precomputed?.originalSummary ?? calcScheduleSummary(schedule);
   const totalSimInterest = roundTo2(prefixInterest + simInterest);
   const totalSimTerms = lumpSumPeriod + simTerms;
 

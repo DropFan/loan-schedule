@@ -1,6 +1,7 @@
 import ReactECharts from 'echarts-for-react';
 import { ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { calcScheduleSummary } from '@/core/calculator/LoanCalculator';
 import type {
   LoanParameters,
   PaymentScheduleItem,
@@ -124,38 +125,35 @@ function buildRecommendations(
     });
   }
 
-  // 2. 性价比最优：interestSaved / amount 最高
+  // 2. 性价比最优：各时间点边际最优金额中，ratio 最高的
   let bestRatio: {
     tp: TimePointAnalysis;
-    sp: SamplePoint;
     ratio: number;
   } | null = null;
   for (const tp of timePoints) {
-    for (const sp of tp.samples) {
-      if (sp.interestSaved <= 0 || sp.amount <= 0) continue;
-      const ratio = sp.interestSaved / sp.amount;
-      if (!bestRatio || ratio > bestRatio.ratio) {
-        bestRatio = { tp, sp, ratio };
-      }
+    if (tp.bestInterestSaved <= 0 || tp.bestAmount <= 0) continue;
+    const ratio = tp.bestInterestSaved / tp.bestAmount;
+    if (!bestRatio || ratio > bestRatio.ratio) {
+      bestRatio = { tp, ratio };
     }
   }
   if (bestRatio) {
-    const { tp, sp, ratio } = bestRatio;
+    const { tp, ratio } = bestRatio;
     const per10k = Math.round(ratio * 10000);
     const dupGlobal =
       globalBest &&
       tp.period === globalBest.tp.period &&
-      sp.amount === globalBest.sp.amount;
+      tp.bestAmount === globalBest.sp.amount;
     if (!dupGlobal) {
       recs.push({
         type: 'best-ratio',
         label: '性价比最优',
         description: isLumpSum
-          ? `第${tp.period}期还${fmtWan(sp.amount)}，每万元节省${fmtMoney(per10k)}利息`
-          : `第${tp.period}期起月供${sp.amount}，每万元增量节省${fmtMoney(per10k)}`,
+          ? `第${tp.period}期还${fmtWan(tp.bestAmount)}，每万元节省${fmtMoney(per10k)}利息`
+          : `第${tp.period}期起月供${tp.bestAmount}，每万元增量节省${fmtMoney(per10k)}`,
         patch: isLumpSum
-          ? { lumpSumPeriod: tp.period, lumpSumAmount: sp.amount }
-          : { startPeriod: tp.period, newMonthly: sp.amount },
+          ? { lumpSumPeriod: tp.period, lumpSumAmount: tp.bestAmount }
+          : { startPeriod: tp.period, newMonthly: tp.bestAmount },
       });
     }
   }
@@ -214,6 +212,8 @@ function useAnalysisMatrix(
 
     const regularItems = schedule.filter((s) => s.period > 0);
     const periodMap = new Map(regularItems.map((s) => [s.period, s]));
+    const originalSummary = calcScheduleSummary(schedule);
+    const precomputed = { periodMap, originalSummary };
 
     const timePoints: TimePointAnalysis[] = [];
 
@@ -232,7 +232,7 @@ function useAnalysisMatrix(
         samples = [];
         for (let i = 1; i <= sampleCount; i++) {
           const amount = step * i;
-          const r = simulateLumpSumFast(schedule, amount, period);
+          const r = simulateLumpSumFast(schedule, amount, period, precomputed);
           if (r) samples.push({ amount, ...r });
         }
       } else {
@@ -274,6 +274,12 @@ function useAnalysisMatrix(
   }, [schedule, input.mode, currentMonthlyPayment]);
 }
 
+const recColors: Record<string, string> = {
+  'global-best': 'text-blue-600 dark:text-blue-400',
+  'best-ratio': 'text-amber-600 dark:text-amber-400',
+  easy: 'text-green-600 dark:text-green-400',
+};
+
 export function SmartAnalysis({
   schedule,
   params,
@@ -292,7 +298,8 @@ export function SmartAnalysis({
   );
 
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const selectedTP = timePoints[selectedIdx] ?? null;
+  const safeIdx = Math.min(selectedIdx, Math.max(timePoints.length - 1, 0));
+  const selectedTP = timePoints[safeIdx] ?? null;
   const isLumpSum = input.mode === 'lump-sum';
 
   // 图 1：最佳时间点分析
@@ -366,7 +373,7 @@ export function SmartAnalysis({
           data: timePoints.map((t) => t.bestInterestSaved),
           itemStyle: {
             color: (p: { dataIndex: number }) =>
-              p.dataIndex === selectedIdx ? '#2563eb' : '#93c5fd',
+              p.dataIndex === safeIdx ? '#2563eb' : '#93c5fd',
             borderRadius: [4, 4, 0, 0],
           },
           barMaxWidth: 32,
@@ -383,7 +390,7 @@ export function SmartAnalysis({
         },
       ],
     };
-  }, [timePoints, resolved, selectedIdx, isLumpSum]);
+  }, [timePoints, resolved, safeIdx, isLumpSum]);
 
   // 图 2：当前选中时间点的金额分析
   const amountChartOption = useMemo(() => {
@@ -512,12 +519,6 @@ export function SmartAnalysis({
     if (p.dataIndex != null) {
       setSelectedIdx(p.dataIndex);
     }
-  };
-
-  const recColors: Record<string, string> = {
-    'global-best': 'text-blue-600 dark:text-blue-400',
-    'best-ratio': 'text-amber-600 dark:text-amber-400',
-    easy: 'text-green-600 dark:text-green-400',
   };
 
   return (
