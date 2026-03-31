@@ -10,10 +10,15 @@ function fmtMoney(v: number): string {
 
 function fmtObservation(months: number): string {
   const years = Math.floor(months / 12);
-  const rest = months % 12;
-  if (rest === 0) return `${years}年`;
-  if (years === 0) return `${rest}个月`;
-  return `${years}年${rest}个月`;
+  const wholeMonths = Math.floor(months % 12);
+  const dayFraction = months - Math.floor(months);
+  const days = Math.round(dayFraction * 30);
+
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years}年`);
+  if (wholeMonths > 0) parts.push(`${wholeMonths}个月`);
+  if (days > 0) parts.push(`${days}天`);
+  return parts.join('') || '0天';
 }
 
 export function OpportunityCost({ result }: Props) {
@@ -69,10 +74,18 @@ function IncreasedPaymentAnalysis({ result }: Props) {
         </div>
         <div>
           <p className="text-xs text-muted-foreground mb-0.5">
-            提前还贷节省利息
+            {result.observationInterestSaved >= 0
+              ? '观察期节省利息'
+              : '观察期多付利息'}
           </p>
-          <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-            {fmtMoney(result.interestSaved)}
+          <p
+            className={`text-sm font-semibold ${
+              result.observationInterestSaved >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-red-600 dark:text-red-400'
+            }`}
+          >
+            {fmtMoney(result.observationInterestSaved)}
           </p>
         </div>
         <div>
@@ -89,6 +102,51 @@ function IncreasedPaymentAnalysis({ result }: Props) {
           </p>
         </div>
       </div>
+
+      {/* 观察期截止对比 */}
+      {result.observationEndDate && (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 pt-2 border-t border-border/50">
+          <div>
+            <p className="text-xs text-muted-foreground mb-0.5">观察期截止日</p>
+            <p className="text-sm font-semibold text-foreground">
+              {result.observationEndDate}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-0.5">
+              截止日剩余本金
+            </p>
+            <p className="text-sm text-foreground">
+              {fmtMoney(result.observationOriginalRemaining)}
+              <span className="text-muted-foreground"> → </span>
+              <span
+                className={
+                  result.observationSimulatedRemaining <
+                  result.observationOriginalRemaining
+                    ? 'font-semibold text-green-600 dark:text-green-400'
+                    : 'font-semibold'
+                }
+              >
+                {result.observationSimulatedRemaining <= 0
+                  ? '已还清'
+                  : fmtMoney(result.observationSimulatedRemaining)}
+              </span>
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-0.5">
+              观察期内总还款
+            </p>
+            <p className="text-sm text-foreground">
+              {fmtMoney(result.observationOriginalPayment)}
+              <span className="text-muted-foreground"> → </span>
+              <span className="font-semibold">
+                {fmtMoney(result.observationSimulatedPayment)}
+              </span>
+            </p>
+          </div>
+        </div>
+      )}
       <div
         className={`text-sm px-3 py-2 rounded-lg ${
           prepayBetter
@@ -97,8 +155,8 @@ function IncreasedPaymentAnalysis({ result }: Props) {
         }`}
       >
         {prepayBetter
-          ? `提前还贷比 ${result.investmentRate}% 理财多省 ${fmtMoney(result.netBenefit)}`
-          : `${result.investmentRate}% 理财比提前还贷多赚 ${fmtMoney(result.netBenefit)}`}
+          ? `观察期内提前还贷比 ${result.investmentRate}% 理财多省 ${fmtMoney(result.netBenefit)}`
+          : `观察期内 ${result.investmentRate}% 理财比提前还贷多赚 ${fmtMoney(result.netBenefit)}`}
       </div>
     </div>
   );

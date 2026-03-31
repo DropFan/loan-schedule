@@ -39,9 +39,16 @@ export interface SimulateResult {
   monthlyPaymentChangePercent: number | null; // 月供变化幅度百分比
   // 机会成本
   investmentReturn: number; // 理财预期收益
-  netBenefit: number; // 提前还贷节省 - 理财收益，正值=还贷更划算
+  observationInterestSaved: number; // 观察期内节省的利息（用于机会成本对比）
+  netBenefit: number; // 观察期利息差 - 理财收益，正值=还贷更划算
   investmentRate: number; // 使用的理财利率
   observationMonths: number; // 机会成本观察期（月）
+  // 观察期截止时对比
+  observationEndDate: string; // 观察期截止日期
+  observationOriginalRemaining: number; // 原方案截止日剩余本金
+  observationSimulatedRemaining: number; // 模拟方案截止日剩余本金
+  observationOriginalPayment: number; // 原方案观察期内总还款
+  observationSimulatedPayment: number; // 模拟方案观察期内总还款
   isValid: boolean;
   error?: string;
 }
@@ -101,14 +108,63 @@ function buildEnhancedResult(
   const interestSavingRate =
     totalInvestment > 0 ? roundTo2(interestSaved / totalInvestment) : 0;
 
-  // 机会成本：观察期内的理财收益
+  // 机会成本：观察期内的理财收益 & 观察期内利息差
   const observationMonths = observationOverride ?? originalSummary.termMonths;
   const investmentReturn = calcInvestmentReturn(
     Math.abs(totalInvestment),
     investmentRate,
     observationMonths,
   );
-  const netBenefit = roundTo2(interestSaved - investmentReturn);
+
+  // 观察期窗口：从当前日期起算，支持小数月（精确到天）
+  const today = new Date();
+  const obsEnd = new Date(today);
+  const wholeMonths = Math.floor(observationMonths);
+  const dayFraction = observationMonths - wholeMonths;
+  obsEnd.setMonth(obsEnd.getMonth() + wholeMonths);
+  if (dayFraction > 0) {
+    const daysInMonth = new Date(
+      obsEnd.getFullYear(),
+      obsEnd.getMonth() + 1,
+      0,
+    ).getDate();
+    obsEnd.setDate(obsEnd.getDate() + Math.round(dayFraction * daysInMonth));
+  }
+  const observationEndDate = `${obsEnd.getFullYear()}-${String(obsEnd.getMonth() + 1).padStart(2, '0')}-${String(obsEnd.getDate()).padStart(2, '0')}`;
+
+  const isFullTerm = !observationOverride;
+  const obsFilter = (s: PaymentScheduleItem[]) =>
+    isFullTerm
+      ? s.filter((item) => item.period > 0)
+      : s.filter(
+          (item) => item.period > 0 && item.paymentDate <= observationEndDate,
+        );
+
+  const origObs = obsFilter(schedule);
+  const simObs = obsFilter(simulatedSchedule);
+
+  const observationInterestSaved = isFullTerm
+    ? interestSaved
+    : roundTo2(
+        origObs.reduce((s, i) => s + i.interest, 0) -
+          simObs.reduce((s, i) => s + i.interest, 0),
+      );
+
+  // 截止日剩余本金
+  const obsOrigEnd = origObs.length > 0 ? origObs[origObs.length - 1] : null;
+  const obsSimEnd = simObs.length > 0 ? simObs[simObs.length - 1] : null;
+  const observationOriginalRemaining = obsOrigEnd?.remainingLoan ?? 0;
+  const observationSimulatedRemaining = obsSimEnd?.remainingLoan ?? 0;
+
+  // 观察期内总还款
+  const observationOriginalPayment = roundTo2(
+    origObs.reduce((s, i) => s + i.monthlyPayment, 0),
+  );
+  const observationSimulatedPayment = roundTo2(
+    simObs.reduce((s, i) => s + i.monthlyPayment, 0),
+  );
+
+  const netBenefit = roundTo2(observationInterestSaved - investmentReturn);
 
   return {
     simulatedSchedule,
@@ -123,9 +179,15 @@ function buildEnhancedResult(
     interestSavingRate,
     monthlyPaymentChangePercent,
     investmentReturn,
+    observationInterestSaved,
     netBenefit,
     investmentRate,
     observationMonths,
+    observationEndDate,
+    observationOriginalRemaining,
+    observationSimulatedRemaining,
+    observationOriginalPayment,
+    observationSimulatedPayment,
     isValid: true,
   };
 }
@@ -153,9 +215,15 @@ function buildErrorResult(
     interestSavingRate: 0,
     monthlyPaymentChangePercent: null,
     investmentReturn: 0,
+    observationInterestSaved: 0,
     netBenefit: 0,
     investmentRate,
     observationMonths: 0,
+    observationEndDate: '',
+    observationOriginalRemaining: 0,
+    observationSimulatedRemaining: 0,
+    observationOriginalPayment: 0,
+    observationSimulatedPayment: 0,
     isValid: false,
     error,
   };
@@ -276,7 +344,7 @@ function simulateLumpSum(
   }
 
   const remainingLoan = targetItem.remainingLoan;
-  if (lumpSumAmount >= remainingLoan) {
+  if (lumpSumAmount > remainingLoan) {
     return buildErrorResult(
       schedule,
       investmentRate,
@@ -285,6 +353,22 @@ function simulateLumpSum(
   }
   if (lumpSumAmount <= 0) {
     return buildErrorResult(schedule, investmentRate, '提前还款金额必须大于 0');
+  }
+
+  // 一次性还清：无后续还款计划
+  if (lumpSumAmount === remainingLoan) {
+    const prefix = schedule.filter(
+      (s) => (s.period > 0 && s.period <= lumpSumPeriod) || s.period === 0,
+    );
+    return buildEnhancedResult(
+      schedule,
+      prefix,
+      lumpSumAmount,
+      0,
+      targetItem.monthlyPayment,
+      investmentRate,
+      observationOverride,
+    );
   }
 
   const newRemainingLoan = roundTo2(remainingLoan - lumpSumAmount);
@@ -446,7 +530,7 @@ export function simulateLumpSumOnce(
   if (!targetItem) return null;
 
   const remainingLoan = targetItem.remainingLoan;
-  if (lumpSumAmount >= remainingLoan || lumpSumAmount <= 0) return null;
+  if (lumpSumAmount > remainingLoan || lumpSumAmount <= 0) return null;
 
   const newRemainingLoan = roundTo2(remainingLoan - lumpSumAmount);
   const annualRate = targetItem.annualInterestRate;
@@ -577,7 +661,7 @@ export function simulateLumpSumFast(
   if (!targetItem) return null;
 
   const remainingLoan = targetItem.remainingLoan;
-  if (lumpSumAmount >= remainingLoan || lumpSumAmount <= 0) return null;
+  if (lumpSumAmount > remainingLoan || lumpSumAmount <= 0) return null;
 
   const newRemainingLoan = roundTo2(remainingLoan - lumpSumAmount);
   const monthlyRate = targetItem.annualInterestRate / 100 / 12;
