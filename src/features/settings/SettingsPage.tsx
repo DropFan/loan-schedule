@@ -229,7 +229,6 @@ export function SettingsPage() {
           <p className="text-muted-foreground">
             所有数据仅存储在您的设备本地，不会上传到任何服务器
           </p>
-
         </CardContent>
       </Card>
     </div>
