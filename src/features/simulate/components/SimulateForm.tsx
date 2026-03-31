@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
 import { roundTo2 } from '@/core/utils/formatHelper';
 import type { SimulateInput } from '../useSimulation';
@@ -81,6 +82,9 @@ export function SimulateForm({
 
   const isCustomRate = !INVESTMENT_RATE_OPTIONS.some(
     (o) => o.value === input.investmentRate,
+  );
+  const [customRateText, setCustomRateText] = useState(
+    String(input.investmentRate),
   );
 
   // 月供滑块范围：50% ~ 300% 当前月供
@@ -479,7 +483,10 @@ export function SimulateForm({
             <button
               key={opt.value}
               type="button"
-              onClick={() => onChange({ ...input, investmentRate: opt.value })}
+              onClick={() => {
+                setCustomRateText(String(opt.value));
+                onChange({ ...input, investmentRate: opt.value });
+              }}
               className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
                 input.investmentRate === opt.value && !isCustomRate
                   ? 'border-primary bg-primary/10 text-primary'
@@ -494,14 +501,19 @@ export function SimulateForm({
               type="text"
               inputMode="decimal"
               placeholder="自定义"
-              value={isCustomRate ? input.investmentRate : ''}
+              value={customRateText}
               onChange={(e) => {
                 const v = e.target.value;
-                if (v === '' || v === '.') return;
+                if (v !== '' && !/^\d*\.?\d*$/.test(v)) return;
+                setCustomRateText(v);
                 const num = Number.parseFloat(v);
                 if (!Number.isNaN(num) && num >= 0) {
                   onChange({ ...input, investmentRate: num });
                 }
+              }}
+              onBlur={() => {
+                if (isCustomRate)
+                  setCustomRateText(String(input.investmentRate));
               }}
               className={`w-16 px-2 py-1 text-xs border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                 isCustomRate ? 'border-primary' : 'border-border'
