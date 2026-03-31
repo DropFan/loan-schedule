@@ -1,5 +1,5 @@
 import ReactECharts from 'echarts-for-react';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import type { Dimension, SelectedLoan } from '../ComparePage';
 
@@ -14,12 +14,16 @@ interface Props {
   loans: SelectedLoan[];
   dimension: Dimension;
   onDimensionChange: (d: Dimension) => void;
+  selectedPeriod: number | null;
+  onPeriodSelect: (period: number | null) => void;
 }
 
 export function ComparisonOverlay({
   loans,
   dimension,
   onDimensionChange,
+  selectedPeriod,
+  onPeriodSelect,
 }: Props) {
   const { resolved } = useTheme();
 
@@ -39,12 +43,21 @@ export function ComparisonOverlay({
     const fmtAmt = (v: number) =>
       `¥${v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const series = loans.map((loan) => {
+    // 每个方案的 period -> paymentDate 映射，供 tooltip 使用
+    const loanDateMaps: Map<number, string>[] = [];
+
+    const series = loans.map((loan, loanIdx) => {
       const regularItems = loan.schedule.filter((s) => s.period > 0);
-      // 建立 period -> item 的映射
       const periodMap = new Map(
         regularItems.map((item) => [item.period, item]),
       );
+
+      // 收集日期映射
+      const dateMap = new Map<number, string>();
+      for (const item of regularItems) {
+        dateMap.set(item.period, item.paymentDate);
+      }
+      loanDateMaps[loanIdx] = dateMap;
 
       let data: (number | null)[];
 
@@ -56,7 +69,6 @@ export function ComparisonOverlay({
         // cumulative / interest: 逐期累加
         let cumPayment = 0;
         let cumInterest = 0;
-        // 含 period=0 的提前还款行
         for (const row of loan.schedule) {
           if (row.period === 0) {
             cumPayment += row.monthlyPayment;
@@ -89,6 +101,26 @@ export function ComparisonOverlay({
       };
     });
 
+    // 选中期标记线：挂在第一个 series 上
+    if (selectedPeriod != null && series.length > 0) {
+      const idx = periods.indexOf(selectedPeriod);
+      if (idx >= 0) {
+        (series[0] as Record<string, unknown>).markLine = {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { type: 'solid', color: '#f43f5e', width: 1.5 },
+          label: {
+            show: true,
+            position: 'insideEndTop',
+            fontSize: 10,
+            color: '#f43f5e',
+            formatter: `第 ${selectedPeriod} 期`,
+          },
+          data: [{ xAxis: idx }],
+        };
+      }
+    }
+
     return {
       tooltip: {
         trigger: 'axis',
@@ -96,6 +128,7 @@ export function ComparisonOverlay({
         formatter: (
           params: Array<{
             dataIndex: number;
+            seriesIndex: number;
             seriesName: string;
             value: number | null;
             color: string;
@@ -103,7 +136,17 @@ export function ComparisonOverlay({
         ) => {
           if (!params.length) return '';
           const idx = params[0].dataIndex;
-          let html = `<b>第 ${periods[idx]} 期</b>`;
+          const period = periods[idx];
+          // 取各方案在该期的日期，去重后展示
+          const dates = new Set<string>();
+          for (const p of params) {
+            const d = loanDateMaps[p.seriesIndex]?.get(period);
+            if (d) dates.add(d);
+          }
+          const dateStr = dates.size > 0 ? ` ${[...dates].join(' / ')}` : '';
+          let html = `<b>第 ${period} 期</b>${dateStr}`;
+          html +=
+            ' <span style="color:#999;font-size:11px">（点击选中）</span>';
           for (const p of params) {
             if (p.value != null) {
               html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ${fmtAmt(Number(p.value))}`;
@@ -147,7 +190,18 @@ export function ComparisonOverlay({
       ],
       series,
     };
-  }, [loans, dimension, resolved]);
+  }, [loans, dimension, resolved, selectedPeriod]);
+
+  const handleClick = useCallback(
+    (params: { dataIndex: number }) => {
+      // dataIndex 对应 periods 数组的索引，期数 = index + 1
+      const period = params.dataIndex + 1;
+      onPeriodSelect(selectedPeriod === period ? null : period);
+    },
+    [onPeriodSelect, selectedPeriod],
+  );
+
+  const onEvents = useMemo(() => ({ click: handleClick }), [handleClick]);
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
@@ -169,7 +223,11 @@ export function ComparisonOverlay({
         ))}
       </div>
 
-      <ReactECharts option={option} style={{ height: 350 }} />
+      <ReactECharts
+        option={option}
+        style={{ height: 350 }}
+        onEvents={onEvents}
+      />
     </div>
   );
 }

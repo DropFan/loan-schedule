@@ -6,6 +6,7 @@ import type {
 } from '@/core/types/loan.types';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { ComparisonOverlay } from './components/ComparisonOverlay';
+import { ComparisonSnapshot } from './components/ComparisonSnapshot';
 import { ComparisonTable } from './components/ComparisonTable';
 import { LoanSelector } from './components/LoanSelector';
 
@@ -67,6 +68,7 @@ export function ComparePage() {
   });
 
   const [dimension, setDimension] = useState<Dimension>('payment');
+  const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
 
   // 空状态
   if (loanOptions.length < 2) {
@@ -119,7 +121,16 @@ export function ComparePage() {
             loans={selectedLoans}
             dimension={dimension}
             onDimensionChange={setDimension}
+            selectedPeriod={selectedPeriod}
+            onPeriodSelect={setSelectedPeriod}
           />
+          {selectedPeriod != null && (
+            <ComparisonSnapshot
+              loans={selectedLoans}
+              period={selectedPeriod}
+              onClose={() => setSelectedPeriod(null)}
+            />
+          )}
           <ComparisonTable loans={selectedLoans} />
         </>
       ) : (
