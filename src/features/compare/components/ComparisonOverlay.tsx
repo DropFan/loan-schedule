@@ -254,6 +254,7 @@ export function ComparisonOverlay({
 
       <ReactECharts
         option={option}
+        notMerge
         style={{ height: 350 }}
         onChartReady={onChartReady}
       />
