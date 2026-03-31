@@ -1,7 +1,17 @@
+import { InfoTip } from '@/components/ui/info-tip';
 import type { SimulateResult } from '../useSimulation';
 
 interface Props {
   result: SimulateResult;
+}
+
+function TipLabel({ text, tip }: { text: string; tip: string }) {
+  return (
+    <p className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1">
+      {text}
+      <InfoTip content={tip} />
+    </p>
+  );
 }
 
 function fmtMoney(v: number): string {
@@ -65,19 +75,23 @@ function IncreasedPaymentAnalysis({ result }: Props) {
       </h3>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">
-            理财预期收益（{result.investmentRate}%）
-          </p>
+          <TipLabel
+            text={`理财预期收益（${result.investmentRate}%）`}
+            tip={`将额外投入的资金按年化 ${result.investmentRate}% 复利计算，在观察期内可获得的理财收益。`}
+          />
           <p className="text-sm font-semibold text-foreground">
             {fmtMoney(result.investmentReturn)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">
-            {result.observationInterestSaved >= 0
-              ? '观察期节省利息'
-              : '观察期多付利息'}
-          </p>
+          <TipLabel
+            text={
+              result.observationInterestSaved >= 0
+                ? '观察期节省利息'
+                : '观察期多付利息'
+            }
+            tip="观察期内原方案与模拟方案的利息差额。只计算观察期窗口内的利息，与理财收益在同一时间范围内对比。"
+          />
           <p
             className={`text-sm font-semibold ${
               result.observationInterestSaved >= 0
@@ -89,7 +103,10 @@ function IncreasedPaymentAnalysis({ result }: Props) {
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">净收益差</p>
+          <TipLabel
+            text="净收益差"
+            tip="观察期节省利息 - 理财预期收益。正值表示提前还贷更划算，负值表示理财更划算。"
+          />
           <p
             className={`text-sm font-semibold ${
               prepayBetter
@@ -107,15 +124,19 @@ function IncreasedPaymentAnalysis({ result }: Props) {
       {result.observationEndDate && (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 pt-2 border-t border-border/50">
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">观察期截止日</p>
+            <TipLabel
+              text="观察期截止日"
+              tip="机会成本对比的时间窗口终点，所有收益和利息差额都在此日期前计算。"
+            />
             <p className="text-sm font-semibold text-foreground">
               {result.observationEndDate}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">
-              截止日剩余本金
-            </p>
+            <TipLabel
+              text="截止日剩余本金"
+              tip="观察期截止时原方案 → 模拟方案的贷款余额对比。"
+            />
             <p className="text-sm text-foreground">
               {fmtMoney(result.observationOriginalRemaining)}
               <span className="text-muted-foreground"> → </span>
@@ -134,9 +155,10 @@ function IncreasedPaymentAnalysis({ result }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">
-              观察期内总还款
-            </p>
+            <TipLabel
+              text="观察期内总还款"
+              tip="观察期窗口内原方案 → 模拟方案的累计还款额（本金+利息）对比。"
+            />
             <p className="text-sm text-foreground">
               {fmtMoney(result.observationOriginalPayment)}
               <span className="text-muted-foreground"> → </span>
@@ -181,21 +203,28 @@ function ReducedPaymentAnalysis({ result }: Props) {
       </h3>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">省下现金流总额</p>
+          <TipLabel
+            text="省下现金流总额"
+            tip="减少月供后，观察期内累计少还的金额。这笔钱可以用于理财。"
+          />
           <p className="text-sm font-semibold text-foreground">
             {fmtMoney(savedCash)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">多付利息</p>
+          <TipLabel
+            text="多付利息"
+            tip="因月供减少导致还款变慢，整个贷款周期多付的利息总额。"
+          />
           <p className="text-sm font-semibold text-red-600 dark:text-red-400">
             {fmtMoney(extraInterest)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground mb-0.5">
-            理财预期收益（{result.investmentRate}%）
-          </p>
+          <TipLabel
+            text={`理财预期收益（${result.investmentRate}%）`}
+            tip={`将省下的现金流按年化 ${result.investmentRate}% 复利计算，在观察期内可获得的理财收益。`}
+          />
           <p className="text-sm font-semibold text-foreground">
             {fmtMoney(investReturn)}
           </p>
@@ -205,17 +234,19 @@ function ReducedPaymentAnalysis({ result }: Props) {
       {result.observationEndDate && (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3 pt-2 border-t border-border/50">
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">
-              观察期截止日
-            </p>
+            <TipLabel
+              text="观察期截止日"
+              tip="机会成本对比的时间窗口终点，所有收益和利息差额都在此日期前计算。"
+            />
             <p className="text-sm font-semibold text-foreground">
               {result.observationEndDate}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">
-              截止日剩余本金
-            </p>
+            <TipLabel
+              text="截止日剩余本金"
+              tip="观察期截止时原方案 → 模拟方案的贷款余额对比。"
+            />
             <p className="text-sm text-foreground">
               {fmtMoney(result.observationOriginalRemaining)}
               <span className="text-muted-foreground"> → </span>
@@ -225,9 +256,10 @@ function ReducedPaymentAnalysis({ result }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">
-              观察期内总还款
-            </p>
+            <TipLabel
+              text="观察期内总还款"
+              tip="观察期窗口内原方案 → 模拟方案的累计还款额（本金+利息）对比。"
+            />
             <p className="text-sm text-foreground">
               {fmtMoney(result.observationOriginalPayment)}
               <span className="text-muted-foreground"> → </span>

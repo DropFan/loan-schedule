@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp } from 'lucide-react';
+import { InfoTip } from '@/components/ui/info-tip';
 import type { SimulateResult as SimulateResultType } from '../useSimulation';
 
 interface Props {
@@ -32,6 +33,7 @@ export function SimulateResult({ result }: Props) {
 
   const items: Array<{
     label: string;
+    tip?: string;
     value: string;
     color?: 'green' | 'red' | 'default';
     icon?: 'down' | 'up';
@@ -39,27 +41,31 @@ export function SimulateResult({ result }: Props) {
   }> = [
     {
       label: '节省利息',
+      tip: '模拟方案相比原方案，整个贷款周期总利息的差额。正值表示少付利息，负值表示多付利息。',
       value: fmtMoney(result.interestSaved),
       color: result.interestSaved >= 0 ? 'green' : 'red',
       icon: result.interestSaved >= 0 ? 'down' : 'up',
     },
     {
       label: '缩短期数',
+      tip: '模拟方案相比原方案，还款期数的变化。正值表示提前还清，负值表示延长。',
       value: formatTermReduced(result.termReduced),
       color: result.termReduced >= 0 ? 'green' : 'red',
       icon: result.termReduced >= 0 ? 'down' : 'up',
     },
     {
       label: '提前还款投入',
+      tip: '相比原方案额外投入的总资金。调整月供时为月供差额累计，一次性还款时为还款金额。',
       value: fmtMoney(result.totalInvestment),
     },
     {
       label: '利息节省率',
-      value: `${result.interestSavingRate.toFixed(2)}`,
-      show: result.totalInvestment > 0,
+      tip: '节省利息 ÷ 额外投入金额。表示每投入 1 元能节省多少利息。',
+      value: `${(result.interestSavingRate * 100).toFixed(2)}%`,
     },
     {
       label: '新月供',
+      tip: '模拟方案调整后的每月还款额。',
       value:
         result.newMonthlyPayment != null
           ? fmtMoney(result.newMonthlyPayment)
@@ -68,6 +74,7 @@ export function SimulateResult({ result }: Props) {
     },
     {
       label: '月供变化',
+      tip: '新月供相对原月供的变化百分比。',
       value:
         result.monthlyPaymentChangePercent != null
           ? `${result.monthlyPaymentChangePercent > 0 ? '+' : ''}${result.monthlyPaymentChangePercent.toFixed(1)}%`
@@ -82,19 +89,23 @@ export function SimulateResult({ result }: Props) {
     },
     {
       label: '原还清日期',
+      tip: '按原方案不做任何调整时的最后还款日期。',
       value: result.originalEndDate,
     },
     {
       label: '新还清日期',
+      tip: '模拟方案下的最后还款日期。',
       value: result.newEndDate,
       color: 'green',
     },
     {
       label: '总利息对比',
+      tip: '整个贷款周期的总利息：原方案 → 模拟方案。',
       value: `${fmtMoney(result.originalSummary.totalInterest)} → ${fmtMoney(result.simulatedSummary.totalInterest)}`,
     },
     {
       label: '总还款对比',
+      tip: '整个贷款周期的总还款额（本金+利息）：原方案 → 模拟方案。',
       value: `${fmtMoney(result.originalSummary.totalPayment)} → ${fmtMoney(result.simulatedSummary.totalPayment)}`,
     },
   ];
@@ -106,7 +117,10 @@ export function SimulateResult({ result }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         {visibleItems.map((item) => (
           <div key={item.label}>
-            <p className="text-xs text-muted-foreground mb-0.5">{item.label}</p>
+            <p className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1">
+              {item.label}
+              {item.tip && <InfoTip content={item.tip} />}
+            </p>
             <p
               className={`text-sm font-semibold flex items-center gap-1 ${
                 item.color === 'green'
