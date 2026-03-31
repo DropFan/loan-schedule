@@ -68,10 +68,10 @@ export function SimulateForm({
               key={mode}
               type="button"
               onClick={() => onChange({ ...input, mode })}
-              className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`flex-1 px-3 py-1.5 text-sm rounded-md border transition-colors ${
                 input.mode === mode
-                  ? 'bg-primary text-white'
-                  : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                  : 'border-border text-muted-foreground hover:bg-muted/10'
               }`}
             >
               {MODE_LABELS[mode]}
