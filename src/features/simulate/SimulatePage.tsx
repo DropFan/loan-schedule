@@ -23,26 +23,49 @@ export function SimulatePage() {
     investmentRate: 2.5,
   });
 
-  const result = useSimulation(schedule, params, input);
+  // 计算当前月供、剩余本金、默认下一期
+  const { currentMonthlyPayment, remainingLoan, defaultNextPeriod } =
+    useMemo(() => {
+      const regular = schedule.filter((s) => s.period > 0);
+      if (regular.length === 0)
+        return {
+          currentMonthlyPayment: 0,
+          remainingLoan: 0,
+          defaultNextPeriod: 1,
+        };
+      const today = new Date().toISOString().split('T')[0];
+      let nextPeriod = regular[regular.length - 1].period;
+      for (const item of regular) {
+        if (item.paymentDate > today) {
+          nextPeriod = item.period;
+          break;
+        }
+      }
+      return {
+        currentMonthlyPayment: regular[0].monthlyPayment,
+        remainingLoan: regular[0].remainingLoan + regular[0].principal,
+        defaultNextPeriod: nextPeriod,
+      };
+    }, [schedule]);
+
+  // 实际生效的 input（用默认值填充 undefined 的期数）
+  const effectiveInput = useMemo(
+    () => ({
+      ...input,
+      startPeriod: input.startPeriod ?? defaultNextPeriod,
+      lumpSumPeriod: input.lumpSumPeriod ?? defaultNextPeriod,
+    }),
+    [input, defaultNextPeriod],
+  );
+
+  const result = useSimulation(schedule, params, effectiveInput);
 
   const hasSchedule = schedule.length > 0 && params !== null;
 
   const startPeriod =
     input.mode === 'adjust-monthly'
-      ? (input.startPeriod ?? 1)
-      : (input.lumpSumPeriod ?? 1);
-
-  // 计算当前月供和剩余本金（给 SimulateForm 用）
-  const { currentMonthlyPayment, remainingLoan } = useMemo(() => {
-    const regular = schedule.filter((s) => s.period > 0);
-    if (regular.length === 0)
-      return { currentMonthlyPayment: 0, remainingLoan: 0 };
-    // 取第一个常规期的月供作为"当前月供"
-    return {
-      currentMonthlyPayment: regular[0].monthlyPayment,
-      remainingLoan: regular[0].remainingLoan + regular[0].principal,
-    };
-  }, [schedule]);
+      ? (effectiveInput.startPeriod ?? 1)
+      : (effectiveInput.lumpSumPeriod ?? 1);
 
   const handleSmartApply = (patch: Partial<SimulateInput>) => {
     setInput((prev) => ({ ...prev, ...patch }));
@@ -77,6 +100,7 @@ export function SimulatePage() {
             schedule={schedule}
             currentMonthlyPayment={currentMonthlyPayment}
             remainingLoan={remainingLoan}
+            defaultPeriod={defaultNextPeriod}
           />
 
           <div className="space-y-4">
@@ -93,7 +117,7 @@ export function SimulatePage() {
               <SmartAnalysis
                 schedule={schedule}
                 params={params}
-                input={input}
+                input={effectiveInput}
                 currentMonthlyPayment={currentMonthlyPayment}
                 onApply={handleSmartApply}
               />

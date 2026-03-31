@@ -203,7 +203,7 @@ export function SmartAnalysis({
   currentMonthlyPayment,
   onApply,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const { resolved } = useTheme();
 
   const isLumpSum = input.mode === 'lump-sum';

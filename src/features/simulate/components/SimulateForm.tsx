@@ -7,6 +7,7 @@ interface SimulateFormProps {
   schedule: PaymentScheduleItem[];
   currentMonthlyPayment: number;
   remainingLoan: number;
+  defaultPeriod: number;
 }
 
 const MODE_LABELS = {
@@ -46,6 +47,7 @@ export function SimulateForm({
   schedule,
   currentMonthlyPayment,
   remainingLoan,
+  defaultPeriod,
 }: SimulateFormProps) {
   const regularItems = schedule.filter((s) => s.period > 0);
   const maxPeriod =
@@ -151,7 +153,7 @@ export function SimulateForm({
               type="number"
               min={1}
               max={maxPeriod}
-              placeholder={`1 ~ ${maxPeriod}`}
+              placeholder={`默认第 ${defaultPeriod} 期（下一期）`}
               value={input.startPeriod ?? ''}
               onChange={(e) => {
                 const v = e.target.value;
@@ -224,7 +226,7 @@ export function SimulateForm({
               type="number"
               min={1}
               max={maxPeriod}
-              placeholder={`1 ~ ${maxPeriod}`}
+              placeholder={`默认第 ${defaultPeriod} 期（下一期）`}
               value={input.lumpSumPeriod ?? ''}
               onChange={(e) => {
                 const v = e.target.value;
