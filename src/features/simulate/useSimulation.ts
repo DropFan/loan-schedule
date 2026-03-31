@@ -15,7 +15,7 @@ import { roundTo2 } from '@/core/utils/formatHelper';
 
 export interface SimulateInput {
   mode: 'adjust-monthly' | 'lump-sum';
-  monthlyAdjust?: number;
+  newMonthly?: number; // 新月还款额（绝对值）
   startPeriod?: number;
   lumpSumAmount?: number;
   lumpSumPeriod?: number;
@@ -368,10 +368,16 @@ export function useSimulation(
     if (!params || schedule.length === 0) return null;
 
     if (input.mode === 'adjust-monthly') {
-      const monthlyAdjust = input.monthlyAdjust;
+      const newMonthly = input.newMonthly;
       const startPeriod = input.startPeriod;
-      if (monthlyAdjust == null || monthlyAdjust === 0 || !startPeriod)
-        return null;
+      if (newMonthly == null || newMonthly <= 0 || !startPeriod) return null;
+
+      // 从 schedule 中取原月供，算出差值
+      const regular = schedule.filter((s) => s.period > 0);
+      const origItem = regular.find((s) => s.period === startPeriod);
+      if (!origItem) return null;
+      const monthlyAdjust = newMonthly - origItem.monthlyPayment;
+      if (monthlyAdjust === 0) return null;
 
       return simulateMonthlyAdjust(
         schedule,
@@ -401,7 +407,7 @@ export function useSimulation(
     schedule,
     params,
     input.mode,
-    input.monthlyAdjust,
+    input.newMonthly,
     input.startPeriod,
     input.lumpSumAmount,
     input.lumpSumPeriod,
@@ -478,10 +484,10 @@ export function simulateLumpSumOnce(
   };
 }
 
-/** 调整月供单次模拟（供 SmartAnalysis 批量调用） */
-export function simulateMonthlyAdjustOnce(
+/** 新月供单次模拟（供 SmartAnalysis 批量调用，传绝对月供值） */
+export function simulateNewMonthlyOnce(
   schedule: PaymentScheduleItem[],
-  monthlyAdjust: number,
+  newMonthly: number,
   startPeriod: number,
 ): { interestSaved: number; termReduced: number } | null {
   const regularItems = getRegularItems(schedule);
@@ -497,9 +503,8 @@ export function simulateMonthlyAdjustOnce(
   if (remainingLoan <= 0) return null;
 
   const monthlyRate = startItem.annualInterestRate / 100 / 12;
-  const originalPayment = startItem.monthlyPayment;
 
-  const adjustedPayment = roundTo2(originalPayment + monthlyAdjust);
+  const adjustedPayment = roundTo2(newMonthly);
   const firstInterest = roundTo2(remainingLoan * monthlyRate);
   if (adjustedPayment <= firstInterest) return null;
 

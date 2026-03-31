@@ -9,7 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import {
   type SimulateInput,
   simulateLumpSumOnce,
-  simulateMonthlyAdjustOnce,
+  simulateNewMonthlyOnce,
 } from '../useSimulation';
 
 interface Props {
@@ -128,66 +128,60 @@ function useMonthlyAdjustAnalysis(
 ) {
   return useMemo(() => {
     const startPeriod = input.startPeriod ?? 1;
+    const cur = Math.round(currentMonthlyPayment);
 
-    // 采样范围：-50% ~ +200% 月供
-    const negMax = Math.round(currentMonthlyPayment * 0.5);
-    const posMax = Math.round(currentMonthlyPayment * 2);
-    const step = Math.max(Math.floor(posMax / 15 / 100) * 100, 100);
+    // 采样范围：50% ~ 300% 当前月供（绝对值）
+    const sampleMin = Math.max(Math.round(cur * 0.5), 1);
+    const sampleMax = Math.round(cur * 3);
+    const step = Math.max(
+      Math.floor((sampleMax - sampleMin) / 20 / 100) * 100,
+      100,
+    );
 
     const pts: SamplePoint[] = [];
-
-    // 负方向采样（减少月供）
-    for (let amount = -negMax; amount < 0; amount += step) {
-      if (amount === 0) continue;
-      const r = simulateMonthlyAdjustOnce(schedule, amount, startPeriod);
+    for (let amount = sampleMin; amount <= sampleMax; amount += step) {
+      if (amount === cur) continue; // 跳过当前月供（无变化）
+      const r = simulateNewMonthlyOnce(schedule, amount, startPeriod);
       if (r) pts.push({ amount, ...r });
     }
-
-    // 正方向采样（增加月供）
-    for (let amount = step; amount <= posMax; amount += step) {
-      const r = simulateMonthlyAdjustOnce(schedule, amount, startPeriod);
-      if (r) pts.push({ amount, ...r });
-    }
-
-    // 按 amount 排序
-    pts.sort((a, b) => a.amount - b.amount);
 
     const recs: Recommendation[] = [];
 
     // 增加方向推荐
-    const positivePts = pts.filter((p) => p.amount > 0);
-    const y1 = positivePts.find((p) => p.termReduced >= 12);
+    const increasePts = pts.filter((p) => p.amount > cur);
+    const y1 = increasePts.find((p) => p.termReduced >= 12);
     if (y1) {
       recs.push({
         label: '提前 1 年',
-        description: `月供 +${y1.amount}，节省 ${fmtMoney(y1.interestSaved)}`,
-        patch: { monthlyAdjust: y1.amount },
+        description: `月供 ${y1.amount}，节省 ${fmtMoney(y1.interestSaved)}`,
+        patch: { newMonthly: y1.amount },
       });
     }
 
-    const y3 = positivePts.find((p) => p.termReduced >= 36);
+    const y3 = increasePts.find((p) => p.termReduced >= 36);
     if (y3) {
       recs.push({
         label: '提前 3 年',
-        description: `月供 +${y3.amount}，节省 ${fmtMoney(y3.interestSaved)}`,
-        patch: { monthlyAdjust: y3.amount },
+        description: `月供 ${y3.amount}，节省 ${fmtMoney(y3.interestSaved)}`,
+        patch: { newMonthly: y3.amount },
       });
     }
 
-    // 减少方向推荐：找到一个合理的减少点
-    const negativePts = pts.filter((p) => p.amount < 0);
-    if (negativePts.length > 0) {
-      // 取减少幅度最大但利息增加可控（<20%原利息）的点
+    // 减少方向推荐
+    const decreasePts = pts.filter((p) => p.amount < cur);
+    if (decreasePts.length > 0) {
       const origInterest =
-        pts.length > 0 ? Math.abs(positivePts[0]?.interestSaved ?? 0) : 0;
-      const moderate = [...negativePts]
+        increasePts.length > 0
+          ? Math.abs(increasePts[0]?.interestSaved ?? 0)
+          : 0;
+      const moderate = [...decreasePts]
         .reverse()
         .find((p) => Math.abs(p.interestSaved) < origInterest * 2);
       if (moderate) {
         recs.push({
           label: '减少月供',
           description: `月供 ${moderate.amount}，多付 ${fmtMoney(moderate.interestSaved)} 利息`,
-          patch: { monthlyAdjust: moderate.amount },
+          patch: { newMonthly: moderate.amount },
         });
       }
     }
@@ -221,9 +215,9 @@ export function SmartAnalysis({
 
   const currentAmount = isLumpSum
     ? (input.lumpSumAmount ?? 0)
-    : (input.monthlyAdjust ?? 0);
+    : (input.newMonthly ?? currentMonthlyPayment);
 
-  const xAxisLabel = isLumpSum ? '提前还款金额' : '月供调整额';
+  const xAxisLabel = isLumpSum ? '提前还款金额' : '新月还款额';
 
   const option = useMemo(() => {
     if (samples.length === 0) return null;
@@ -247,7 +241,7 @@ export function SmartAnalysis({
           );
 
     const xLabels = samples.map((s) =>
-      isLumpSum ? fmtWan(s.amount) : `${s.amount > 0 ? '+' : ''}${s.amount}`,
+      isLumpSum ? fmtWan(s.amount) : `${s.amount}`,
     );
 
     return {

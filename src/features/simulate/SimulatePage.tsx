@@ -16,7 +16,7 @@ export function SimulatePage() {
 
   const [input, setInput] = useState<SimulateInput>({
     mode: 'adjust-monthly',
-    monthlyAdjust: undefined,
+    newMonthly: undefined,
     startPeriod: undefined,
     lumpSumAmount: undefined,
     lumpSumPeriod: undefined,
@@ -24,13 +24,13 @@ export function SimulatePage() {
     investmentRate: 2.5,
   });
 
-  // 计算默认下一期和初始贷款余额
-  const { remainingLoan, defaultNextPeriod, periodMap } = useMemo(() => {
+  // 默认期数 = 下次要还的那一期；月供和剩余本金也取这一期
+  const { remainingLoan, defaultPeriod, periodMap } = useMemo(() => {
     const regular = schedule.filter((s) => s.period > 0);
     if (regular.length === 0)
       return {
         remainingLoan: 0,
-        defaultNextPeriod: 1,
+        defaultPeriod: 1,
         periodMap: new Map<number, PaymentScheduleItem>(),
       };
     const today = new Date().toISOString().split('T')[0];
@@ -41,9 +41,10 @@ export function SimulatePage() {
         break;
       }
     }
+    const target = regular.find((s) => s.period === nextPeriod) ?? regular[0];
     return {
-      remainingLoan: regular[0].remainingLoan + regular[0].principal,
-      defaultNextPeriod: nextPeriod,
+      remainingLoan: target.remainingLoan + target.principal,
+      defaultPeriod: nextPeriod,
       periodMap: new Map(regular.map((s) => [s.period, s])),
     };
   }, [schedule]);
@@ -51,21 +52,21 @@ export function SimulatePage() {
   // 当前月供：取选定期数对应的月供
   const activePeriod =
     input.mode === 'adjust-monthly'
-      ? (input.startPeriod ?? defaultNextPeriod)
-      : (input.lumpSumPeriod ?? defaultNextPeriod);
+      ? (input.startPeriod ?? defaultPeriod)
+      : (input.lumpSumPeriod ?? defaultPeriod);
   const currentMonthlyPayment =
     periodMap.get(activePeriod)?.monthlyPayment ??
-    periodMap.get(defaultNextPeriod)?.monthlyPayment ??
+    periodMap.get(defaultPeriod)?.monthlyPayment ??
     0;
 
   // 实际生效的 input（用默认值填充 undefined 的期数）
   const effectiveInput = useMemo(
     () => ({
       ...input,
-      startPeriod: input.startPeriod ?? defaultNextPeriod,
-      lumpSumPeriod: input.lumpSumPeriod ?? defaultNextPeriod,
+      startPeriod: input.startPeriod ?? defaultPeriod,
+      lumpSumPeriod: input.lumpSumPeriod ?? defaultPeriod,
     }),
-    [input, defaultNextPeriod],
+    [input, defaultPeriod],
   );
 
   const result = useSimulation(schedule, params, effectiveInput);
@@ -110,7 +111,8 @@ export function SimulatePage() {
             schedule={schedule}
             currentMonthlyPayment={currentMonthlyPayment}
             remainingLoan={remainingLoan}
-            defaultPeriod={defaultNextPeriod}
+            defaultStartPeriod={defaultPeriod}
+            defaultLumpSumPeriod={defaultPeriod}
           />
 
           <div className="space-y-4">
