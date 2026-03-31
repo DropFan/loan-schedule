@@ -1,5 +1,5 @@
 import ReactECharts from 'echarts-for-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -15,6 +15,7 @@ interface SimulateChartProps {
   originalSchedule: PaymentScheduleItem[];
   simulatedSchedule: PaymentScheduleItem[];
   startPeriod: number;
+  onPeriodChange?: (period: number) => void;
 }
 
 function buildCumulativeInterest(
@@ -35,6 +36,7 @@ export function SimulateChart({
   originalSchedule,
   simulatedSchedule,
   startPeriod,
+  onPeriodChange,
 }: SimulateChartProps) {
   const { resolved } = useTheme();
   const [dimension, setDimension] = useState<SimulateDimension>('payment');
@@ -92,7 +94,18 @@ export function SimulateChart({
           if (!params.length) return '';
           const idx = params[0].dataIndex;
           const period = periods[idx];
-          let html = `<b>第 ${period} 期</b>`;
+          const origItem = origMap.get(period);
+          const simItem = simMap.get(period);
+
+          let html = `<b>第 ${period} 期`;
+          if (origItem) html += `（${origItem.paymentDate}）`;
+          html += '</b>';
+
+          if (origItem) {
+            html += `<br/>剩余本金: ${fmtAmt(origItem.remainingLoan)}`;
+            html += ` | 利率: ${origItem.annualInterestRate}%`;
+          }
+
           for (const p of params) {
             if (p.value != null) {
               html += `<br/><span style="color:${p.color}">●</span> ${p.seriesName}: ${fmtAmt(Number(p.value))}`;
@@ -108,6 +121,12 @@ export function SimulateChart({
             const sign = diff >= 0 ? '+' : '';
             html += `<br/><span style="color:#999">差异: ${sign}${fmtAmt(diff)}</span>`;
           }
+
+          // 模拟方案已结束的提示
+          if (origItem && !simItem) {
+            html += '<br/><span style="color:#4f8cff">模拟方案已还清</span>';
+          }
+
           return html;
         },
       },
@@ -183,6 +202,32 @@ export function SimulateChart({
     };
   }, [originalSchedule, simulatedSchedule, startPeriod, dimension, resolved]);
 
+  // 画布级别点击：点击图表任意位置，将像素坐标转换为期数
+  const chartRef = useRef<ReactECharts>(null);
+  const onPeriodChangeRef = useRef(onPeriodChange);
+  onPeriodChangeRef.current = onPeriodChange;
+
+  const bindZrClick = useCallback(
+    // biome-ignore lint/suspicious/noExplicitAny: ECharts instance type is complex
+    (chart: any) => {
+      if (!onPeriodChangeRef.current) return;
+      chart.getZr().on('click', (e: { offsetX: number; offsetY: number }) => {
+        // 只处理绘图区域内的点击，不拦截图例/dataZoom 等
+        if (!chart.containPixel('grid', [e.offsetX, e.offsetY])) return;
+        const point = chart.convertFromPixel({ seriesIndex: 0 }, [
+          e.offsetX,
+          e.offsetY,
+        ]);
+        if (!point) return;
+        const period = Math.round(point[0]) + 1;
+        if (period >= 1 && onPeriodChangeRef.current) {
+          onPeriodChangeRef.current(period);
+        }
+      });
+    },
+    [],
+  );
+
   return (
     <div className="bg-card border border-border rounded-xl p-4">
       {/* 维度切换 */}
@@ -203,7 +248,16 @@ export function SimulateChart({
         ))}
       </div>
 
-      <ReactECharts option={option} notMerge style={{ height: 350 }} />
+      <ReactECharts
+        ref={chartRef}
+        option={option}
+        notMerge
+        style={{
+          height: 350,
+          cursor: onPeriodChange ? 'crosshair' : undefined,
+        }}
+        onChartReady={bindZrClick}
+      />
     </div>
   );
 }

@@ -123,6 +123,14 @@ export function SimulatePage() {
                 originalSchedule={schedule}
                 simulatedSchedule={result.simulatedSchedule}
                 startPeriod={startPeriod}
+                onPeriodChange={(period) => {
+                  setInput((prev) => ({
+                    ...prev,
+                    ...(prev.mode === 'lump-sum'
+                      ? { lumpSumPeriod: period }
+                      : { startPeriod: period }),
+                  }));
+                }}
               />
             )}
             {params && (
