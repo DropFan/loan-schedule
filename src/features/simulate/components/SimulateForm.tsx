@@ -60,6 +60,12 @@ export function SimulateForm({
   const sliderMin = -Math.round(currentMonthlyPayment * 0.5);
   const sliderMax = Math.round(currentMonthlyPayment * 2);
 
+  // 根据选定期数取对应的剩余本金作为滑块上限
+  const periodMap = new Map(regularItems.map((s) => [s.period, s]));
+  const lumpSumTargetPeriod = input.lumpSumPeriod ?? defaultPeriod;
+  const lumpSumMaxAmount =
+    periodMap.get(lumpSumTargetPeriod)?.remainingLoan ?? remainingLoan;
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-4 h-fit lg:sticky lg:top-4">
       {/* 模式切换 */}
@@ -192,7 +198,7 @@ export function SimulateForm({
             <input
               type="range"
               min={0}
-              max={Math.round(remainingLoan)}
+              max={Math.round(lumpSumMaxAmount)}
               step={10000}
               value={input.lumpSumAmount ?? 0}
               onChange={(e) =>
@@ -204,20 +210,22 @@ export function SimulateForm({
 
           {/* 快捷金额 */}
           <div className="flex flex-wrap gap-1.5">
-            {LUMP_SUM_QUICK.filter((q) => q.value < remainingLoan).map((q) => (
-              <button
-                key={q.value}
-                type="button"
-                onClick={() => onChange({ ...input, lumpSumAmount: q.value })}
-                className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                  input.lumpSumAmount === q.value
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-muted/30'
-                }`}
-              >
-                {q.label}
-              </button>
-            ))}
+            {LUMP_SUM_QUICK.filter((q) => q.value < lumpSumMaxAmount).map(
+              (q) => (
+                <button
+                  key={q.value}
+                  type="button"
+                  onClick={() => onChange({ ...input, lumpSumAmount: q.value })}
+                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                    input.lumpSumAmount === q.value
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:bg-muted/30'
+                  }`}
+                >
+                  {q.label}
+                </button>
+              ),
+            )}
           </div>
 
           <label className="block">
