@@ -497,8 +497,11 @@ export function SimulateForm({
               value={isCustomRate ? input.investmentRate : ''}
               onChange={(e) => {
                 const v = e.target.value;
-                if (v === '') return;
-                onChange({ ...input, investmentRate: Number(v) });
+                if (v === '' || v === '.') return;
+                const num = Number.parseFloat(v);
+                if (!Number.isNaN(num) && num >= 0) {
+                  onChange({ ...input, investmentRate: num });
+                }
               }}
               className={`w-16 px-2 py-1 text-xs border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                 isCustomRate ? 'border-primary' : 'border-border'
