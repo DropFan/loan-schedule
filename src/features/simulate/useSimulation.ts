@@ -367,17 +367,31 @@ export function useSimulation(
   return useMemo(() => {
     if (!params || schedule.length === 0) return null;
 
+    // 基线结果：用户未输入时展示原方案数据
+    const baseline = (): SimulateResult =>
+      buildEnhancedResult(
+        schedule,
+        schedule,
+        0,
+        null,
+        null,
+        input.investmentRate,
+        input.observationMonths,
+      );
+
     if (input.mode === 'adjust-monthly') {
       const newMonthly = input.newMonthly;
       const startPeriod = input.startPeriod;
-      if (newMonthly == null || newMonthly <= 0 || !startPeriod) return null;
+      if (!startPeriod) return baseline();
+
+      if (newMonthly == null || newMonthly <= 0) return baseline();
 
       // 从 schedule 中取原月供，算出差值
       const regular = schedule.filter((s) => s.period > 0);
       const origItem = regular.find((s) => s.period === startPeriod);
-      if (!origItem) return null;
+      if (!origItem) return baseline();
       const monthlyAdjust = newMonthly - origItem.monthlyPayment;
-      if (monthlyAdjust === 0) return null;
+      if (monthlyAdjust === 0) return baseline();
 
       return simulateMonthlyAdjust(
         schedule,
@@ -392,7 +406,8 @@ export function useSimulation(
     const lumpSumAmount = input.lumpSumAmount;
     const lumpSumPeriod = input.lumpSumPeriod;
     const strategy = input.lumpSumStrategy ?? 'shorten-term';
-    if (!lumpSumAmount || lumpSumAmount <= 0 || !lumpSumPeriod) return null;
+    if (!lumpSumPeriod) return baseline();
+    if (!lumpSumAmount || lumpSumAmount <= 0) return baseline();
 
     return simulateLumpSum(
       schedule,

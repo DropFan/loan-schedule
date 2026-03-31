@@ -17,14 +17,33 @@ function fmtObservation(months: number): string {
 }
 
 export function OpportunityCost({ result }: Props) {
-  if (!result.isValid || result.totalInvestment === 0) return null;
+  if (!result.isValid) return null;
 
-  const isReducing = result.totalInvestment < 0;
-
-  if (isReducing) {
+  if (result.totalInvestment === 0) {
+    return <BaselineAnalysis result={result} />;
+  }
+  if (result.totalInvestment < 0) {
     return <ReducedPaymentAnalysis result={result} />;
   }
   return <IncreasedPaymentAnalysis result={result} />;
+}
+
+/** 尚未调整：展示观察期和理财利率，提示用户调整参数 */
+function BaselineAnalysis({ result }: Props) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <h3 className="text-sm font-semibold">
+        机会成本分析
+        <span className="font-normal text-muted-foreground ml-1">
+          （观察期 {fmtObservation(result.observationMonths)}）
+        </span>
+      </h3>
+      <p className="text-sm text-muted-foreground">
+        调整月供或输入提前还款金额后，将对比提前还贷与 {result.investmentRate}%
+        理财的收益差异
+      </p>
+    </div>
+  );
 }
 
 /** 增加月供 / 一次性还款：投入资金提前还贷 vs 理财 */
