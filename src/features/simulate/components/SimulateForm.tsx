@@ -32,6 +32,14 @@ const ADJUST_MONTHLY_QUICK = [
   { label: '+5000', value: 5000 },
 ];
 
+const OBSERVATION_OPTIONS: Array<{ label: string; value: number | undefined }> =
+  [
+    { label: '3年', value: 3 },
+    { label: '5年', value: 5 },
+    { label: '10年', value: 10 },
+    { label: '到期', value: undefined },
+  ];
+
 const INVESTMENT_RATE_OPTIONS = [
   { label: '1.5% 货基', value: 1.5 },
   { label: '2.5% 定存', value: 2.5 },
@@ -310,6 +318,30 @@ export function SimulateForm({
             />
             <span className="text-xs text-muted-foreground">%</span>
           </div>
+        </div>
+      </div>
+      {/* 观察期 */}
+      <div>
+        <span className="text-sm text-muted-foreground">
+          观察期（机会成本计算周期）
+        </span>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {OBSERVATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() =>
+                onChange({ ...input, observationYears: opt.value })
+              }
+              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                input.observationYears === opt.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:bg-muted/30'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

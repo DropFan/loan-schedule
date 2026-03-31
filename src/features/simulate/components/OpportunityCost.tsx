@@ -8,6 +8,14 @@ function fmtMoney(v: number): string {
   return `¥${Math.abs(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function fmtObservation(months: number): string {
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (rest === 0) return `${years}年`;
+  if (years === 0) return `${rest}个月`;
+  return `${years}年${rest}个月`;
+}
+
 export function OpportunityCost({ result }: Props) {
   if (!result.isValid || result.totalInvestment === 0) return null;
 
@@ -25,7 +33,12 @@ function IncreasedPaymentAnalysis({ result }: Props) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-      <h3 className="text-sm font-semibold">机会成本分析</h3>
+      <h3 className="text-sm font-semibold">
+        机会成本分析
+        <span className="font-normal text-muted-foreground ml-1">
+          （观察期 {fmtObservation(result.observationMonths)}）
+        </span>
+      </h3>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
           <p className="text-xs text-muted-foreground mb-0.5">
@@ -83,7 +96,12 @@ function ReducedPaymentAnalysis({ result }: Props) {
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-      <h3 className="text-sm font-semibold">机会成本分析</h3>
+      <h3 className="text-sm font-semibold">
+        机会成本分析
+        <span className="font-normal text-muted-foreground ml-1">
+          （观察期 {fmtObservation(result.observationMonths)}）
+        </span>
+      </h3>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
           <p className="text-xs text-muted-foreground mb-0.5">省下现金流总额</p>

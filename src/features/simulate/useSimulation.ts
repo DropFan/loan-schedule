@@ -21,6 +21,7 @@ export interface SimulateInput {
   lumpSumPeriod?: number;
   lumpSumStrategy?: 'reduce-payment' | 'shorten-term';
   investmentRate: number; // 理财年化收益率，如 2.5 表示 2.5%
+  observationYears?: number; // 机会成本观察期（年），undefined=到原贷款到期
 }
 
 export interface SimulateResult {
@@ -40,6 +41,7 @@ export interface SimulateResult {
   investmentReturn: number; // 理财预期收益
   netBenefit: number; // 提前还贷节省 - 理财收益，正值=还贷更划算
   investmentRate: number; // 使用的理财利率
+  observationMonths: number; // 机会成本观察期（月）
   isValid: boolean;
   error?: string;
 }
@@ -71,6 +73,7 @@ function buildEnhancedResult(
   newMonthlyPayment: number | null,
   originalMonthlyPayment: number | null,
   investmentRate: number,
+  observationYears?: number,
 ): SimulateResult {
   const originalSummary = calcScheduleSummary(schedule);
   const simulatedSummary = calcScheduleSummary(simulatedSchedule);
@@ -98,13 +101,15 @@ function buildEnhancedResult(
   const interestSavingRate =
     totalInvestment > 0 ? roundTo2(interestSaved / totalInvestment) : 0;
 
-  // 机会成本：投入金额（取绝对值）按理财利率复利到原还清日的收益
+  // 机会成本：观察期内的理财收益
+  const observationMonths = observationYears
+    ? observationYears * 12
+    : originalSummary.termMonths;
   const investmentReturn = calcInvestmentReturn(
     Math.abs(totalInvestment),
     investmentRate,
-    originalSummary.termMonths,
+    observationMonths,
   );
-  // 正值=提前还贷更划算（增加月供场景），负值=理财更划算
   const netBenefit = roundTo2(interestSaved - investmentReturn);
 
   return {
@@ -122,6 +127,7 @@ function buildEnhancedResult(
     investmentReturn,
     netBenefit,
     investmentRate,
+    observationMonths,
     isValid: true,
   };
 }
@@ -151,6 +157,7 @@ function buildErrorResult(
     investmentReturn: 0,
     netBenefit: 0,
     investmentRate,
+    observationMonths: 0,
     isValid: false,
     error,
   };
@@ -161,6 +168,7 @@ function simulateMonthlyAdjust(
   monthlyAdjust: number,
   startPeriod: number,
   investmentRate: number,
+  observationYears?: number,
 ): SimulateResult {
   const regularItems = getRegularItems(schedule);
   const periodMap = new Map(regularItems.map((item) => [item.period, item]));
@@ -244,6 +252,7 @@ function simulateMonthlyAdjust(
     null,
     originalPayment,
     investmentRate,
+    observationYears,
   );
 }
 
@@ -254,6 +263,7 @@ function simulateLumpSum(
   lumpSumPeriod: number,
   strategy: 'reduce-payment' | 'shorten-term',
   investmentRate: number,
+  observationYears?: number,
 ): SimulateResult {
   const regularItems = getRegularItems(schedule);
   const periodMap = new Map(regularItems.map((item) => [item.period, item]));
@@ -347,6 +357,7 @@ function simulateLumpSum(
     newMonthlyPayment,
     targetItem.monthlyPayment,
     investmentRate,
+    observationYears,
   );
 }
 
@@ -369,6 +380,7 @@ export function useSimulation(
         monthlyAdjust,
         startPeriod,
         input.investmentRate,
+        input.observationYears,
       );
     }
 
@@ -385,6 +397,7 @@ export function useSimulation(
       lumpSumPeriod,
       strategy,
       input.investmentRate,
+      input.observationYears,
     );
   }, [
     schedule,
@@ -396,6 +409,7 @@ export function useSimulation(
     input.lumpSumPeriod,
     input.lumpSumStrategy,
     input.investmentRate,
+    input.observationYears,
   ]);
 }
 
