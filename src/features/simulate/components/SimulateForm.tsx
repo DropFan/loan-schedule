@@ -1,4 +1,5 @@
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
+import { roundTo2 } from '@/core/utils/formatHelper';
 import type { SimulateInput } from '../useSimulation';
 
 interface SimulateFormProps {
@@ -42,8 +43,24 @@ const INVESTMENT_RATE_OPTIONS = [
   { label: '5% 基金', value: 5 },
 ];
 
+/** 精确到天的月数差：整月 + 天数分数部分 */
+function calcPreciseMonths(from: Date, to: Date): number {
+  const wholeMonths =
+    (to.getFullYear() - from.getFullYear()) * 12 +
+    (to.getMonth() - from.getMonth());
+  const dayDiff = to.getDate() - from.getDate();
+  const daysInMonth = new Date(
+    to.getFullYear(),
+    to.getMonth() + 1,
+    0,
+  ).getDate();
+  return roundTo2(wholeMonths + dayDiff / daysInMonth);
+}
+
 const inputClass =
   'mt-1 w-full px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30';
+const inputClassCompact =
+  'px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30';
 
 export function SimulateForm({
   input,
@@ -57,14 +74,18 @@ export function SimulateForm({
   const regularItems = schedule.filter((s) => s.period > 0);
   const maxPeriod =
     regularItems.length > 0 ? regularItems[regularItems.length - 1].period : 0;
+  const originalEndDate =
+    regularItems.length > 0
+      ? regularItems[regularItems.length - 1].paymentDate
+      : '';
 
   const isCustomRate = !INVESTMENT_RATE_OPTIONS.some(
     (o) => o.value === input.investmentRate,
   );
 
   // 月供滑块范围：50% ~ 300% 当前月供
-  const monthlyMin = Math.max(Math.round(currentMonthlyPayment * 0.5), 1);
-  const monthlyMax = Math.round(currentMonthlyPayment * 3);
+  const monthlyMin = Math.max(roundTo2(currentMonthlyPayment * 0.5), 1);
+  const monthlyMax = roundTo2(currentMonthlyPayment * 3);
   const currentVal = input.newMonthly ?? currentMonthlyPayment;
 
   // 月供滑块关键刻度
@@ -72,8 +93,8 @@ export function SimulateForm({
   const monthlyTicks = [
     { value: monthlyMin, label: `${monthlyMin}`, pct: 0 },
     {
-      value: Math.round(currentMonthlyPayment),
-      label: `${Math.round(currentMonthlyPayment)}`,
+      value: roundTo2(currentMonthlyPayment),
+      label: `${roundTo2(currentMonthlyPayment)}`,
       pct: ((currentMonthlyPayment - monthlyMin) / monthlyRange) * 100,
     },
     { value: monthlyMax, label: `${monthlyMax}`, pct: 100 },
@@ -81,15 +102,15 @@ export function SimulateForm({
 
   // 月供快捷按钮：基于当前月供的偏移
   const monthlyQuick = [
-    { label: '-1000', value: Math.round(currentMonthlyPayment - 1000) },
-    { label: '-500', value: Math.round(currentMonthlyPayment - 500) },
+    { label: '-1000', value: roundTo2(currentMonthlyPayment - 1000) },
+    { label: '-500', value: roundTo2(currentMonthlyPayment - 500) },
     {
       label: '当前',
-      value: Math.round(currentMonthlyPayment),
+      value: roundTo2(currentMonthlyPayment),
     },
-    { label: '+500', value: Math.round(currentMonthlyPayment + 500) },
-    { label: '+1000', value: Math.round(currentMonthlyPayment + 1000) },
-    { label: '+2000', value: Math.round(currentMonthlyPayment + 2000) },
+    { label: '+500', value: roundTo2(currentMonthlyPayment + 500) },
+    { label: '+1000', value: roundTo2(currentMonthlyPayment + 1000) },
+    { label: '+2000', value: roundTo2(currentMonthlyPayment + 2000) },
   ].filter((q) => q.value >= monthlyMin && q.value <= monthlyMax);
 
   // 变化提示
@@ -100,14 +121,25 @@ export function SimulateForm({
       ? ((monthlyDiff / currentMonthlyPayment) * 100).toFixed(1)
       : '0';
 
-  // 一次性还款滑块
   const periodMap = new Map(regularItems.map((s) => [s.period, s]));
+
+  // 根据日期找到最近的还款期（paymentDate >= 选择日期的第一期）
+  const findPeriodByDate = (dateStr: string): number | undefined => {
+    for (const item of regularItems) {
+      if (item.paymentDate >= dateStr) return item.period;
+    }
+    return regularItems.length > 0
+      ? regularItems[regularItems.length - 1].period
+      : undefined;
+  };
+
+  // 一次性还款滑块
   const lumpSumTargetPeriod = input.lumpSumPeriod ?? defaultLumpSumPeriod;
   const lumpSumMaxAmount =
     periodMap.get(lumpSumTargetPeriod)?.remainingLoan ?? remainingLoan;
 
-  const lumpMax = Math.round(lumpSumMaxAmount);
-  const lumpMid = Math.round(lumpMax / 2 / 10000) * 10000;
+  const lumpMax = roundTo2(lumpSumMaxAmount);
+  const lumpMid = roundTo2(Math.floor(lumpMax / 2 / 10000) * 10000);
   const fmtLumpTick = (v: number) =>
     v >= 10000 ? `${(v / 10000).toFixed(v % 10000 === 0 ? 0 : 1)}万` : `${v}`;
   const lumpSumTicks = [
@@ -124,12 +156,18 @@ export function SimulateForm({
     { value: lumpMax, label: fmtLumpTick(lumpMax), pct: 100 },
   ];
 
-  // 观察期截止日期
+  // 观察期截止日期（支持小数月，精确到天）
   const observationEndDate = input.observationMonths
     ? (() => {
         const d = new Date();
-        d.setMonth(d.getMonth() + input.observationMonths);
-        return d.toISOString().split('T')[0];
+        const whole = Math.floor(input.observationMonths);
+        const frac = input.observationMonths - whole;
+        d.setMonth(d.getMonth() + whole);
+        if (frac > 0) {
+          const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+          d.setDate(d.getDate() + Math.round(frac * dim));
+        }
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       })()
     : '';
 
@@ -165,7 +203,7 @@ export function SimulateForm({
             <input
               type="text"
               inputMode="decimal"
-              placeholder={`当前 ${Math.round(currentMonthlyPayment)}`}
+              placeholder={`当前 ${roundTo2(currentMonthlyPayment)}`}
               value={input.newMonthly ?? ''}
               onChange={(e) => {
                 const v = e.target.value;
@@ -180,7 +218,7 @@ export function SimulateForm({
               type="range"
               min={monthlyMin}
               max={monthlyMax}
-              step={100}
+              step={0.01}
               value={currentVal}
               onChange={(e) =>
                 onChange({ ...input, newMonthly: Number(e.target.value) })
@@ -225,7 +263,7 @@ export function SimulateForm({
           </div>
           {input.newMonthly != null && (
             <p className="text-xs text-muted-foreground">
-              当前月供 {Math.round(currentMonthlyPayment)}，变化{' '}
+              当前月供 {roundTo2(currentMonthlyPayment)}，变化{' '}
               <span
                 className={
                   monthlyDiff > 0
@@ -236,30 +274,55 @@ export function SimulateForm({
                 }
               >
                 {monthlyDiff > 0 ? '+' : ''}
-                {Math.round(monthlyDiff)}（{monthlyDiff > 0 ? '+' : ''}
+                {roundTo2(monthlyDiff)}（{monthlyDiff > 0 ? '+' : ''}
                 {monthlyDiffPct}%）
               </span>
             </p>
           )}
 
-          <label className="block">
-            <span className="text-sm text-muted-foreground">从第几期开始</span>
-            <input
-              type="number"
-              min={1}
-              max={maxPeriod}
-              placeholder={`默认第 ${defaultStartPeriod} 期（下一期）`}
-              value={input.startPeriod ?? defaultStartPeriod}
-              onChange={(e) => {
-                const v = e.target.value;
-                onChange({
-                  ...input,
-                  startPeriod: v === '' ? undefined : Number(v),
-                });
-              }}
-              className={inputClass}
-            />
-          </label>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">
+              执行日期
+              {(() => {
+                const p = input.startPeriod ?? defaultStartPeriod;
+                const d = periodMap.get(p)?.paymentDate;
+                return d ? (
+                  <span className="ml-1 text-foreground font-medium">
+                    第 {p} 期（{d}）
+                  </span>
+                ) : null;
+              })()}
+            </span>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="number"
+                min={1}
+                max={maxPeriod}
+                placeholder={`第 ${defaultStartPeriod} 期`}
+                value={input.startPeriod ?? defaultStartPeriod}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onChange({
+                    ...input,
+                    startPeriod: v === '' ? undefined : Number(v),
+                  });
+                }}
+                className={`${inputClassCompact} w-20 shrink-0`}
+              />
+              <input
+                type="date"
+                value={
+                  periodMap.get(input.startPeriod ?? defaultStartPeriod)
+                    ?.paymentDate ?? ''
+                }
+                onChange={(e) => {
+                  const p = findPeriodByDate(e.target.value);
+                  if (p) onChange({ ...input, startPeriod: p });
+                }}
+                className={`${inputClassCompact} min-w-0 flex-1`}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -287,8 +350,8 @@ export function SimulateForm({
             <input
               type="range"
               min={0}
-              max={Math.round(lumpSumMaxAmount)}
-              step={10000}
+              max={roundTo2(lumpSumMaxAmount)}
+              step={0.01}
               value={input.lumpSumAmount ?? 0}
               onChange={(e) =>
                 onChange({ ...input, lumpSumAmount: Number(e.target.value) })
@@ -336,24 +399,49 @@ export function SimulateForm({
             )}
           </div>
 
-          <label className="block">
-            <span className="text-sm text-muted-foreground">在第几期执行</span>
-            <input
-              type="number"
-              min={1}
-              max={maxPeriod}
-              placeholder={`默认第 ${defaultLumpSumPeriod} 期（下一期）`}
-              value={input.lumpSumPeriod ?? defaultLumpSumPeriod}
-              onChange={(e) => {
-                const v = e.target.value;
-                onChange({
-                  ...input,
-                  lumpSumPeriod: v === '' ? undefined : Number(v),
-                });
-              }}
-              className={inputClass}
-            />
-          </label>
+          <div className="space-y-1">
+            <span className="text-sm text-muted-foreground">
+              执行日期
+              {(() => {
+                const p = input.lumpSumPeriod ?? defaultLumpSumPeriod;
+                const d = periodMap.get(p)?.paymentDate;
+                return d ? (
+                  <span className="ml-1 text-foreground font-medium">
+                    第 {p} 期（{d}）
+                  </span>
+                ) : null;
+              })()}
+            </span>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="number"
+                min={1}
+                max={maxPeriod}
+                placeholder={`第 ${defaultLumpSumPeriod} 期`}
+                value={input.lumpSumPeriod ?? defaultLumpSumPeriod}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onChange({
+                    ...input,
+                    lumpSumPeriod: v === '' ? undefined : Number(v),
+                  });
+                }}
+                className={`${inputClassCompact} w-20 shrink-0`}
+              />
+              <input
+                type="date"
+                value={
+                  periodMap.get(input.lumpSumPeriod ?? defaultLumpSumPeriod)
+                    ?.paymentDate ?? ''
+                }
+                onChange={(e) => {
+                  const p = findPeriodByDate(e.target.value);
+                  if (p) onChange({ ...input, lumpSumPeriod: p });
+                }}
+                className={`${inputClassCompact} min-w-0 flex-1`}
+              />
+            </div>
+          </div>
           <div>
             <span className="text-sm text-muted-foreground">处理方式</span>
             <div className="mt-1 flex gap-2">
@@ -427,13 +515,25 @@ export function SimulateForm({
         </span>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {OBSERVATION_PRESETS.map((opt) => {
-            const isActive = input.observationMonths === opt.months;
+            // "到期"：计算从今天到原方案最后一期的实际月数
+            const months =
+              opt.months === undefined && originalEndDate
+                ? calcPreciseMonths(
+                    new Date(),
+                    new Date(`${originalEndDate}T00:00:00`),
+                  )
+                : opt.months;
+            const isActive = input.observationMonths === months;
+            const label =
+              opt.months === undefined && originalEndDate
+                ? `到期 ${originalEndDate}`
+                : opt.label;
             return (
               <button
                 key={opt.label}
                 type="button"
                 onClick={() =>
-                  onChange({ ...input, observationMonths: opt.months })
+                  onChange({ ...input, observationMonths: months })
                 }
                 className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
                   isActive
@@ -441,7 +541,7 @@ export function SimulateForm({
                     : 'border-border text-muted-foreground hover:bg-muted/30'
                 }`}
               >
-                {opt.label}
+                {label}
               </button>
             );
           })}
@@ -459,13 +559,10 @@ export function SimulateForm({
                 onChange({ ...input, observationMonths: undefined });
                 return;
               }
-              const endDate = new Date(v);
-              const today = new Date();
-              const diffMonths =
-                (endDate.getFullYear() - today.getFullYear()) * 12 +
-                (endDate.getMonth() - today.getMonth());
-              if (diffMonths > 0) {
-                onChange({ ...input, observationMonths: diffMonths });
+              const endDate = new Date(`${v}T00:00:00`);
+              const months = calcPreciseMonths(new Date(), endDate);
+              if (months > 0) {
+                onChange({ ...input, observationMonths: months });
               }
             }}
             className="flex-1 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
