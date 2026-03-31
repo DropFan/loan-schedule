@@ -137,7 +137,10 @@ function buildEnhancedResult(
     isFullTerm
       ? s.filter((item) => item.period > 0)
       : s.filter(
-          (item) => item.period > 0 && item.paymentDate <= observationEndDate,
+          (item) =>
+            item.period > 0 &&
+            item.paymentDate !== '' &&
+            item.paymentDate <= observationEndDate,
         );
 
   const origObs = obsFilter(schedule);
@@ -276,6 +279,9 @@ function simulateMonthlyAdjust(
   );
   const simulated: PaymentScheduleItem[] = [...prefix];
 
+  // 原方案最后一期
+  const lastPeriod = regularItems[regularItems.length - 1].period;
+
   let period = startPeriod;
   let totalAdjustment = 0;
   while (remainingLoan > 0) {
@@ -283,7 +289,8 @@ function simulateMonthlyAdjust(
     let actualPayment = adjustedPayment;
     let principal = roundTo2(actualPayment - interest);
 
-    if (principal >= remainingLoan) {
+    // 最后一期或本金够还清：把剩余全部还清
+    if (principal >= remainingLoan || period >= lastPeriod) {
       principal = roundTo2(remainingLoan);
       actualPayment = roundTo2(principal + interest);
       totalAdjustment += roundTo2(actualPayment - originalPayment);
