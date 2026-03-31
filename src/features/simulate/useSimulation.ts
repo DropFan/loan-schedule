@@ -456,3 +456,62 @@ export function simulateLumpSumOnce(
     termReduced: originalSummary.termMonths - simulatedSummary.termMonths,
   };
 }
+
+/** 额外月供单次模拟（供 SmartAnalysis 批量调用） */
+export function simulateExtraMonthlyOnce(
+  schedule: PaymentScheduleItem[],
+  extraMonthly: number,
+  startPeriod: number,
+): { interestSaved: number; termReduced: number } | null {
+  const regularItems = getRegularItems(schedule);
+  const periodMap = new Map(regularItems.map((item) => [item.period, item]));
+
+  const startItem = periodMap.get(startPeriod);
+  if (!startItem) return null;
+
+  const prevItem = startPeriod > 1 ? periodMap.get(startPeriod - 1) : undefined;
+  const remainingLoan = prevItem
+    ? prevItem.remainingLoan
+    : startItem.remainingLoan + startItem.principal;
+  if (remainingLoan <= 0) return null;
+
+  const monthlyRate = startItem.annualInterestRate / 100 / 12;
+  const originalPayment = startItem.monthlyPayment;
+
+  // 快速逐期模拟，只计算总利息和期数
+  let simInterest = 0;
+  let simTerms = 0;
+  let rem = remainingLoan;
+  while (rem > 0) {
+    const interest = roundTo2(rem * monthlyRate);
+    simInterest += interest;
+    const principal = roundTo2(originalPayment + extraMonthly - interest);
+    if (principal >= rem) {
+      simInterest += interest - interest; // 最后一期利息已加
+      simTerms++;
+      break;
+    }
+    rem = roundTo2(rem - principal);
+    simTerms++;
+  }
+
+  // 加上 startPeriod 之前的利息
+  let prefixInterest = 0;
+  for (const item of schedule) {
+    if (item.period > 0 && item.period < startPeriod) {
+      prefixInterest += item.interest;
+    }
+    if (item.period === 0) {
+      prefixInterest += item.interest;
+    }
+  }
+
+  const originalSummary = calcScheduleSummary(schedule);
+  const totalSimInterest = roundTo2(prefixInterest + simInterest);
+  const totalSimTerms = startPeriod - 1 + simTerms;
+
+  return {
+    interestSaved: roundTo2(originalSummary.totalInterest - totalSimInterest),
+    termReduced: originalSummary.termMonths - totalSimTerms,
+  };
+}

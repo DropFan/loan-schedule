@@ -44,8 +44,8 @@ export function SimulatePage() {
     };
   }, [schedule]);
 
-  const handleSmartApply = (amount: number) => {
-    setInput((prev) => ({ ...prev, lumpSumAmount: amount }));
+  const handleSmartApply = (patch: Partial<SimulateInput>) => {
+    setInput((prev) => ({ ...prev, ...patch }));
   };
 
   return (
@@ -94,6 +94,7 @@ export function SimulatePage() {
                 schedule={schedule}
                 params={params}
                 input={input}
+                currentMonthlyPayment={currentMonthlyPayment}
                 onApply={handleSmartApply}
               />
             )}
