@@ -26,6 +26,7 @@ interface SamplePoint {
   amount: number;
   interestSaved: number;
   termReduced: number;
+  score: number;
 }
 
 interface TimePointAnalysis {
@@ -35,6 +36,7 @@ interface TimePointAnalysis {
   annualInterestRate: number;
   bestAmount: number;
   bestInterestSaved: number;
+  bestScore: number;
   bestTermReduced: number;
   samples: SamplePoint[];
 }
@@ -51,6 +53,13 @@ interface AnalysisMatrix {
   recommendations: Recommendation[];
 }
 
+interface ScoreAdjustments {
+  opportunityCost: boolean;
+  inflation: boolean;
+  investmentRate: number;
+  inflationRate: number;
+}
+
 function fmtWan(v: number): string {
   return `${(v / 10000).toFixed(1)}万`;
 }
@@ -59,21 +68,55 @@ function fmtMoney(v: number): string {
   return `¥${Math.abs(v).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+/** 一次性投资的复利收益 */
+function calcLumpSumReturn(
+  amount: number,
+  annualRate: number,
+  months: number,
+): number {
+  if (amount <= 0 || annualRate <= 0 || months <= 0) return 0;
+  const r = annualRate / 100 / 12;
+  return roundTo2(amount * ((1 + r) ** months - 1));
+}
+
+/** 每月定投的年金收益（不含本金） */
+function calcAnnuityReturn(
+  monthlyAmount: number,
+  annualRate: number,
+  months: number,
+): number {
+  if (monthlyAmount <= 0 || annualRate <= 0 || months <= 0) return 0;
+  const r = annualRate / 100 / 12;
+  const fv = (monthlyAmount * ((1 + r) ** months - 1)) / r;
+  return roundTo2(fv - monthlyAmount * months);
+}
+
+/** 将未来值折现为现值（通胀折算） */
+function discountToPresent(
+  value: number,
+  inflationRate: number,
+  months: number,
+): number {
+  if (inflationRate <= 0 || months <= 0) return value;
+  const r = inflationRate / 100 / 12;
+  return roundTo2(value / (1 + r) ** months);
+}
+
 /** 在采样序列中找到边际收益递减的拐点（二阶差分最大下降处） */
 function findMarginalBest(pts: SamplePoint[]): SamplePoint | null {
   if (pts.length < 3) return null;
-  let bestIdx = 1;
+  let bestIdx = -1;
   let maxDrop = 0;
   for (let i = 2; i < pts.length; i++) {
-    const prev = pts[i - 1].interestSaved - pts[i - 2].interestSaved;
-    const curr = pts[i].interestSaved - pts[i - 1].interestSaved;
+    const prev = pts[i - 1].score - pts[i - 2].score;
+    const curr = pts[i].score - pts[i - 1].score;
     const drop = prev - curr;
     if (drop > maxDrop) {
       maxDrop = drop;
       bestIdx = i - 1;
     }
   }
-  return pts[bestIdx];
+  return bestIdx >= 0 ? pts[bestIdx] : null;
 }
 
 /** 生成等间隔时间点采样序列（从用户选定的起始期开始，10-15 个点） */
@@ -107,42 +150,44 @@ function buildRecommendations(
   timePoints: TimePointAnalysis[],
   isLumpSum: boolean,
   periodMap: Map<number, PaymentScheduleItem>,
+  adjusted: boolean,
 ): Recommendation[] {
   if (timePoints.length === 0) return [];
 
   const recs: Recommendation[] = [];
+  const benefitText = adjusted ? '净收益' : '节省利息';
 
-  // 1. 全局最优：节省利息最大
+  // 1. 全局最优：score 最大
   let globalBest: { tp: TimePointAnalysis; sp: SamplePoint } | null = null;
   for (const tp of timePoints) {
     for (const sp of tp.samples) {
-      if (!globalBest || sp.interestSaved > globalBest.sp.interestSaved) {
+      if (!globalBest || sp.score > globalBest.sp.score) {
         globalBest = { tp, sp };
       }
     }
   }
-  if (globalBest && globalBest.sp.interestSaved > 0) {
+  if (globalBest && globalBest.sp.score > 0) {
     const { tp, sp } = globalBest;
     recs.push({
       type: 'global-best',
       label: '全局最优',
       description: isLumpSum
-        ? `第${tp.period}期还${fmtWan(sp.amount)}，节省${fmtMoney(sp.interestSaved)}利息，缩短${sp.termReduced}期`
-        : `第${tp.period}期起月供${sp.amount}，节省${fmtMoney(sp.interestSaved)}`,
+        ? `第${tp.period}期还${fmtWan(sp.amount)}，${benefitText}${fmtMoney(sp.score)}，缩短${sp.termReduced}期`
+        : `第${tp.period}期起月供${sp.amount}，${benefitText}${fmtMoney(sp.score)}`,
       patch: isLumpSum
         ? { lumpSumPeriod: tp.period, lumpSumAmount: sp.amount }
         : { startPeriod: tp.period, newMonthly: sp.amount },
     });
   }
 
-  // 2. 性价比最优：各时间点边际最优金额中，ratio 最高的
+  // 2. 性价比最优：各时间点边际最优中，score/amount 比率最高的
   let bestRatio: {
     tp: TimePointAnalysis;
     ratio: number;
   } | null = null;
   for (const tp of timePoints) {
-    if (tp.bestInterestSaved <= 0 || tp.bestAmount <= 0) continue;
-    const ratio = tp.bestInterestSaved / tp.bestAmount;
+    if (tp.bestScore <= 0 || tp.bestAmount <= 0) continue;
+    const ratio = tp.bestScore / tp.bestAmount;
     if (!bestRatio || ratio > bestRatio.ratio) {
       bestRatio = { tp, ratio };
     }
@@ -159,8 +204,8 @@ function buildRecommendations(
         type: 'best-ratio',
         label: '性价比最优',
         description: isLumpSum
-          ? `第${tp.period}期还${fmtWan(tp.bestAmount)}，每万元节省${fmtMoney(per10k)}利息`
-          : `第${tp.period}期起月供${tp.bestAmount}，每万元增量节省${fmtMoney(per10k)}`,
+          ? `第${tp.period}期还${fmtWan(tp.bestAmount)}，每万元${benefitText}${fmtMoney(per10k)}`
+          : `第${tp.period}期起月供${tp.bestAmount}，每万元增量${benefitText}${fmtMoney(per10k)}`,
         patch: isLumpSum
           ? { lumpSumPeriod: tp.period, lumpSumAmount: tp.bestAmount }
           : { startPeriod: tp.period, newMonthly: tp.bestAmount },
@@ -168,18 +213,18 @@ function buildRecommendations(
     }
   }
 
-  // 3. 轻松方案：金额 ≤ 剩余本金 20%（一次性）或增幅 ≤ 20%（月供），节省最大
+  // 3. 轻松方案：金额约束下 score 最大
   let easyBest: { tp: TimePointAnalysis; sp: SamplePoint } | null = null;
   for (const tp of timePoints) {
     const item = periodMap.get(tp.period);
     if (!item) continue;
     for (const sp of tp.samples) {
-      if (sp.interestSaved <= 0) continue;
+      if (sp.score <= 0) continue;
       const withinLimit = isLumpSum
         ? sp.amount <= item.remainingLoan * 0.2
         : sp.amount <= item.monthlyPayment * 1.2;
       if (!withinLimit) continue;
-      if (!easyBest || sp.interestSaved > easyBest.sp.interestSaved) {
+      if (!easyBest || sp.score > easyBest.sp.score) {
         easyBest = { tp, sp };
       }
     }
@@ -197,8 +242,8 @@ function buildRecommendations(
         type: 'easy',
         label: '轻松方案',
         description: isLumpSum
-          ? `第${tp.period}期还${fmtWan(sp.amount)}，节省${fmtMoney(sp.interestSaved)}，压力小`
-          : `第${tp.period}期起月供${sp.amount}，节省${fmtMoney(sp.interestSaved)}`,
+          ? `第${tp.period}期还${fmtWan(sp.amount)}，${benefitText}${fmtMoney(sp.score)}，压力小`
+          : `第${tp.period}期起月供${sp.amount}，${benefitText}${fmtMoney(sp.score)}`,
         patch: isLumpSum
           ? { lumpSumPeriod: tp.period, lumpSumAmount: sp.amount }
           : { startPeriod: tp.period, newMonthly: sp.amount },
@@ -214,9 +259,11 @@ function useAnalysisMatrix(
   _params: LoanParameters,
   input: SimulateInput,
   currentMonthlyPayment: number,
+  adjustments: ScoreAdjustments,
 ): AnalysisMatrix {
   return useMemo(() => {
     const isLumpSum = input.mode === 'lump-sum';
+    const strategy = input.lumpSumStrategy ?? 'shorten-term';
     const userPeriod = isLumpSum
       ? (input.lumpSumPeriod ?? 1)
       : (input.startPeriod ?? 1);
@@ -227,6 +274,7 @@ function useAnalysisMatrix(
     const periodMap = new Map(regularItems.map((s) => [s.period, s]));
     const originalSummary = calcScheduleSummary(schedule);
     const precomputed = { periodMap, originalSummary };
+    const adj = adjustments;
 
     const timePoints: TimePointAnalysis[] = [];
 
@@ -239,14 +287,26 @@ function useAnalysisMatrix(
       if (isLumpSum) {
         const maxAmount = item.remainingLoan * 0.8;
         const sampleCount = 12;
-        const step = Math.floor(maxAmount / sampleCount / 10000) * 10000;
+        const rawStep = maxAmount / sampleCount;
+        const step =
+          rawStep >= 10000
+            ? Math.floor(rawStep / 10000) * 10000
+            : rawStep >= 1000
+              ? Math.floor(rawStep / 1000) * 1000
+              : Math.max(Math.floor(rawStep / 100) * 100, 100);
         if (step <= 0) continue;
 
         samples = [];
         for (let i = 1; i <= sampleCount; i++) {
           const amount = step * i;
-          const r = simulateLumpSumFast(schedule, amount, period, precomputed);
-          if (r) samples.push({ amount, ...r });
+          const r = simulateLumpSumFast(
+            schedule,
+            amount,
+            period,
+            precomputed,
+            strategy,
+          );
+          if (r) samples.push({ amount, ...r, score: r.interestSaved });
         }
       } else {
         const cur = roundTo2(currentMonthlyPayment);
@@ -259,15 +319,60 @@ function useAnalysisMatrix(
 
         samples = [];
         for (let amount = sampleMin; amount <= sampleMax; amount += step) {
-          if (amount === cur) continue;
+          if (Math.abs(amount - cur) < 1) continue;
           const r = simulateNewMonthlyOnce(schedule, amount, period);
-          if (r) samples.push({ amount, ...r });
+          if (r) samples.push({ amount, ...r, score: r.interestSaved });
         }
       }
 
       if (samples.length === 0) continue;
 
-      const best = findMarginalBest(samples) ?? samples[samples.length - 1];
+      // 机会成本 & 通胀折算调整
+      if (adj.opportunityCost || adj.inflation) {
+        const remainingMonths = item.remainingTerm;
+        for (const sp of samples) {
+          let score = sp.interestSaved;
+          if (adj.opportunityCost && adj.investmentRate > 0) {
+            if (isLumpSum) {
+              score -= calcLumpSumReturn(
+                sp.amount,
+                adj.investmentRate,
+                remainingMonths,
+              );
+            } else {
+              const extra = sp.amount - currentMonthlyPayment;
+              if (extra > 0) {
+                score -= calcAnnuityReturn(
+                  extra,
+                  adj.investmentRate,
+                  remainingMonths,
+                );
+              } else if (extra < 0) {
+                score += calcAnnuityReturn(
+                  -extra,
+                  adj.investmentRate,
+                  remainingMonths,
+                );
+              }
+            }
+          }
+          if (adj.inflation && adj.inflationRate > 0) {
+            score = discountToPresent(
+              score,
+              adj.inflationRate,
+              remainingMonths / 2,
+            );
+          }
+          sp.score = score;
+        }
+      }
+
+      const positiveSamples = samples.filter((s) => s.score > 0);
+      const best =
+        positiveSamples.length > 0
+          ? (findMarginalBest(positiveSamples) ??
+            positiveSamples[positiveSamples.length - 1])
+          : samples[samples.length - 1];
       timePoints.push({
         period,
         paymentDate: item.paymentDate,
@@ -275,15 +380,18 @@ function useAnalysisMatrix(
         annualInterestRate: item.annualInterestRate,
         bestAmount: best.amount,
         bestInterestSaved: best.interestSaved,
+        bestScore: best.score,
         bestTermReduced: best.termReduced,
         samples,
       });
     }
 
+    const adjusted = adj.opportunityCost || adj.inflation;
     const recommendations = buildRecommendations(
       timePoints,
       isLumpSum,
       periodMap,
+      adjusted,
     );
 
     return { timePoints, recommendations };
@@ -291,8 +399,10 @@ function useAnalysisMatrix(
     schedule,
     input.mode,
     input.lumpSumPeriod,
+    input.lumpSumStrategy,
     input.startPeriod,
     currentMonthlyPayment,
+    adjustments,
   ]);
 }
 
@@ -312,11 +422,34 @@ export function SmartAnalysis({
   const [open, setOpen] = useState(true);
   const { resolved } = useTheme();
 
+  const [adjustOpportunityCost, setAdjustOpportunityCost] = useState(false);
+  const [adjustInflation, setAdjustInflation] = useState(false);
+  const [inflationRate, setInflationRate] = useState(2.0);
+
+  const adjustments = useMemo<ScoreAdjustments>(
+    () => ({
+      opportunityCost: adjustOpportunityCost,
+      inflation: adjustInflation,
+      investmentRate: input.investmentRate,
+      inflationRate,
+    }),
+    [
+      adjustOpportunityCost,
+      adjustInflation,
+      input.investmentRate,
+      inflationRate,
+    ],
+  );
+
+  const adjusted = adjustOpportunityCost || adjustInflation;
+  const scoreLabel = adjusted ? '净收益' : '节省利息';
+
   const { timePoints, recommendations } = useAnalysisMatrix(
     schedule,
     params,
     input,
     currentMonthlyPayment,
+    adjustments,
   );
 
   const isLumpSum = input.mode === 'lump-sum';
@@ -375,7 +508,7 @@ export function SmartAnalysis({
       yAxis: [
         {
           type: 'value',
-          name: '节省利息',
+          name: scoreLabel,
           nameTextStyle: { color: textColor, fontSize: 10 },
           axisLabel: { fontSize: 10, color: textColor },
           splitLine: { lineStyle: { color: isDark ? '#333' : '#eee' } },
@@ -390,9 +523,9 @@ export function SmartAnalysis({
       ],
       series: [
         {
-          name: '节省利息',
+          name: scoreLabel,
           type: 'bar',
-          data: timePoints.map((t) => t.bestInterestSaved),
+          data: timePoints.map((t) => t.bestScore),
           itemStyle: {
             color: (p: { dataIndex: number }) =>
               p.dataIndex === activeTimeIdx ? '#2563eb' : '#93c5fd',
@@ -412,7 +545,7 @@ export function SmartAnalysis({
         },
       ],
     };
-  }, [timePoints, resolved, activeTimeIdx, isLumpSum]);
+  }, [timePoints, resolved, activeTimeIdx, isLumpSum, scoreLabel]);
 
   // 图 2：当前选中时间点的金额分析
   const amountChartOption = useMemo(() => {
@@ -480,7 +613,7 @@ export function SmartAnalysis({
       yAxis: [
         {
           type: 'value',
-          name: '节省利息',
+          name: scoreLabel,
           nameTextStyle: { color: textColor, fontSize: 10 },
           axisLabel: { fontSize: 10, color: textColor },
           splitLine: { lineStyle: { color: isDark ? '#333' : '#eee' } },
@@ -495,9 +628,9 @@ export function SmartAnalysis({
       ],
       series: [
         {
-          name: '节省利息',
+          name: scoreLabel,
           type: 'line',
-          data: samples.map((s) => s.interestSaved),
+          data: samples.map((s) => s.score),
           showSymbol: true,
           symbolSize: 6,
           lineStyle: { width: 2, color: '#4f8cff' },
@@ -542,6 +675,7 @@ export function SmartAnalysis({
     input.newMonthly,
     currentMonthlyPayment,
     isLumpSum,
+    scoreLabel,
   ]);
 
   // 图 1 点击：同步期数 + 该时间点的最优金额（两个维度都设置才能触发完整计算）
@@ -583,6 +717,53 @@ export function SmartAnalysis({
 
       {open && (
         <div className="px-4 pb-4 space-y-4">
+          <p className="text-xs text-amber-500 dark:text-amber-400 font-medium">
+            测试中：当前算法尚未完善，结果仅供参考，请勿作为重要决策依据
+          </p>
+          <p className="text-xs text-muted-foreground">
+            自动采样不同时间点和金额，找出最优还款方案；可勾选下方选项将机会成本或通胀纳入评估
+          </p>
+
+          {/* 调整选项 */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={adjustOpportunityCost}
+                onChange={(e) => setAdjustOpportunityCost(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-muted-foreground">
+                扣除机会成本（理财 {input.investmentRate}%）
+              </span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={adjustInflation}
+                onChange={(e) => setAdjustInflation(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-muted-foreground">折算通胀</span>
+            </label>
+            {adjustInflation && (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={inflationRate}
+                  onChange={(e) =>
+                    setInflationRate(Number(e.target.value) || 0)
+                  }
+                  className="w-14 px-1.5 py-0.5 text-xs border border-border rounded text-center bg-background"
+                  step="0.1"
+                  min="0"
+                  max="20"
+                />
+                <span className="text-muted-foreground">%</span>
+              </div>
+            )}
+          </div>
+
           {/* 推荐方案 */}
           {recommendations.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

@@ -322,7 +322,7 @@ function simulateMonthlyAdjust(
     schedule,
     simulated,
     roundTo2(totalAdjustment),
-    null,
+    adjustedPayment,
     originalPayment,
     investmentRate,
     observationOverride,
@@ -618,7 +618,7 @@ export function simulateNewMonthlyOnce(
   let simInterest = 0;
   let simTerms = 0;
   let rem = remainingLoan;
-  while (rem > 0) {
+  while (rem > 0.01) {
     const interest = roundTo2(rem * monthlyRate);
     simInterest += interest;
     const principal = roundTo2(adjustedPayment - interest);
@@ -660,6 +660,7 @@ export function simulateLumpSumFast(
     periodMap: Map<number, PaymentScheduleItem>;
     originalSummary: LoanScheduleSummary;
   },
+  strategy: 'reduce-payment' | 'shorten-term' = 'shorten-term',
 ): { interestSaved: number; termReduced: number } | null {
   const periodMap =
     precomputed?.periodMap ??
@@ -672,15 +673,25 @@ export function simulateLumpSumFast(
 
   const newRemainingLoan = roundTo2(remainingLoan - lumpSumAmount);
   const monthlyRate = targetItem.annualInterestRate / 100 / 12;
-  const monthlyPayment = targetItem.monthlyPayment;
+  let simPayment: number;
+  if (strategy === 'reduce-payment') {
+    const remainingTerm = targetItem.remainingTerm;
+    if (remainingTerm <= 0) return null;
+    const factor = (1 + monthlyRate) ** remainingTerm;
+    simPayment = roundTo2(
+      (newRemainingLoan * monthlyRate * factor) / (factor - 1),
+    );
+  } else {
+    simPayment = targetItem.monthlyPayment;
+  }
 
   let rem = newRemainingLoan;
   let simInterest = 0;
   let simTerms = 0;
-  while (rem > 0) {
+  while (rem > 0.01) {
     const interest = roundTo2(rem * monthlyRate);
     simInterest += interest;
-    const principal = roundTo2(monthlyPayment - interest);
+    const principal = roundTo2(simPayment - interest);
     if (principal <= 0) return null;
     if (principal >= rem) {
       simTerms++;
