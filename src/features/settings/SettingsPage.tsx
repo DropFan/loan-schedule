@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   APP_AUTHOR,
   APP_LINK,
-  APP_RELEASE,
   APP_VERSION,
 } from '@/constants/app.constants';
 import { type Theme, useTheme } from '@/hooks/useTheme';
@@ -242,7 +241,7 @@ export function SettingsPage() {
           </div>
           <p>贷款计算器 & 还贷模拟器</p>
           <p className="text-muted-foreground">
-            版本 v{APP_VERSION} (Release {APP_RELEASE})
+            版本 v{APP_VERSION}
           </p>
           <p className="text-muted-foreground">作者：{APP_AUTHOR}</p>
           <p>
