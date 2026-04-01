@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  APP_AUTHOR,
-  APP_LINK,
-  APP_VERSION,
-} from '@/constants/app.constants';
+import { APP_AUTHOR, APP_LINK, APP_VERSION } from '@/constants/app.constants';
 import { type Theme, useTheme } from '@/hooks/useTheme';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { exportData, importData } from './data-transfer';
@@ -240,9 +236,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p>贷款计算器 & 还贷模拟器</p>
-          <p className="text-muted-foreground">
-            版本 v{APP_VERSION}
-          </p>
+          <p className="text-muted-foreground">版本 v{APP_VERSION}</p>
           <p className="text-muted-foreground">作者：{APP_AUTHOR}</p>
           <p>
             <a
