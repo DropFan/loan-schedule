@@ -1,6 +1,21 @@
 Changelog
 ===
 
+[2.6.1] - 2026-04-02
+---
+
+### 新功能
+
+* [New] 设置页新增"检查更新"按钮，手动触发 Service Worker 检查新版本。
+
+### 改进
+
+* 更新 manifest.json 和 index.html，补充还款模拟、机会成本分析描述和关键词，PWA shortcuts 新增还款模拟入口。
+
+### 修复
+
+* [Fix] 修复 info-tip.tsx import 排序不符合 Biome organizeImports 规则。
+
 [2.6.0] - 2026-04-02
 ---
 
