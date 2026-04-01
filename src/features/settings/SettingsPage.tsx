@@ -27,6 +27,7 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('');
   const location = useLocation();
 
   useEffect(() => {
@@ -136,6 +137,43 @@ export function SettingsPage() {
               />
             </button>
           </label>
+          <div className="flex items-center justify-between pt-2">
+            <div>
+              <p className="text-sm font-medium">检查更新</p>
+              <p className="text-xs text-muted-foreground">
+                {updateStatus || '手动检查是否有新版本可用'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                if (!('serviceWorker' in navigator)) {
+                  setUpdateStatus('当前浏览器不支持 Service Worker');
+                  return;
+                }
+                setUpdateStatus('正在检查…');
+                try {
+                  const reg =
+                    await navigator.serviceWorker.getRegistration('/');
+                  if (!reg) {
+                    setUpdateStatus('未找到 Service Worker 注册');
+                    return;
+                  }
+                  await reg.update();
+                  if (reg.waiting) {
+                    setUpdateStatus('发现新版本，请在弹窗中确认更新');
+                  } else {
+                    setUpdateStatus('已是最新版本');
+                  }
+                } catch {
+                  setUpdateStatus('检查失败，请稍后重试');
+                }
+              }}
+            >
+              检查更新
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
