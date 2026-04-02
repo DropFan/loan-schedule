@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { APP_VERSION } from '@/constants/app.constants';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { Button } from '../ui/button';
 
 function usePwaUpdate() {
   const [needRefresh, setNeedRefresh] = useState(false);
+  const [newVersion, setNewVersion] = useState<string | null>(null);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
+
+    const fetchNewVersion = () => {
+      fetch(`/version.json?t=${Date.now()}`)
+        .then((r) => r.json())
+        .then((data) => setNewVersion(data.version))
+        .catch(() => {});
+    };
 
     navigator.serviceWorker
       .register('/service-worker.js', { scope: '/' })
@@ -17,6 +24,7 @@ function usePwaUpdate() {
 
         if (reg.waiting) {
           setNeedRefresh(true);
+          fetchNewVersion();
           return;
         }
 
@@ -29,6 +37,7 @@ function usePwaUpdate() {
               navigator.serviceWorker.controller
             ) {
               setNeedRefresh(true);
+              fetchNewVersion();
             }
           });
         });
@@ -46,12 +55,12 @@ function usePwaUpdate() {
     registrationRef.current?.waiting?.postMessage({ type: 'SKIP_WAITING' });
   }, []);
 
-  return { needRefresh, update };
+  return { needRefresh, newVersion, update };
 }
 
 export function PwaUpdatePrompt() {
   const autoUpdate = useLoanStore((s) => s.autoUpdate);
-  const { needRefresh, update } = usePwaUpdate();
+  const { needRefresh, newVersion, update } = usePwaUpdate();
   const [countdown, setCountdown] = useState(-1);
 
   useEffect(() => {
@@ -78,8 +87,13 @@ export function PwaUpdatePrompt() {
     <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 lg:bottom-6">
       <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-lg">
         <span className="text-sm">
-          发现新版本{' '}
-          <span className="font-medium text-primary">v{APP_VERSION}</span>
+          发现新版本
+          {newVersion && (
+            <>
+              {' '}
+              <span className="font-medium text-primary">v{newVersion}</span>
+            </>
+          )}
           {autoUpdate && (
             <span className="ml-1 text-muted-foreground">
               {countdown}s 后自动更新

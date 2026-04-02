@@ -1,8 +1,23 @@
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { type Plugin, defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import pkg from './package.json' with { type: 'json' };
+
+function versionJsonPlugin(): Plugin {
+  return {
+    name: 'version-json',
+    writeBundle(options) {
+      const dir = options.dir || resolve(__dirname, 'dist');
+      writeFileSync(
+        resolve(dir, 'version.json'),
+        JSON.stringify({ version: pkg.version }),
+      );
+    },
+  };
+}
 
 export default defineConfig({
   define: {
@@ -12,6 +27,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    versionJsonPlugin(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
@@ -19,6 +35,7 @@ export default defineConfig({
       filename: 'service-worker.js',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallbackDenylist: [/^\/version\.json$/],
         clientsClaim: true,
         cleanupOutdatedCaches: true,
       },
