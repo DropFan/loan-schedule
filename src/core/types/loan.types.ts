@@ -106,5 +106,13 @@ export interface LoanScheduleSummary {
   termMonths: number;
 }
 
+export interface LoanGroup {
+  id: string;
+  name: string;
+  loanIds: [string, string];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type LoanEventType = 'initialized' | 'changed' | 'cleared';
 export type LoanEventCallback = () => void;

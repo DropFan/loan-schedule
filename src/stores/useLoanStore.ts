@@ -15,6 +15,7 @@ import {
   ChangeType,
   type LoanChangeParams,
   type LoanChangeRecord,
+  type LoanGroup,
   LoanMethod,
   LoanMethodName,
   type LoanParameters,
@@ -71,6 +72,10 @@ interface LoanState {
   savedLoans: SavedLoan[];
   activeLoanId: string | null;
 
+  // combined loan groups
+  savedGroups: LoanGroup[];
+  activeGroupId: string | null;
+
   // multi-rate-table
   savedRateTables: SavedRateTable[];
   activeRateTableId: string | null;
@@ -101,6 +106,13 @@ interface LoanState {
   loadLoan: (id: string) => void;
   deleteLoan: (id: string) => void;
   renameLoan: (id: string, name: string) => void;
+
+  // combined loan group actions
+  createGroup: (name: string, loanIds: [string, string]) => string;
+  deleteGroup: (id: string) => void;
+  renameGroup: (id: string, name: string) => void;
+  loadGroup: (id: string) => void;
+  switchSubLoan: (index: 0 | 1) => void;
 
   // multi-rate-table actions
   saveRateTable: (
@@ -160,6 +172,8 @@ export const useLoanStore = create<LoanState>()(
         history: [],
         savedLoans: [],
         activeLoanId: null,
+        savedGroups: [],
+        activeGroupId: null,
         savedRateTables: [],
         activeRateTableId: null,
         autoSave: true,
@@ -661,6 +675,7 @@ export const useLoanStore = create<LoanState>()(
             rateTable: [],
             history: [],
             loanDirty: false,
+            activeGroupId: null,
             summary: null,
             canUndo: false,
           });
@@ -726,6 +741,7 @@ export const useLoanStore = create<LoanState>()(
 
           set({
             activeLoanId: id,
+            activeGroupId: null,
             params: target.params,
             schedule: target.schedule,
             changes: target.changes,
@@ -742,10 +758,24 @@ export const useLoanStore = create<LoanState>()(
 
         deleteLoan: (id: string) => {
           const state = get();
+          // 级联删除引用了该方案的组合
+          const remainingGroups = state.savedGroups.filter(
+            (g) => !g.loanIds.includes(id),
+          );
           const filtered = state.savedLoans.filter((l) => l.id !== id);
-          const updates: Partial<LoanState> = { savedLoans: filtered };
+          const updates: Partial<LoanState> = {
+            savedLoans: filtered,
+            savedGroups: remainingGroups,
+          };
           if (state.activeLoanId === id) {
             updates.activeLoanId = null;
+          }
+          // 若当前组合被级联删除，退出组合模式
+          if (
+            state.activeGroupId &&
+            !remainingGroups.some((g) => g.id === state.activeGroupId)
+          ) {
+            updates.activeGroupId = null;
           }
           set(updates as LoanState);
         },
@@ -842,6 +872,110 @@ export const useLoanStore = create<LoanState>()(
           );
           set({ savedRateTables: updated });
         },
+
+        createGroup: (name: string, loanIds: [string, string]) => {
+          const state = get();
+          // 校验两个方案均存在且不重复
+          if (loanIds[0] === loanIds[1]) return '';
+          if (
+            !state.savedLoans.some((l) => l.id === loanIds[0]) ||
+            !state.savedLoans.some((l) => l.id === loanIds[1])
+          )
+            return '';
+
+          const now = new Date().toISOString();
+          const id = `group-${Date.now()}`;
+          const group: LoanGroup = {
+            id,
+            name,
+            loanIds,
+            createdAt: now,
+            updatedAt: now,
+          };
+          set({ savedGroups: [...state.savedGroups, group] });
+          // 自动激活组合
+          get().loadGroup(id);
+          return id;
+        },
+
+        deleteGroup: (id: string) => {
+          const state = get();
+          const filtered = state.savedGroups.filter((g) => g.id !== id);
+          const updates: Partial<LoanState> = { savedGroups: filtered };
+          if (state.activeGroupId === id) {
+            updates.activeGroupId = null;
+          }
+          set(updates as LoanState);
+        },
+
+        renameGroup: (id: string, name: string) => {
+          const state = get();
+          const updated = state.savedGroups.map((g) =>
+            g.id === id
+              ? { ...g, name, updatedAt: new Date().toISOString() }
+              : g,
+          );
+          set({ savedGroups: updated });
+        },
+
+        loadGroup: (id: string) => {
+          const state = get();
+          const group = state.savedGroups.find((g) => g.id === id);
+          if (!group) return;
+
+          const loanA = state.savedLoans.find((l) => l.id === group.loanIds[0]);
+          if (!loanA) return;
+
+          // 载入第一个子方案到工作区，进入组合模式
+          set({
+            activeGroupId: id,
+            activeLoanId: loanA.id,
+            params: loanA.params,
+            schedule: loanA.schedule,
+            changes: loanA.changes,
+            rateTable: loanA.rateTable,
+            history: loanA.history,
+            loanDirty: false,
+            summary:
+              loanA.schedule.length > 0
+                ? calcScheduleSummary(loanA.schedule)
+                : null,
+            canUndo: loanA.history.length > 0,
+          });
+        },
+
+        switchSubLoan: (index: 0 | 1) => {
+          const state = get();
+          if (!state.activeGroupId) return;
+
+          const group = state.savedGroups.find(
+            (g) => g.id === state.activeGroupId,
+          );
+          if (!group) return;
+
+          // 先自动保存当前子方案
+          markLoanDirty();
+
+          const targetId = group.loanIds[index];
+          const target = get().savedLoans.find((l) => l.id === targetId);
+          if (!target) return;
+
+          // 载入目标子方案，保持 activeGroupId 不变
+          set({
+            activeLoanId: targetId,
+            params: target.params,
+            schedule: target.schedule,
+            changes: target.changes,
+            rateTable: target.rateTable,
+            history: target.history,
+            loanDirty: false,
+            summary:
+              target.schedule.length > 0
+                ? calcScheduleSummary(target.schedule)
+                : null,
+            canUndo: target.history.length > 0,
+          });
+        },
       };
     },
     {
@@ -867,6 +1001,8 @@ export const useLoanStore = create<LoanState>()(
         history: state.history,
         savedLoans: state.savedLoans,
         activeLoanId: state.activeLoanId,
+        savedGroups: state.savedGroups,
+        activeGroupId: state.activeGroupId,
         savedRateTables: state.savedRateTables,
         activeRateTableId: state.activeRateTableId,
         autoSave: state.autoSave,
@@ -900,6 +1036,23 @@ export const useLoanStore = create<LoanState>()(
             }
           }
         }
+        // 校验 group 引用有效性，移除引用了不存在 loan 的 group
+        if (state.savedGroups?.length) {
+          const loanIds = new Set(state.savedLoans.map((l) => l.id));
+          state.savedGroups = state.savedGroups.filter(
+            (g) => loanIds.has(g.loanIds[0]) && loanIds.has(g.loanIds[1]),
+          );
+          // 若当前激活的 group 已被移除，退出组合模式
+          if (
+            state.activeGroupId &&
+            !state.savedGroups.some((g) => g.id === state.activeGroupId)
+          ) {
+            state.activeGroupId = null;
+          }
+        }
+        state.savedGroups ??= [];
+        state.activeGroupId ??= null;
+
         if (state.schedule.length > 0) {
           state.summary = calcScheduleSummary(state.schedule);
           state.canUndo = (state.history?.length ?? 0) > 0;
