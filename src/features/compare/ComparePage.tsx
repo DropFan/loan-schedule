@@ -20,6 +20,10 @@ export interface LoanOption {
   isActive: boolean;
   params: LoanParameters;
   schedule: PaymentScheduleItem[];
+  /** 组合方案的子方案参数（用于对比页分项展示） */
+  subParams?: [LoanParameters, LoanParameters];
+  /** 组合方案子方案的当前利率 */
+  subCurrentRates?: [number, number];
 }
 
 export type Dimension = 'payment' | 'cumulative' | 'remaining' | 'interest';
@@ -33,6 +37,25 @@ export interface SelectedLoan {
   isActive: boolean;
   params: LoanParameters;
   schedule: PaymentScheduleItem[];
+  subParams?: [LoanParameters, LoanParameters];
+  subCurrentRates?: [number, number];
+}
+
+/** 从 schedule 中提取当前最新利率（最后一个 paymentDate <= today 的常规期） */
+function getLatestRate(schedule: PaymentScheduleItem[]): number {
+  const today = new Date().toISOString().split('T')[0];
+  let rate = 0;
+  for (const item of schedule) {
+    if (item.period <= 0) continue;
+    if (item.paymentDate > today) break;
+    rate = item.annualInterestRate;
+  }
+  if (rate === 0) {
+    const regular = schedule.filter((s) => s.period > 0);
+    if (regular.length > 0)
+      rate = regular[regular.length - 1].annualInterestRate;
+  }
+  return rate;
 }
 
 export function ComparePage() {
@@ -80,13 +103,28 @@ export function ComparePage() {
     const mergedSchedule = groupScheduleMap.get(group.id);
     if (!mergedSchedule?.length) continue;
     const a = savedLoans.find((l) => l.id === group.loanIds[0]);
-    if (!a?.params) continue;
+    const b = savedLoans.find((l) => l.id === group.loanIds[1]);
+    if (!a?.params || !b?.params) continue;
+    const pa = a.params;
+    const pb = b.params;
     loanOptions.push({
       id: `group:${group.id}`,
       name: `[组合] ${group.name}`,
       isActive: group.id === activeGroupId,
-      params: a.params,
+      params: {
+        ...pa,
+        loanAmount: pa.loanAmount + pb.loanAmount,
+        loanTermMonths: Math.max(pa.loanTermMonths, pb.loanTermMonths),
+        annualInterestRate:
+          pa.loanAmount + pb.loanAmount > 0
+            ? (pa.annualInterestRate * pa.loanAmount +
+                pb.annualInterestRate * pb.loanAmount) /
+              (pa.loanAmount + pb.loanAmount)
+            : 0,
+      },
       schedule: mergedSchedule,
+      subParams: [pa, pb],
+      subCurrentRates: [getLatestRate(a.schedule), getLatestRate(b.schedule)],
     });
   }
 

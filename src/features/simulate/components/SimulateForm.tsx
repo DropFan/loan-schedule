@@ -179,417 +179,422 @@ export function SimulateForm({
     <div className="space-y-4">
       {/* 面板 1：贷款变更参数 */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-      {/* 模式切换 */}
-      <div className="flex gap-1">
-        {(Object.keys(MODE_LABELS) as Array<keyof typeof MODE_LABELS>).map(
-          (mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => onChange({ ...input, mode })}
-              className={`flex-1 px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                input.mode === mode
-                  ? 'border-primary bg-primary/10 text-primary font-medium'
-                  : 'border-border text-muted-foreground hover:bg-muted/10'
-              }`}
-            >
-              {MODE_LABELS[mode]}
-            </button>
-          ),
-        )}
-      </div>
-
-      {/* 模式 A：调整月供 */}
-      {input.mode === 'adjust-monthly' && (
-        <div className="space-y-3">
-          <label className="block">
-            <span className="text-sm text-muted-foreground">
-              新月还款额（元）
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder={`当前 ${roundTo2(currentMonthlyPayment)}`}
-              value={input.newMonthly ?? ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                onChange({
-                  ...input,
-                  newMonthly: v === '' ? undefined : Number(v),
-                });
-              }}
-              className={inputClass}
-            />
-            <input
-              type="range"
-              min={monthlyMin}
-              max={monthlyMax}
-              step={0.01}
-              value={currentVal}
-              onChange={(e) =>
-                onChange({ ...input, newMonthly: Number(e.target.value) })
-              }
-              className="mt-2 w-full accent-primary"
-            />
-            <div className="relative text-[10px] mt-0.5 h-4">
-              {monthlyTicks.map((tick) => (
-                <button
-                  key={tick.value}
-                  type="button"
-                  onClick={() => onChange({ ...input, newMonthly: tick.value })}
-                  className={`absolute -translate-x-1/2 hover:text-primary transition-colors ${
-                    input.newMonthly === tick.value
-                      ? 'text-primary font-medium'
-                      : 'text-muted-foreground/60'
-                  }`}
-                  style={{ left: `${tick.pct}%` }}
-                >
-                  {tick.label}
-                </button>
-              ))}
-            </div>
-          </label>
-
-          {/* 快捷按钮 */}
-          <div className="flex flex-wrap gap-1.5">
-            {monthlyQuick.map((q) => (
+        {/* 模式切换 */}
+        <div className="flex gap-1">
+          {(Object.keys(MODE_LABELS) as Array<keyof typeof MODE_LABELS>).map(
+            (mode) => (
               <button
-                key={q.value}
+                key={mode}
                 type="button"
-                onClick={() => onChange({ ...input, newMonthly: q.value })}
-                className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                  input.newMonthly === q.value
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-muted/30'
+                onClick={() => onChange({ ...input, mode })}
+                className={`flex-1 px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                  input.mode === mode
+                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                    : 'border-border text-muted-foreground hover:bg-muted/10'
                 }`}
               >
-                {q.label}
+                {MODE_LABELS[mode]}
               </button>
-            ))}
-          </div>
-          {input.newMonthly != null && (
-            <p className="text-xs text-muted-foreground">
-              当前月供 {roundTo2(currentMonthlyPayment)}，变化{' '}
-              <span
-                className={
-                  monthlyDiff > 0
-                    ? 'text-red-500'
-                    : monthlyDiff < 0
-                      ? 'text-green-500'
-                      : ''
-                }
-              >
-                {monthlyDiff > 0 ? '+' : ''}
-                {roundTo2(monthlyDiff)}（{monthlyDiff > 0 ? '+' : ''}
-                {monthlyDiffPct}%）
-              </span>
-            </p>
+            ),
           )}
+        </div>
 
-          <div className="space-y-1">
-            <span className="text-sm text-muted-foreground">
-              执行日期
-              {(() => {
-                const p = input.startPeriod ?? defaultStartPeriod;
-                const d = periodMap.get(p)?.paymentDate;
-                return d ? (
-                  <span className="ml-1 text-foreground font-medium">
-                    第 {p} 期（{d}）
-                  </span>
-                ) : null;
-              })()}
-            </span>
-            <div className="flex gap-2 mt-1">
+        {/* 模式 A：调整月供 */}
+        {input.mode === 'adjust-monthly' && (
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-sm text-muted-foreground">
+                新月还款额（元）
+              </span>
               <input
-                type="number"
-                min={1}
-                max={maxPeriod}
-                placeholder={`第 ${defaultStartPeriod} 期`}
-                value={input.startPeriod ?? defaultStartPeriod}
+                type="text"
+                inputMode="decimal"
+                placeholder={`当前 ${roundTo2(currentMonthlyPayment)}`}
+                value={input.newMonthly ?? ''}
                 onChange={(e) => {
                   const v = e.target.value;
                   onChange({
                     ...input,
-                    startPeriod: v === '' ? undefined : Number(v),
+                    newMonthly: v === '' ? undefined : Number(v),
                   });
                 }}
-                className={`${inputClassCompact} w-20 shrink-0`}
+                className={inputClass}
               />
               <input
-                type="date"
-                value={
-                  periodMap.get(input.startPeriod ?? defaultStartPeriod)
-                    ?.paymentDate ?? ''
+                type="range"
+                min={monthlyMin}
+                max={monthlyMax}
+                step={0.01}
+                value={currentVal}
+                onChange={(e) =>
+                  onChange({ ...input, newMonthly: Number(e.target.value) })
                 }
-                onChange={(e) => {
-                  const p = findPeriodByDate(e.target.value);
-                  if (p) onChange({ ...input, startPeriod: p });
-                }}
-                className={`${inputClassCompact} min-w-0 flex-1`}
+                className="mt-2 w-full accent-primary"
               />
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="relative text-[10px] mt-0.5 h-4">
+                {monthlyTicks.map((tick) => (
+                  <button
+                    key={tick.value}
+                    type="button"
+                    onClick={() =>
+                      onChange({ ...input, newMonthly: tick.value })
+                    }
+                    className={`absolute -translate-x-1/2 hover:text-primary transition-colors ${
+                      input.newMonthly === tick.value
+                        ? 'text-primary font-medium'
+                        : 'text-muted-foreground/60'
+                    }`}
+                    style={{ left: `${tick.pct}%` }}
+                  >
+                    {tick.label}
+                  </button>
+                ))}
+              </div>
+            </label>
 
-      {/* 模式 B：一次性还款 */}
-      {input.mode === 'lump-sum' && (
-        <div className="space-y-3">
-          <label className="block">
-            <span className="text-sm text-muted-foreground">
-              提前还款金额（元）
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="如 100000"
-              value={input.lumpSumAmount ?? ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                onChange({
-                  ...input,
-                  lumpSumAmount: v === '' ? undefined : Number(v),
-                });
-              }}
-              className={inputClass}
-            />
-            <input
-              type="range"
-              min={0}
-              max={roundTo2(lumpSumMaxAmount)}
-              step={0.01}
-              value={input.lumpSumAmount ?? 0}
-              onChange={(e) =>
-                onChange({ ...input, lumpSumAmount: Number(e.target.value) })
-              }
-              className="mt-2 w-full accent-primary"
-            />
-            <div className="relative text-[10px] mt-0.5 h-4">
-              {lumpSumTicks.map((tick) => (
-                <button
-                  key={tick.value}
-                  type="button"
-                  onClick={() =>
-                    onChange({ ...input, lumpSumAmount: tick.value })
-                  }
-                  className={`absolute -translate-x-1/2 hover:text-primary transition-colors ${
-                    input.lumpSumAmount === tick.value
-                      ? 'text-primary font-medium'
-                      : 'text-muted-foreground/60'
-                  }`}
-                  style={{ left: `${tick.pct}%` }}
-                >
-                  {tick.label}
-                </button>
-              ))}
-            </div>
-          </label>
-
-          {/* 快捷金额 */}
-          <div className="flex flex-wrap gap-1.5">
-            {LUMP_SUM_QUICK.filter((q) => q.value < lumpSumMaxAmount).map(
-              (q) => (
+            {/* 快捷按钮 */}
+            <div className="flex flex-wrap gap-1.5">
+              {monthlyQuick.map((q) => (
                 <button
                   key={q.value}
                   type="button"
-                  onClick={() => onChange({ ...input, lumpSumAmount: q.value })}
+                  onClick={() => onChange({ ...input, newMonthly: q.value })}
                   className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                    input.lumpSumAmount === q.value
+                    input.newMonthly === q.value
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border text-muted-foreground hover:bg-muted/30'
                   }`}
                 >
                   {q.label}
                 </button>
-              ),
+              ))}
+            </div>
+            {input.newMonthly != null && (
+              <p className="text-xs text-muted-foreground">
+                当前月供 {roundTo2(currentMonthlyPayment)}，变化{' '}
+                <span
+                  className={
+                    monthlyDiff > 0
+                      ? 'text-red-500'
+                      : monthlyDiff < 0
+                        ? 'text-green-500'
+                        : ''
+                  }
+                >
+                  {monthlyDiff > 0 ? '+' : ''}
+                  {roundTo2(monthlyDiff)}（{monthlyDiff > 0 ? '+' : ''}
+                  {monthlyDiffPct}%）
+                </span>
+              </p>
             )}
-          </div>
 
-          <div className="space-y-1">
-            <span className="text-sm text-muted-foreground">
-              执行日期
-              {(() => {
-                const p = input.lumpSumPeriod ?? defaultLumpSumPeriod;
-                const d = periodMap.get(p)?.paymentDate;
-                return d ? (
-                  <span className="ml-1 text-foreground font-medium">
-                    第 {p} 期（{d}）
-                  </span>
-                ) : null;
-              })()}
-            </span>
-            <div className="flex gap-2 mt-1">
+            <div className="space-y-1">
+              <span className="text-sm text-muted-foreground">
+                执行日期
+                {(() => {
+                  const p = input.startPeriod ?? defaultStartPeriod;
+                  const d = periodMap.get(p)?.paymentDate;
+                  return d ? (
+                    <span className="ml-1 text-foreground font-medium">
+                      第 {p} 期（{d}）
+                    </span>
+                  ) : null;
+                })()}
+              </span>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={maxPeriod}
+                  placeholder={`第 ${defaultStartPeriod} 期`}
+                  value={input.startPeriod ?? defaultStartPeriod}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    onChange({
+                      ...input,
+                      startPeriod: v === '' ? undefined : Number(v),
+                    });
+                  }}
+                  className={`${inputClassCompact} w-20 shrink-0`}
+                />
+                <input
+                  type="date"
+                  value={
+                    periodMap.get(input.startPeriod ?? defaultStartPeriod)
+                      ?.paymentDate ?? ''
+                  }
+                  onChange={(e) => {
+                    const p = findPeriodByDate(e.target.value);
+                    if (p) onChange({ ...input, startPeriod: p });
+                  }}
+                  className={`${inputClassCompact} min-w-0 flex-1`}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 模式 B：一次性还款 */}
+        {input.mode === 'lump-sum' && (
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-sm text-muted-foreground">
+                提前还款金额（元）
+              </span>
               <input
-                type="number"
-                min={1}
-                max={maxPeriod}
-                placeholder={`第 ${defaultLumpSumPeriod} 期`}
-                value={input.lumpSumPeriod ?? defaultLumpSumPeriod}
+                type="text"
+                inputMode="decimal"
+                placeholder="如 100000"
+                value={input.lumpSumAmount ?? ''}
                 onChange={(e) => {
                   const v = e.target.value;
                   onChange({
                     ...input,
-                    lumpSumPeriod: v === '' ? undefined : Number(v),
+                    lumpSumAmount: v === '' ? undefined : Number(v),
                   });
                 }}
-                className={`${inputClassCompact} w-20 shrink-0`}
+                className={inputClass}
               />
               <input
-                type="date"
-                value={
-                  periodMap.get(input.lumpSumPeriod ?? defaultLumpSumPeriod)
-                    ?.paymentDate ?? ''
+                type="range"
+                min={0}
+                max={roundTo2(lumpSumMaxAmount)}
+                step={0.01}
+                value={input.lumpSumAmount ?? 0}
+                onChange={(e) =>
+                  onChange({ ...input, lumpSumAmount: Number(e.target.value) })
                 }
-                onChange={(e) => {
-                  const p = findPeriodByDate(e.target.value);
-                  if (p) onChange({ ...input, lumpSumPeriod: p });
-                }}
-                className={`${inputClassCompact} min-w-0 flex-1`}
+                className="mt-2 w-full accent-primary"
               />
-            </div>
-          </div>
-          <div>
-            <span className="text-sm text-muted-foreground">处理方式</span>
-            <div className="mt-1 flex gap-2">
-              {(
-                [
-                  ['reduce-payment', '减少月供'],
-                  ['shorten-term', '缩短年限'],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onChange({ ...input, lumpSumStrategy: value })}
-                  className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors border ${
-                    input.lumpSumStrategy === value
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="relative text-[10px] mt-0.5 h-4">
+                {lumpSumTicks.map((tick) => (
+                  <button
+                    key={tick.value}
+                    type="button"
+                    onClick={() =>
+                      onChange({ ...input, lumpSumAmount: tick.value })
+                    }
+                    className={`absolute -translate-x-1/2 hover:text-primary transition-colors ${
+                      input.lumpSumAmount === tick.value
+                        ? 'text-primary font-medium'
+                        : 'text-muted-foreground/60'
+                    }`}
+                    style={{ left: `${tick.pct}%` }}
+                  >
+                    {tick.label}
+                  </button>
+                ))}
+              </div>
+            </label>
 
+            {/* 快捷金额 */}
+            <div className="flex flex-wrap gap-1.5">
+              {LUMP_SUM_QUICK.filter((q) => q.value < lumpSumMaxAmount).map(
+                (q) => (
+                  <button
+                    key={q.value}
+                    type="button"
+                    onClick={() =>
+                      onChange({ ...input, lumpSumAmount: q.value })
+                    }
+                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                      input.lumpSumAmount === q.value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    {q.label}
+                  </button>
+                ),
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-sm text-muted-foreground">
+                执行日期
+                {(() => {
+                  const p = input.lumpSumPeriod ?? defaultLumpSumPeriod;
+                  const d = periodMap.get(p)?.paymentDate;
+                  return d ? (
+                    <span className="ml-1 text-foreground font-medium">
+                      第 {p} 期（{d}）
+                    </span>
+                  ) : null;
+                })()}
+              </span>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={maxPeriod}
+                  placeholder={`第 ${defaultLumpSumPeriod} 期`}
+                  value={input.lumpSumPeriod ?? defaultLumpSumPeriod}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    onChange({
+                      ...input,
+                      lumpSumPeriod: v === '' ? undefined : Number(v),
+                    });
+                  }}
+                  className={`${inputClassCompact} w-20 shrink-0`}
+                />
+                <input
+                  type="date"
+                  value={
+                    periodMap.get(input.lumpSumPeriod ?? defaultLumpSumPeriod)
+                      ?.paymentDate ?? ''
+                  }
+                  onChange={(e) => {
+                    const p = findPeriodByDate(e.target.value);
+                    if (p) onChange({ ...input, lumpSumPeriod: p });
+                  }}
+                  className={`${inputClassCompact} min-w-0 flex-1`}
+                />
+              </div>
+            </div>
+            <div>
+              <span className="text-sm text-muted-foreground">处理方式</span>
+              <div className="mt-1 flex gap-2">
+                {(
+                  [
+                    ['reduce-payment', '减少月供'],
+                    ['shorten-term', '缩短年限'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() =>
+                      onChange({ ...input, lumpSumStrategy: value })
+                    }
+                    className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors border ${
+                      input.lumpSumStrategy === value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 面板 2：机会成本参数 */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-      {/* 理财收益率 */}
-      <div>
-        <span className="text-sm text-muted-foreground">
-          理财收益率（机会成本对比）
-        </span>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          {INVESTMENT_RATE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                setCustomRateText(String(opt.value));
-                onChange({ ...input, investmentRate: opt.value });
-              }}
-              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                input.investmentRate === opt.value && !isCustomRate
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted/30'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="自定义"
-              value={customRateText}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v !== '' && !/^\d*\.?\d*$/.test(v)) return;
-                setCustomRateText(v);
-                const num = Number.parseFloat(v);
-                if (!Number.isNaN(num) && num >= 0) {
-                  onChange({ ...input, investmentRate: num });
-                }
-              }}
-              onBlur={() => {
-                if (isCustomRate)
-                  setCustomRateText(String(input.investmentRate));
-              }}
-              className={`w-16 px-2 py-1 text-xs border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                isCustomRate ? 'border-primary' : 'border-border'
-              }`}
-            />
-            <span className="text-xs text-muted-foreground">%</span>
-          </div>
-        </div>
-      </div>
-      {/* 观察期 */}
-      <div>
-        <span className="text-sm text-muted-foreground">
-          观察期（机会成本计算周期）
-        </span>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          {OBSERVATION_PRESETS.map((opt) => {
-            // "到期"：计算从今天到原方案最后一期的实际月数
-            const months =
-              opt.months === undefined && originalEndDate
-                ? calcPreciseMonths(
-                    new Date(),
-                    new Date(`${originalEndDate}T00:00:00`),
-                  )
-                : opt.months;
-            const isActive = input.observationMonths === months;
-            const label =
-              opt.months === undefined && originalEndDate
-                ? `到期 ${originalEndDate}`
-                : opt.label;
-            return (
+        {/* 理财收益率 */}
+        <div>
+          <span className="text-sm text-muted-foreground">
+            理财收益率（机会成本对比）
+          </span>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {INVESTMENT_RATE_OPTIONS.map((opt) => (
               <button
-                key={opt.label}
+                key={opt.value}
                 type="button"
-                onClick={() =>
-                  onChange({ ...input, observationMonths: months })
-                }
+                onClick={() => {
+                  setCustomRateText(String(opt.value));
+                  onChange({ ...input, investmentRate: opt.value });
+                }}
                 className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                  isActive
+                  input.investmentRate === opt.value && !isCustomRate
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:bg-muted/30'
                 }`}
               >
-                {label}
+                {opt.label}
               </button>
-            );
-          })}
+            ))}
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="自定义"
+                value={customRateText}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v !== '' && !/^\d*\.?\d*$/.test(v)) return;
+                  setCustomRateText(v);
+                  const num = Number.parseFloat(v);
+                  if (!Number.isNaN(num) && num >= 0) {
+                    onChange({ ...input, investmentRate: num });
+                  }
+                }}
+                onBlur={() => {
+                  if (isCustomRate)
+                    setCustomRateText(String(input.investmentRate));
+                }}
+                className={`w-16 px-2 py-1 text-xs border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                  isCustomRate ? 'border-primary' : 'border-border'
+                }`}
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground shrink-0">
-            截止日期
+        {/* 观察期 */}
+        <div>
+          <span className="text-sm text-muted-foreground">
+            观察期（机会成本计算周期）
           </span>
-          <input
-            type="date"
-            value={observationEndDate}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (!v) {
-                onChange({ ...input, observationMonths: undefined });
-                return;
-              }
-              const endDate = new Date(`${v}T00:00:00`);
-              const months = calcPreciseMonths(new Date(), endDate);
-              if (months > 0) {
-                onChange({ ...input, observationMonths: months });
-              }
-            }}
-            className="flex-1 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {OBSERVATION_PRESETS.map((opt) => {
+              // "到期"：计算从今天到原方案最后一期的实际月数
+              const months =
+                opt.months === undefined && originalEndDate
+                  ? calcPreciseMonths(
+                      new Date(),
+                      new Date(`${originalEndDate}T00:00:00`),
+                    )
+                  : opt.months;
+              const isActive = input.observationMonths === months;
+              const label =
+                opt.months === undefined && originalEndDate
+                  ? `到期 ${originalEndDate}`
+                  : opt.label;
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() =>
+                    onChange({ ...input, observationMonths: months })
+                  }
+                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                    isActive
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:bg-muted/30'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground shrink-0">
+              截止日期
+            </span>
+            <input
+              type="date"
+              value={observationEndDate}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) {
+                  onChange({ ...input, observationMonths: undefined });
+                  return;
+                }
+                const endDate = new Date(`${v}T00:00:00`);
+                const months = calcPreciseMonths(new Date(), endDate);
+                if (months > 0) {
+                  onChange({ ...input, observationMonths: months });
+                }
+              }}
+              className="flex-1 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );
