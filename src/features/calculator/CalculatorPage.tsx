@@ -53,7 +53,11 @@ export function CalculatorPage() {
             loanB.changes[loanB.changes.length - 1]?.monthlyPayment ?? 0,
           ]}
         />
-        <ScheduleTable combinedSchedule={combinedSchedule} />
+        <ScheduleTable
+          combinedSchedule={combinedSchedule}
+          subSchedules={[loanA.schedule, loanB.schedule]}
+          subNames={[loanA.name, loanB.name]}
+        />
         <ChangeTimeline
           combined={{
             changesA: loanA.changes,

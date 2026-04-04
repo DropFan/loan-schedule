@@ -1,3 +1,4 @@
+import type { CombinedScheduleItem } from '@/core/calculator/CombinedLoanHelper';
 import type {
   LoanChangeRecord,
   PaymentScheduleItem,
@@ -122,6 +123,141 @@ export async function exportToExcel(
       String(now.getSeconds()).padStart(2, '0'),
     ].join('');
     filename = `还款计划表_由公众号_Hacking4fun_生成于${ts}.xlsx`;
+  }
+
+  XLSX.writeFile(workbook, filename);
+}
+
+function buildScheduleSheet(
+  schedule: ReadonlyArray<PaymentScheduleItem>,
+): (string | number)[][] {
+  let totalPayment = 0;
+  let totalInterest = 0;
+  return [
+    [
+      '期数',
+      '还款日期',
+      '月还款金额',
+      '本金',
+      '利息',
+      '剩余本金',
+      '累计还款',
+      '累计利息',
+      '剩余期数',
+      '利率',
+      '还款方式',
+      '说明',
+    ],
+    ...schedule.map((row) => {
+      totalPayment += row.monthlyPayment;
+      totalInterest += row.interest;
+      return [
+        row.period,
+        row.paymentDate,
+        row.monthlyPayment.toFixed(2),
+        row.principal.toFixed(2),
+        row.interest.toFixed(2),
+        row.remainingLoan.toFixed(2),
+        totalPayment.toFixed(2),
+        totalInterest.toFixed(2),
+        row.remainingTerm,
+        `${row.annualInterestRate}%`,
+        row.loanMethod,
+        row.comment,
+      ];
+    }),
+  ];
+}
+
+export async function exportCombinedToExcel(
+  combined: ReadonlyArray<CombinedScheduleItem>,
+  scheduleA: ReadonlyArray<PaymentScheduleItem>,
+  scheduleB: ReadonlyArray<PaymentScheduleItem>,
+  nameA: string,
+  nameB: string,
+  filename?: string,
+): Promise<void> {
+  const XLSX = await import('xlsx');
+
+  // Sheet 1: 合计表
+  let totalPayment = 0;
+  let totalInterest = 0;
+  const combinedData: (string | number)[][] = [
+    [
+      '期数',
+      `还款日(${nameA})`,
+      `还款日(${nameB})`,
+      '月供合计',
+      `${nameA}月供`,
+      `${nameB}月供`,
+      '本金合计',
+      '利息合计',
+      `${nameA}利息`,
+      `${nameB}利息`,
+      '剩余本金合计',
+      '累计还款',
+      '累计利息',
+      `利率(${nameA})`,
+      `利率(${nameB})`,
+    ],
+    ...combined.map((row) => {
+      totalPayment += row.monthlyPayment;
+      totalInterest += row.interest;
+      return [
+        row.period === 0 ? '提前' : row.period,
+        row.paymentDateA,
+        row.paymentDateB,
+        row.monthlyPayment.toFixed(2),
+        row.detailA.monthlyPayment.toFixed(2),
+        row.detailB.monthlyPayment.toFixed(2),
+        row.principal.toFixed(2),
+        row.interest.toFixed(2),
+        row.detailA.interest.toFixed(2),
+        row.detailB.interest.toFixed(2),
+        row.remainingLoan.toFixed(2),
+        totalPayment.toFixed(2),
+        totalInterest.toFixed(2),
+        row.detailA.annualInterestRate
+          ? `${row.detailA.annualInterestRate}%`
+          : '',
+        row.detailB.annualInterestRate
+          ? `${row.detailB.annualInterestRate}%`
+          : '',
+      ];
+    }),
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet(combinedData),
+    '合计',
+  );
+
+  // Sheet 2 & 3: 子方案明细
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet(buildScheduleSheet(scheduleA)),
+    nameA,
+  );
+  XLSX.utils.book_append_sheet(
+    workbook,
+    XLSX.utils.aoa_to_sheet(buildScheduleSheet(scheduleB)),
+    nameB,
+  );
+
+  if (!filename) {
+    const now = new Date();
+    const ts = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+      '_',
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+      String(now.getSeconds()).padStart(2, '0'),
+    ].join('');
+    filename = `组合还款计划表_${ts}.xlsx`;
   }
 
   XLSX.writeFile(workbook, filename);

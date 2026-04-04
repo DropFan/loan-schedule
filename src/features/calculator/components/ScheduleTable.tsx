@@ -17,12 +17,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { CombinedScheduleItem } from '@/core/calculator/CombinedLoanHelper';
+import type { PaymentScheduleItem } from '@/core/types/loan.types';
 import { formatCurrency } from '@/core/utils/formatHelper';
-import { exportToExcel } from '@/services/ExcelExporter';
+import { exportCombinedToExcel, exportToExcel } from '@/services/ExcelExporter';
 import {
   copyToClipboard,
   exportToCsv,
   exportToMarkdown,
+  prepareCombinedScheduleData,
   prepareScheduleData,
 } from '@/services/export';
 import { useLoanStore } from '@/stores/useLoanStore';
@@ -73,9 +75,15 @@ function formatDualRate(rateA: number, rateB: number): string {
 
 interface ScheduleTableProps {
   combinedSchedule?: CombinedScheduleItem[];
+  subSchedules?: [PaymentScheduleItem[], PaymentScheduleItem[]];
+  subNames?: [string, string];
 }
 
-export function ScheduleTable({ combinedSchedule }: ScheduleTableProps = {}) {
+export function ScheduleTable({
+  combinedSchedule,
+  subSchedules,
+  subNames,
+}: ScheduleTableProps = {}) {
   const schedule = useLoanStore((s) => s.schedule);
   const changes = useLoanStore((s) => s.changes);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -118,23 +126,51 @@ export function ScheduleTable({ combinedSchedule }: ScheduleTableProps = {}) {
     overscan: 20,
   });
 
+  const nameA = subNames?.[0] ?? '方案A';
+  const nameB = subNames?.[1] ?? '方案B';
+
   const handleExportExcel = useCallback(() => {
-    exportToExcel(schedule, changes);
-  }, [schedule, changes]);
+    if (isCombinedView && combinedSchedule && subSchedules) {
+      exportCombinedToExcel(
+        combinedSchedule,
+        subSchedules[0],
+        subSchedules[1],
+        nameA,
+        nameB,
+      );
+    } else {
+      exportToExcel(schedule, changes);
+    }
+  }, [
+    isCombinedView,
+    combinedSchedule,
+    subSchedules,
+    nameA,
+    nameB,
+    schedule,
+    changes,
+  ]);
+
+  const prepareCombinedOrSingle = useCallback(() => {
+    if (isCombinedView && combinedSchedule) {
+      return prepareCombinedScheduleData(combinedSchedule, nameA, nameB);
+    }
+    return prepareScheduleData(schedule);
+  }, [isCombinedView, combinedSchedule, nameA, nameB, schedule]);
 
   const handleExportCsv = useCallback(() => {
-    exportToCsv(prepareScheduleData(schedule));
-  }, [schedule]);
+    exportToCsv(prepareCombinedOrSingle());
+  }, [prepareCombinedOrSingle]);
 
   const handleExportMarkdown = useCallback(() => {
-    exportToMarkdown(prepareScheduleData(schedule));
-  }, [schedule]);
+    exportToMarkdown(prepareCombinedOrSingle());
+  }, [prepareCombinedOrSingle]);
 
   const handleCopy = useCallback(async () => {
-    const ok = await copyToClipboard(prepareScheduleData(schedule));
+    const ok = await copyToClipboard(prepareCombinedOrSingle());
     setCopyState(ok ? 'success' : 'fail');
     setTimeout(() => setCopyState('idle'), 2000);
-  }, [schedule]);
+  }, [prepareCombinedOrSingle]);
 
   if (rowCount === 0) {
     return (
@@ -155,34 +191,31 @@ export function ScheduleTable({ combinedSchedule }: ScheduleTableProps = {}) {
         <CardTitle>
           {isCombinedView ? '合并还款计划表' : '还款计划表'}
         </CardTitle>
-        {/* 合计模式暂不支持导出（Phase 4 实现） */}
-        {!isCombinedView && (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" size="sm">
-                  导出 <ChevronDownIcon />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportExcel}>
-                <DownloadIcon /> Excel (.xlsx)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCsv}>
-                <DownloadIcon /> CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportMarkdown}>
-                <DownloadIcon /> Markdown
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleCopy}>
-                {copyState === 'success' ? <CheckIcon /> : <CopyIcon />}
-                {copyState === 'success' ? '已复制!' : '复制到剪贴板'}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="outline" size="sm">
+                导出 <ChevronDownIcon />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleExportExcel}>
+              <DownloadIcon /> Excel (.xlsx)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportCsv}>
+              <DownloadIcon /> CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportMarkdown}>
+              <DownloadIcon /> Markdown
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleCopy}>
+              {copyState === 'success' ? <CheckIcon /> : <CopyIcon />}
+              {copyState === 'success' ? '已复制!' : '复制到剪贴板'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
         <div ref={parentRef} className="max-h-[500px] overflow-auto">
