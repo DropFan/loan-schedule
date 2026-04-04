@@ -7,11 +7,12 @@ import {
 } from '@/core/calculator/LoanCalculator';
 import {
   LoanMethod,
+  LoanMethodName,
   type LoanParameters,
   type LoanScheduleSummary,
   type PaymentScheduleItem,
 } from '@/core/types/loan.types';
-import { roundTo2 } from '@/core/utils/formatHelper';
+import { addMonths, formatDate, roundTo2 } from '@/core/utils/formatHelper';
 
 export interface SimulateInput {
   mode: 'adjust-monthly' | 'lump-sum';
@@ -259,6 +260,7 @@ function buildErrorResult(
 
 function simulateMonthlyAdjust(
   schedule: PaymentScheduleItem[],
+  params: LoanParameters,
   monthlyAdjust: number,
   startPeriod: number,
   investmentRate: number,
@@ -306,6 +308,10 @@ function simulateMonthlyAdjust(
 
   // 原方案最后一期
   const lastPeriod = regularItems[regularItems.length - 1].period;
+  const isFreeRepayment = params.loanMethod === LoanMethod.FreeRepayment;
+  // 自由还款：不延长期限，最后一期强制还清
+  // 其他方式：允许延长，安全上限防止死循环
+  const maxPeriod = isFreeRepayment ? lastPeriod : lastPeriod * 3;
 
   let period = startPeriod;
   let totalAdjustment = 0;
@@ -314,8 +320,7 @@ function simulateMonthlyAdjust(
     let actualPayment = adjustedPayment;
     let principal = roundTo2(actualPayment - interest);
 
-    // 最后一期或本金够还清：把剩余全部还清
-    if (principal >= remainingLoan || period >= lastPeriod) {
+    if (principal >= remainingLoan || period >= maxPeriod) {
       principal = roundTo2(remainingLoan);
       actualPayment = roundTo2(principal + interest);
       totalAdjustment += roundTo2(actualPayment - originalPayment);
@@ -325,15 +330,20 @@ function simulateMonthlyAdjust(
       remainingLoan = roundTo2(remainingLoan - principal);
     }
 
+    // 超出原方案期数时，根据参数计算日期
     const origItem = periodMap.get(period);
+    const paymentDate = origItem
+      ? origItem.paymentDate
+      : formatDate(addMonths(params.startDate, period, params.repaymentDay));
+
     simulated.push({
       period,
-      paymentDate: origItem?.paymentDate ?? '',
+      paymentDate,
       monthlyPayment: actualPayment,
       principal,
       interest,
       remainingLoan: Math.max(remainingLoan, 0),
-      remainingTerm: remainingLoan > 0 ? 1 : 0,
+      remainingTerm: 0, // 循环结束后修正
       annualInterestRate: startItem.annualInterestRate,
       loanMethod: startItem.loanMethod,
       comment: '',
@@ -341,6 +351,12 @@ function simulateMonthlyAdjust(
 
     if (remainingLoan <= 0) break;
     period++;
+  }
+
+  // 修正模拟区间的 remainingTerm
+  const simItems = simulated.filter((s) => s.period >= startPeriod);
+  for (let i = 0; i < simItems.length; i++) {
+    simItems[i].remainingTerm = simItems.length - 1 - i;
   }
 
   return buildEnhancedResult(
@@ -512,6 +528,7 @@ export function useSimulation(
 
       return simulateMonthlyAdjust(
         schedule,
+        params,
         monthlyAdjust,
         startPeriod,
         input.investmentRate,
@@ -640,6 +657,11 @@ export function simulateNewMonthlyOnce(
   const firstInterest = roundTo2(remainingLoan * monthlyRate);
   if (adjustedPayment <= firstInterest) return null;
 
+  // 自由还款：不延长期限，在原方案最后一期强制还清
+  const isFreeRepayment =
+    startItem.loanMethod === LoanMethodName[LoanMethod.FreeRepayment];
+  const maxSimTerms = isFreeRepayment ? startItem.remainingTerm + 1 : Infinity;
+
   // 快速逐期模拟，只计算总利息和期数
   let simInterest = 0;
   let simTerms = 0;
@@ -647,13 +669,12 @@ export function simulateNewMonthlyOnce(
   while (rem > 0.01) {
     const interest = roundTo2(rem * monthlyRate);
     simInterest += interest;
-    const principal = roundTo2(adjustedPayment - interest);
-    if (principal >= rem) {
-      simTerms++;
-      break;
-    }
-    rem = roundTo2(rem - principal);
     simTerms++;
+    // 自由还款到达原方案末期时强制还清
+    if (isFreeRepayment && simTerms >= maxSimTerms) break;
+    const principal = roundTo2(adjustedPayment - interest);
+    if (principal >= rem) break;
+    rem = roundTo2(rem - principal);
   }
 
   // 加上 startPeriod 之前的利息
@@ -699,11 +720,23 @@ export function simulateLumpSumFast(
 
   const newRemainingLoan = roundTo2(remainingLoan - lumpSumAmount);
   const monthlyRate = targetItem.annualInterestRate / 100 / 12;
-  let simPayment: number;
-  if (strategy === 'reduce-payment') {
-    const remainingTerm = targetItem.remainingTerm;
-    if (remainingTerm <= 0) return null;
-    const factor = (1 + monthlyRate) ** remainingTerm;
+  const isEqualPrincipal =
+    targetItem.loanMethod === LoanMethodName[LoanMethod.EqualPrincipal];
+
+  // 等额本金：固定本金 + 递减利息；其他：固定月供
+  let simPayment = 0;
+  let fixedPrincipal = 0;
+  if (isEqualPrincipal) {
+    const rt = targetItem.remainingTerm;
+    if (rt <= 0) return null;
+    fixedPrincipal =
+      strategy === 'reduce-payment'
+        ? roundTo2(newRemainingLoan / rt)
+        : targetItem.principal;
+  } else if (strategy === 'reduce-payment') {
+    const rt = targetItem.remainingTerm;
+    if (rt <= 0) return null;
+    const factor = (1 + monthlyRate) ** rt;
     simPayment = roundTo2(
       (newRemainingLoan * monthlyRate * factor) / (factor - 1),
     );
@@ -717,7 +750,9 @@ export function simulateLumpSumFast(
   while (rem > 0.01) {
     const interest = roundTo2(rem * monthlyRate);
     simInterest += interest;
-    const principal = roundTo2(simPayment - interest);
+    const principal = isEqualPrincipal
+      ? fixedPrincipal
+      : roundTo2(simPayment - interest);
     if (principal <= 0) return null;
     if (principal >= rem) {
       simTerms++;

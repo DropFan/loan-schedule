@@ -184,7 +184,7 @@ export function SimulatePage() {
       {(hasSchedule || isCombinedView) && (
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
           {/* 左侧：输入区 */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
             {isCombinedView && loanA && loanB && (
               <PrepaymentOptimizer
                 scheduleA={loanA.schedule}

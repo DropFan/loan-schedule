@@ -176,7 +176,9 @@ export function SimulateForm({
     : '';
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-4 h-fit lg:sticky lg:top-4">
+    <div className="space-y-4">
+      {/* 面板 1：贷款变更参数 */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-4">
       {/* 模式切换 */}
       <div className="flex gap-1">
         {(Object.keys(MODE_LABELS) as Array<keyof typeof MODE_LABELS>).map(
@@ -473,6 +475,10 @@ export function SimulateForm({
         </div>
       )}
 
+      </div>
+
+      {/* 面板 2：机会成本参数 */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-4">
       {/* 理财收益率 */}
       <div>
         <span className="text-sm text-muted-foreground">
@@ -583,6 +589,7 @@ export function SimulateForm({
             className="flex-1 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
+      </div>
       </div>
     </div>
   );

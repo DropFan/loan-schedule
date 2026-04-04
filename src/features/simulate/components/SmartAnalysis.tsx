@@ -130,6 +130,7 @@ function buildRecommendations(
   isLumpSum: boolean,
   periodMap: Map<number, PaymentScheduleItem>,
   adjusted: boolean,
+  currentMonthlyPayment: number,
 ): Recommendation[] {
   if (timePoints.length === 0) return [];
 
@@ -159,14 +160,19 @@ function buildRecommendations(
     });
   }
 
-  // 2. 性价比最优：各时间点边际最优中，score/amount 比率最高的
+  // 2. 性价比最优：各时间点边际最优中，score/投入金额 比率最高的
+  //    一次性还款：投入 = bestAmount；调整月供：投入 = |bestAmount - currentMonthlyPayment|
   let bestRatio: {
     tp: TimePointAnalysis;
     ratio: number;
   } | null = null;
   for (const tp of timePoints) {
     if (tp.bestScore <= 0 || tp.bestAmount <= 0) continue;
-    const ratio = tp.bestScore / tp.bestAmount;
+    const denominator = isLumpSum
+      ? tp.bestAmount
+      : Math.abs(tp.bestAmount - currentMonthlyPayment);
+    if (denominator <= 0) continue;
+    const ratio = tp.bestScore / denominator;
     if (!bestRatio || ratio > bestRatio.ratio) {
       bestRatio = { tp, ratio };
     }
@@ -371,6 +377,7 @@ function useAnalysisMatrix(
       isLumpSum,
       periodMap,
       adjusted,
+      currentMonthlyPayment,
     );
 
     return { timePoints, recommendations };
