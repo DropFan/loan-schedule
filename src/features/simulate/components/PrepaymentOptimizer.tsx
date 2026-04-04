@@ -20,9 +20,27 @@ interface Props {
   paramsB: LoanParameters | null;
   nameA: string;
   nameB: string;
+  /** 点击方案卡片时，联动模拟表单 */
+  onApplyPlan?: (plan: {
+    amount: number;
+    loanIndex: 0 | 1;
+    strategy: 'reduce-payment' | 'shorten-term';
+  }) => void;
 }
 
 const QUICK_AMOUNTS = [50000, 100000, 200000, 500000, 1000000];
+
+function getRemainingLoan(
+  schedule: PaymentScheduleItem[],
+  period: number,
+): number {
+  const item = schedule.find((s) => s.period === period);
+  if (item) return item.remainingLoan;
+  const regular = schedule.filter((s) => s.period > 0);
+  return regular.length > 0
+    ? regular[0].remainingLoan + regular[0].principal
+    : 0;
+}
 
 export function PrepaymentOptimizer({
   scheduleA,
@@ -31,11 +49,14 @@ export function PrepaymentOptimizer({
   paramsB,
   nameA,
   nameB,
+  onApplyPlan,
 }: Props) {
-  const [amount, setAmount] = useState(100000);
   const [strategy, setStrategy] = useState<'reduce-payment' | 'shorten-term'>(
     'shorten-term',
   );
+  const [selectedPlan, setSelectedPlan] = useState<
+    'best' | 'allToA' | 'allToB' | null
+  >(null);
 
   // 取下一个待还期数
   const period = useMemo(() => {
@@ -47,6 +68,36 @@ export function PrepaymentOptimizer({
     return regularA.length > 0 ? regularA[regularA.length - 1].period : 1;
   }, [scheduleA]);
 
+  // 两笔贷款剩余本金合计作为上限
+  const maxAmount = useMemo(() => {
+    const remA = getRemainingLoan(scheduleA, period);
+    const remB = getRemainingLoan(scheduleB, period);
+    return Math.round((remA + remB) * 100) / 100;
+  }, [scheduleA, scheduleB, period]);
+
+  // 滑块刻度
+  const sliderTicks = useMemo(() => {
+    const fmtTick = (v: number) =>
+      v >= 10000 ? `${(v / 10000).toFixed(v % 10000 === 0 ? 0 : 1)}万` : `${v}`;
+    const mid = Math.round(Math.floor(maxAmount / 2 / 10000) * 10000);
+    const ticks = [{ value: 0, label: '0', pct: 0 }];
+    if (mid > 0 && mid < maxAmount) {
+      ticks.push({
+        value: mid,
+        label: fmtTick(mid),
+        pct: (mid / maxAmount) * 100,
+      });
+    }
+    ticks.push({ value: maxAmount, label: fmtTick(maxAmount), pct: 100 });
+    return ticks;
+  }, [maxAmount]);
+
+  const [amount, setAmount] = useState(() => Math.min(100000, maxAmount));
+
+  const handleAmountChange = (v: number) => {
+    setAmount(Math.max(0, Math.min(v, maxAmount)));
+  };
+
   const result = useCombinedSimulation(
     scheduleA,
     paramsA,
@@ -57,22 +108,29 @@ export function PrepaymentOptimizer({
     period,
   );
 
+  // 取模拟期数处的当前利率（反映最新变更）
+  const currentRateA = useMemo(() => {
+    const item = scheduleA.find((s) => s.period === period);
+    if (item) return item.annualInterestRate;
+    const regular = [...scheduleA].reverse().find((s) => s.period > 0);
+    return regular?.annualInterestRate ?? paramsA?.annualInterestRate ?? 0;
+  }, [scheduleA, period, paramsA]);
+
+  const currentRateB = useMemo(() => {
+    const item = scheduleB.find((s) => s.period === period);
+    if (item) return item.annualInterestRate;
+    const regular = [...scheduleB].reverse().find((s) => s.period > 0);
+    return regular?.annualInterestRate ?? paramsB?.annualInterestRate ?? 0;
+  }, [scheduleB, period, paramsB]);
+
   // 利率差策略建议
   const strategyTip = useMemo(() => {
-    const rateA =
-      paramsA?.annualInterestRate ??
-      scheduleA.find((s) => s.period > 0)?.annualInterestRate ??
-      0;
-    const rateB =
-      paramsB?.annualInterestRate ??
-      scheduleB.find((s) => s.period > 0)?.annualInterestRate ??
-      0;
-    if (rateA === 0 || rateB === 0) return null;
-    const diff = Math.abs(rateA - rateB);
+    if (currentRateA === 0 || currentRateB === 0) return null;
+    const diff = Math.abs(currentRateA - currentRateB);
     if (diff < 0.1) return '两笔贷款利率接近，分配差异不大';
-    const higher = rateA > rateB ? nameA : nameB;
-    return `${higher}利率更高（${Math.max(rateA, rateB)}% vs ${Math.min(rateA, rateB)}%），优先还该方案可节省更多利息`;
-  }, [paramsA, paramsB, scheduleA, scheduleB, nameA, nameB]);
+    const higher = currentRateA > currentRateB ? nameA : nameB;
+    return `${higher}利率更高（${Math.max(currentRateA, currentRateB)}% vs ${Math.min(currentRateA, currentRateB)}%），优先还该方案可节省更多利息`;
+  }, [currentRateA, currentRateB, nameA, nameB]);
 
   return (
     <Card>
@@ -82,24 +140,65 @@ export function PrepaymentOptimizer({
       <CardContent className="space-y-4">
         {/* 金额输入 */}
         <div className="space-y-2">
-          <Label>可用金额（元）</Label>
+          <Label>
+            可用金额（元）
+            <span className="text-muted-foreground font-normal ml-2">
+              上限 ¥{formatCurrency(maxAmount)}
+            </span>
+          </Label>
           <Input
             type="number"
             value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
+            min={0}
+            max={maxAmount}
+            step={10000}
+            onChange={(e) => handleAmountChange(Number(e.target.value))}
             className="h-8"
           />
+          <input
+            type="range"
+            min={0}
+            max={maxAmount}
+            step={10000}
+            value={amount}
+            onChange={(e) => handleAmountChange(Number(e.target.value))}
+            className="w-full accent-primary"
+          />
+          <div className="relative text-[10px] mt-0.5 h-4">
+            {sliderTicks.map((tick) => (
+              <button
+                key={tick.value}
+                type="button"
+                onClick={() => handleAmountChange(tick.value)}
+                className={`absolute -translate-x-1/2 hover:text-primary transition-colors ${
+                  amount === tick.value
+                    ? 'text-primary font-medium'
+                    : 'text-muted-foreground'
+                }`}
+                style={{ left: `${tick.pct}%` }}
+              >
+                {tick.label}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_AMOUNTS.map((a) => (
+            {QUICK_AMOUNTS.filter((a) => a <= maxAmount).map((a) => (
               <Button
                 key={a}
                 variant={amount === a ? 'default' : 'outline'}
                 size="xs"
-                onClick={() => setAmount(a)}
+                onClick={() => handleAmountChange(a)}
               >
                 {a >= 10000 ? `${a / 10000}万` : a}
               </Button>
             ))}
+            <Button
+              variant={amount === maxAmount ? 'default' : 'outline'}
+              size="xs"
+              onClick={() => handleAmountChange(maxAmount)}
+            >
+              全部还清
+            </Button>
           </div>
         </div>
 
@@ -140,8 +239,21 @@ export function PrepaymentOptimizer({
                 plan={result.best}
                 nameA={nameA}
                 nameB={nameB}
-                label="最优分配"
-                highlight
+                label="最优分配（推荐）"
+                selected={selectedPlan === 'best'}
+                onSelect={() => {
+                  setSelectedPlan('best');
+                  const b = result.best;
+                  if (b) {
+                    // 最优分配：选金额较大的子方案作为模拟目标
+                    const idx: 0 | 1 = b.amountA >= b.amountB ? 0 : 1;
+                    onApplyPlan?.({
+                      amount: idx === 0 ? b.amountA : b.amountB,
+                      loanIndex: idx,
+                      strategy,
+                    });
+                  }
+                }}
               />
             )}
 
@@ -153,6 +265,15 @@ export function PrepaymentOptimizer({
                   nameA={nameA}
                   nameB={nameB}
                   label={`全还${nameA}`}
+                  selected={selectedPlan === 'allToA'}
+                  onSelect={() => {
+                    setSelectedPlan('allToA');
+                    onApplyPlan?.({
+                      amount: result.allToA?.amountA ?? 0,
+                      loanIndex: 0,
+                      strategy,
+                    });
+                  }}
                 />
               )}
               {result.allToB && (
@@ -161,6 +282,15 @@ export function PrepaymentOptimizer({
                   nameA={nameA}
                   nameB={nameB}
                   label={`全还${nameB}`}
+                  selected={selectedPlan === 'allToB'}
+                  onSelect={() => {
+                    setSelectedPlan('allToB');
+                    onApplyPlan?.({
+                      amount: result.allToB?.amountB ?? 0,
+                      loanIndex: 1,
+                      strategy,
+                    });
+                  }}
                 />
               )}
             </div>
@@ -187,17 +317,25 @@ function PlanCard({
   nameA,
   nameB,
   label,
-  highlight,
+  selected,
+  onSelect,
 }: {
   plan: AllocationPlan;
   nameA: string;
   nameB: string;
   label: string;
-  highlight?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   return (
-    <div
-      className={`rounded-lg border p-3 text-sm space-y-1 ${highlight ? 'border-primary bg-primary/5' : 'border-border'}`}
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`rounded-lg border-2 p-3 text-sm space-y-1 text-left w-full cursor-pointer transition-colors ${
+        selected
+          ? 'border-primary bg-primary/10'
+          : 'border-border hover:border-primary/40 hover:bg-muted/50'
+      }`}
     >
       <div className="font-medium">{label}</div>
       <div className="text-xs text-muted-foreground space-y-0.5">
@@ -221,6 +359,6 @@ function PlanCard({
       <div className="text-xs font-medium text-primary">
         合计省利息 ¥{formatCurrency(plan.totalSaved)}
       </div>
-    </div>
+    </button>
   );
 }
