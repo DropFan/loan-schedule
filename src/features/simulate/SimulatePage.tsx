@@ -1,9 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import {
+  type CombinedViewMode,
+  CombinedViewTabs,
+} from '@/components/shared/CombinedViewTabs';
 import { LoanSwitcher } from '@/components/shared/LoanSwitcher';
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
+import { useCombinedLoan } from '@/hooks/useCombinedLoan';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { OpportunityCost } from './components/OpportunityCost';
+import { PrepaymentOptimizer } from './components/PrepaymentOptimizer';
 import { SimulateChart } from './components/SimulateChart';
 import { SimulateForm } from './components/SimulateForm';
 import { SimulateResult } from './components/SimulateResult';
@@ -13,6 +19,18 @@ import { type SimulateInput, useSimulation } from './useSimulation';
 
 export function SimulatePage() {
   const { schedule, params } = useLoanStore();
+  const switchSubLoan = useLoanStore((s) => s.switchSubLoan);
+  const { loanA, loanB, isCombinedMode } = useCombinedLoan();
+  const [viewMode, setViewMode] = useState<CombinedViewMode>('combined');
+
+  const handleViewChange = (mode: CombinedViewMode) => {
+    setViewMode(mode);
+    if (mode === 0 || mode === 1) {
+      switchSubLoan(mode);
+    }
+  };
+
+  const isCombinedView = isCombinedMode && viewMode === 'combined';
 
   const [input, setInput] = useState<SimulateInput>({
     mode: 'adjust-monthly',
@@ -82,10 +100,43 @@ export function SimulatePage() {
     setInput((prev) => ({ ...prev, ...patch }));
   };
 
+  // 组合模式 + 合计视图
+  if (isCombinedView && loanA && loanB) {
+    return (
+      <div className="p-4 lg:p-6 space-y-4">
+        <h2 className="text-lg font-semibold">还款模拟</h2>
+        <LoanSwitcher />
+        <CombinedViewTabs
+          loanA={loanA}
+          loanB={loanB}
+          value={viewMode}
+          onChange={handleViewChange}
+        />
+        <PrepaymentOptimizer
+          scheduleA={loanA.schedule}
+          paramsA={loanA.params}
+          scheduleB={loanB.schedule}
+          paramsB={loanB.params}
+          nameA={loanA.name}
+          nameB={loanB.name}
+        />
+      </div>
+    );
+  }
+
+  // 子方案视图 / 单方案模式
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <h2 className="text-lg font-semibold">还款模拟</h2>
       <LoanSwitcher />
+      {isCombinedMode && loanA && loanB && (
+        <CombinedViewTabs
+          loanA={loanA}
+          loanB={loanB}
+          value={viewMode}
+          onChange={handleViewChange}
+        />
+      )}
 
       {!hasSchedule && (
         <div className="max-w-lg mx-auto mt-12 text-center">
