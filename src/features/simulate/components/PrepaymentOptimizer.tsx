@@ -30,16 +30,15 @@ interface Props {
 
 const QUICK_AMOUNTS = [50000, 100000, 200000, 500000, 1000000];
 
-function getRemainingLoan(
-  schedule: PaymentScheduleItem[],
-  period: number,
-): number {
-  const item = schedule.find((s) => s.period === period);
-  if (item) return item.remainingLoan;
+/** 取 schedule 中下一个待还期的剩余本金 */
+function getNextRemaining(schedule: PaymentScheduleItem[]): number {
   const regular = schedule.filter((s) => s.period > 0);
-  return regular.length > 0
-    ? regular[0].remainingLoan + regular[0].principal
-    : 0;
+  if (regular.length === 0) return 0;
+  const today = new Date().toISOString().split('T')[0];
+  for (const item of regular) {
+    if (item.paymentDate > today) return item.remainingLoan + item.principal;
+  }
+  return regular[regular.length - 1].remainingLoan;
 }
 
 export function PrepaymentOptimizer({
@@ -58,22 +57,12 @@ export function PrepaymentOptimizer({
     'best' | 'allToA' | 'allToB' | null
   >(null);
 
-  // 取下一个待还期数
-  const period = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const regularA = scheduleA.filter((s) => s.period > 0);
-    for (const item of regularA) {
-      if (item.paymentDate > today) return item.period;
-    }
-    return regularA.length > 0 ? regularA[regularA.length - 1].period : 1;
-  }, [scheduleA]);
-
   // 两笔贷款剩余本金合计作为上限
   const maxAmount = useMemo(() => {
-    const remA = getRemainingLoan(scheduleA, period);
-    const remB = getRemainingLoan(scheduleB, period);
+    const remA = getNextRemaining(scheduleA);
+    const remB = getNextRemaining(scheduleB);
     return Math.round((remA + remB) * 100) / 100;
-  }, [scheduleA, scheduleB, period]);
+  }, [scheduleA, scheduleB]);
 
   // 滑块刻度
   const sliderTicks = useMemo(() => {
@@ -105,23 +94,18 @@ export function PrepaymentOptimizer({
     paramsB,
     amount,
     strategy,
-    period,
   );
 
-  // 取模拟期数处的当前利率（反映最新变更）
+  // 取各自 schedule 最新利率（反映最新变更）
   const currentRateA = useMemo(() => {
-    const item = scheduleA.find((s) => s.period === period);
-    if (item) return item.annualInterestRate;
     const regular = [...scheduleA].reverse().find((s) => s.period > 0);
     return regular?.annualInterestRate ?? paramsA?.annualInterestRate ?? 0;
-  }, [scheduleA, period, paramsA]);
+  }, [scheduleA, paramsA]);
 
   const currentRateB = useMemo(() => {
-    const item = scheduleB.find((s) => s.period === period);
-    if (item) return item.annualInterestRate;
     const regular = [...scheduleB].reverse().find((s) => s.period > 0);
     return regular?.annualInterestRate ?? paramsB?.annualInterestRate ?? 0;
-  }, [scheduleB, period, paramsB]);
+  }, [scheduleB, paramsB]);
 
   // 利率差策略建议
   const strategyTip = useMemo(() => {
@@ -257,36 +241,36 @@ export function PrepaymentOptimizer({
               />
             )}
 
-            {/* 全还 A / 全还 B */}
+            {/* 优先还 A / 优先还 B */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {result.allToA && (
+              {result.priorityA && (
                 <PlanCard
-                  plan={result.allToA}
+                  plan={result.priorityA}
                   nameA={nameA}
                   nameB={nameB}
-                  label={`全还${nameA}`}
+                  label={`优先还${nameA}`}
                   selected={selectedPlan === 'allToA'}
                   onSelect={() => {
                     setSelectedPlan('allToA');
                     onApplyPlan?.({
-                      amount: result.allToA?.amountA ?? 0,
+                      amount: result.priorityA?.amountA ?? 0,
                       loanIndex: 0,
                       strategy,
                     });
                   }}
                 />
               )}
-              {result.allToB && (
+              {result.priorityB && (
                 <PlanCard
-                  plan={result.allToB}
+                  plan={result.priorityB}
                   nameA={nameA}
                   nameB={nameB}
-                  label={`全还${nameB}`}
+                  label={`优先还${nameB}`}
                   selected={selectedPlan === 'allToB'}
                   onSelect={() => {
                     setSelectedPlan('allToB');
                     onApplyPlan?.({
-                      amount: result.allToB?.amountB ?? 0,
+                      amount: result.priorityB?.amountB ?? 0,
                       loanIndex: 1,
                       strategy,
                     });
