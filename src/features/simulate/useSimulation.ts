@@ -62,8 +62,8 @@ function getEndDate(schedule: PaymentScheduleItem[]): string {
   return regular.length > 0 ? regular[regular.length - 1].paymentDate : '';
 }
 
-/** 计算复利收益：principal × (1 + monthlyRate)^months - principal */
-function calcInvestmentReturn(
+/** 一次性投入的复利收益：principal × (1 + monthlyRate)^months - principal */
+function calcLumpSumReturn(
   principal: number,
   annualRate: number,
   months: number,
@@ -71,6 +71,19 @@ function calcInvestmentReturn(
   if (principal <= 0 || annualRate <= 0 || months <= 0) return 0;
   const monthlyRate = annualRate / 100 / 12;
   return roundTo2(principal * ((1 + monthlyRate) ** months - 1));
+}
+
+/** 定期定额投入的年金终值收益：每月投入 pmt，复利 months 个月的总收益 */
+function calcAnnuityReturn(
+  monthlyPmt: number,
+  annualRate: number,
+  months: number,
+): number {
+  if (monthlyPmt <= 0 || annualRate <= 0 || months <= 0) return 0;
+  const r = annualRate / 100 / 12;
+  // 年金终值 = pmt × [((1+r)^n - 1) / r]，总投入 = pmt × n
+  const fv = monthlyPmt * (((1 + r) ** months - 1) / r);
+  return roundTo2(fv - monthlyPmt * months);
 }
 
 function buildEnhancedResult(
@@ -81,6 +94,8 @@ function buildEnhancedResult(
   originalMonthlyPayment: number | null,
   investmentRate: number,
   observationOverride?: number,
+  /** 每月额外投入（调整月供模式），传入时用年金终值公式计算理财收益 */
+  monthlyExtraPayment?: number,
 ): SimulateResult {
   const originalSummary = calcScheduleSummary(schedule);
   const simulatedSummary = calcScheduleSummary(simulatedSchedule);
@@ -110,11 +125,18 @@ function buildEnhancedResult(
 
   // 机会成本：观察期内的理财收益 & 观察期内利息差
   const observationMonths = observationOverride ?? originalSummary.termMonths;
-  const investmentReturn = calcInvestmentReturn(
-    Math.abs(totalInvestment),
-    investmentRate,
-    observationMonths,
-  );
+  const investmentReturn =
+    monthlyExtraPayment && monthlyExtraPayment > 0
+      ? calcAnnuityReturn(
+          monthlyExtraPayment,
+          investmentRate,
+          observationMonths,
+        )
+      : calcLumpSumReturn(
+          Math.abs(totalInvestment),
+          investmentRate,
+          observationMonths,
+        );
 
   // 观察期窗口：从当前日期起算，支持小数月（精确到天）
   const today = new Date();
@@ -326,6 +348,7 @@ function simulateMonthlyAdjust(
     originalPayment,
     investmentRate,
     observationOverride,
+    monthlyAdjust > 0 ? monthlyAdjust : undefined,
   );
 }
 

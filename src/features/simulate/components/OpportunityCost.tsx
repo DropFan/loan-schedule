@@ -64,6 +64,7 @@ function BaselineAnalysis({ result }: Props) {
 /** 增加月供 / 一次性还款：投入资金提前还贷 vs 理财 */
 function IncreasedPaymentAnalysis({ result }: Props) {
   const prepayBetter = result.netBenefit >= 0;
+  const isMonthlyMode = result.newMonthlyPayment != null;
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
@@ -73,11 +74,39 @@ function IncreasedPaymentAnalysis({ result }: Props) {
           （观察期 {fmtObservation(result.observationMonths)}）
         </span>
       </h3>
+
+      {/* 计算本金说明 */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+        {isMonthlyMode ? (
+          <>
+            计算本金：每月额外投入{' '}
+            {fmtMoney(
+              Math.abs(
+                (result.newMonthlyPayment ?? 0) -
+                  result.originalSummary.totalPayment /
+                    result.originalSummary.termMonths,
+              ),
+            )}
+            ，累计投入 {fmtMoney(result.totalInvestment)}
+            （按定期定额年金终值计算理财收益）
+          </>
+        ) : (
+          <>
+            计算本金：一次性投入 {fmtMoney(result.totalInvestment)}
+            （按复利计算理财收益）
+          </>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
           <TipLabel
             text={`理财预期收益（${result.investmentRate}%）`}
-            tip={`将额外投入的资金按年化 ${result.investmentRate}% 复利计算，在观察期内可获得的理财收益。`}
+            tip={
+              isMonthlyMode
+                ? `将每月额外投入的资金按年化 ${result.investmentRate}% 定期定额复利计算（年金终值），在观察期内可获得的理财收益。`
+                : `将一次性投入的 ${fmtMoney(result.totalInvestment)} 按年化 ${result.investmentRate}% 复利计算，在观察期内可获得的理财收益。`
+            }
           />
           <p className="text-sm font-semibold text-foreground">
             {fmtMoney(result.investmentReturn)}
@@ -193,6 +222,11 @@ function ReducedPaymentAnalysis({ result }: Props) {
   const netGain = investReturn - extraInterest; // 理财收益 - 多付利息
   const worthIt = netGain >= 0;
 
+  const monthlyReduction = Math.abs(
+    (result.newMonthlyPayment ?? 0) -
+      result.originalSummary.totalPayment / result.originalSummary.termMonths,
+  );
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
       <h3 className="text-sm font-semibold">
@@ -201,6 +235,13 @@ function ReducedPaymentAnalysis({ result }: Props) {
           （观察期 {fmtObservation(result.observationMonths)}）
         </span>
       </h3>
+
+      {/* 计算本金说明 */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+        计算本金：每月少还 {fmtMoney(monthlyReduction)}，累计省下{' '}
+        {fmtMoney(savedCash)}（按定期定额年金终值计算理财收益）
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
           <TipLabel
