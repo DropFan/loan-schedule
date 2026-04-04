@@ -14,11 +14,14 @@ const PaymentTrendChart = lazy(() =>
 interface SummaryCardsProps {
   combinedSummary?: CombinedSummary | null;
   subLoanNames?: [string, string];
+  /** 子方案当前月供 [A, B]，从各自 changes 末条获取 */
+  subMonthlyPayments?: [number, number];
 }
 
 export function SummaryCards({
   combinedSummary,
   subLoanNames,
+  subMonthlyPayments,
 }: SummaryCardsProps = {}) {
   const summary = useLoanStore((s) => s.summary);
   const schedule = useLoanStore((s) => s.schedule);
@@ -29,13 +32,15 @@ export function SummaryCards({
     const { summaryA, summaryB } = combinedSummary;
     const nameA = subLoanNames?.[0] ?? '方案A';
     const nameB = subLoanNames?.[1] ?? '方案B';
+    const payA = subMonthlyPayments?.[0] ?? 0;
+    const payB = subMonthlyPayments?.[1] ?? 0;
 
     const items = [
       {
         label: '合计月供',
-        value: `¥${formatCurrency(combinedSummary.totalPayment / combinedSummary.termMonths)}`,
-        detailA: `${nameA} ¥${formatCurrency(summaryA.totalPayment / summaryA.termMonths)}`,
-        detailB: `${nameB} ¥${formatCurrency(summaryB.totalPayment / summaryB.termMonths)}`,
+        value: `¥${formatCurrency(payA + payB)}`,
+        detailA: `${nameA} ¥${formatCurrency(payA)}`,
+        detailB: `${nameB} ¥${formatCurrency(payB)}`,
       },
       {
         label: '合计总还款',

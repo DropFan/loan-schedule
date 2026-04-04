@@ -48,6 +48,10 @@ export function CalculatorPage() {
         <SummaryCards
           combinedSummary={combinedSummary}
           subLoanNames={[loanA.name, loanB.name]}
+          subMonthlyPayments={[
+            loanA.changes[loanA.changes.length - 1]?.monthlyPayment ?? 0,
+            loanB.changes[loanB.changes.length - 1]?.monthlyPayment ?? 0,
+          ]}
         />
         <ScheduleTable combinedSchedule={combinedSchedule} />
         <ChangeTimeline

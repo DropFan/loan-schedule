@@ -16,6 +16,11 @@ interface ExportLoan {
   rateTable: RateEntry[];
 }
 
+interface ExportGroup {
+  name: string;
+  loanIndices: [number, number]; // 引用 ExportData.loans 数组的索引
+}
+
 interface ExportData {
   version: number;
   exportedAt: string;
@@ -28,6 +33,7 @@ interface ExportData {
     basisPoints?: number;
     gjjAbove5Y?: boolean;
   }>;
+  groups?: ExportGroup[];
 }
 
 export function exportData() {
@@ -59,6 +65,26 @@ export function exportData() {
     });
   }
 
+  // 构建 loan ID → loans 数组索引的映射，用于导出 groups
+  const loanIdToIndex = new Map<string, number>();
+  // 未保存方案没有 ID，跳过；已保存方案从 loans 数组中查找
+  let idx = state.params && !state.activeLoanId ? 1 : 0; // 未保存方案占 index 0
+  for (const loan of state.savedLoans) {
+    if (!loan.params) continue;
+    loanIdToIndex.set(loan.id, idx);
+    idx++;
+  }
+
+  // 导出组合方案
+  const groups: ExportGroup[] = [];
+  for (const group of state.savedGroups) {
+    const idxA = loanIdToIndex.get(group.loanIds[0]);
+    const idxB = loanIdToIndex.get(group.loanIds[1]);
+    if (idxA != null && idxB != null) {
+      groups.push({ name: group.name, loanIndices: [idxA, idxB] });
+    }
+  }
+
   const data: ExportData = {
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
@@ -71,6 +97,7 @@ export function exportData() {
       basisPoints: t.basisPoints,
       gjjAbove5Y: t.gjjAbove5Y,
     })),
+    groups: groups.length > 0 ? groups : undefined,
   };
 
   const json = JSON.stringify(data, null, 2);
@@ -109,7 +136,11 @@ export function importData(file: File): Promise<string> {
         const loanNames = new Set(store.savedLoans.map((l) => l.name));
         const rtNames = new Set(store.savedRateTables.map((t) => t.name));
 
-        for (const loan of data.loans) {
+        // 记录导出索引 → 新建 loan ID 的映射，用于恢复 groups
+        const indexToNewId = new Map<number, string>();
+
+        for (let i = 0; i < data.loans.length; i++) {
+          const loan = data.loans[i];
           if (!loan.params) continue;
 
           // 恢复 Date 对象，兼容旧数据
@@ -121,7 +152,7 @@ export function importData(file: File): Promise<string> {
           }
 
           // 断开与前一个方案的关联，确保 saveLoan 创建新条目
-          useLoanStore.setState({ activeLoanId: null });
+          useLoanStore.setState({ activeLoanId: null, activeGroupId: null });
           store.initialize(loan.params);
 
           // 按时间排序后逐条应用
@@ -140,7 +171,8 @@ export function importData(file: File): Promise<string> {
           // 保存为方案（同名自动重命名）
           const uniqueName = deduplicateName(loan.name, loanNames);
           loanNames.add(uniqueName);
-          useLoanStore.getState().saveLoan(uniqueName);
+          const newId = useLoanStore.getState().saveLoan(uniqueName);
+          indexToNewId.set(i, newId);
           importedCount++;
         }
 
@@ -160,9 +192,27 @@ export function importData(file: File): Promise<string> {
             );
         }
 
-        resolve(
-          `导入成功：${importedCount} 个方案，${data.rateTables?.length ?? 0} 个利率表`,
+        // 导入组合方案
+        let groupCount = 0;
+        const groupNames = new Set(
+          useLoanStore.getState().savedGroups.map((g) => g.name),
         );
+        for (const group of data.groups ?? []) {
+          const idA = indexToNewId.get(group.loanIndices[0]);
+          const idB = indexToNewId.get(group.loanIndices[1]);
+          if (idA && idB) {
+            const uniqueGroupName = deduplicateName(group.name, groupNames);
+            groupNames.add(uniqueGroupName);
+            useLoanStore.getState().createGroup(uniqueGroupName, [idA, idB]);
+            groupCount++;
+          }
+        }
+
+        const parts = [`${importedCount} 个方案`];
+        if ((data.rateTables?.length ?? 0) > 0)
+          parts.push(`${data.rateTables?.length ?? 0} 个利率表`);
+        if (groupCount > 0) parts.push(`${groupCount} 个组合`);
+        resolve(`导入成功：${parts.join('，')}`);
       } catch (e) {
         reject(
           new Error(`解析失败：${e instanceof Error ? e.message : '未知错误'}`),
