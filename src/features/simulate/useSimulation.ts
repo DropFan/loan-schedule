@@ -49,6 +49,7 @@ export interface SimulateResult {
   observationSimulatedRemaining: number; // 模拟方案截止日剩余本金
   observationOriginalPayment: number; // 原方案观察期内总还款
   observationSimulatedPayment: number; // 模拟方案观察期内总还款
+  monthlyExtraPayment: number | null; // 每月额外投入（调整月供模式），null 表示一次性模式
   isValid: boolean;
   error?: string;
 }
@@ -63,7 +64,7 @@ function getEndDate(schedule: PaymentScheduleItem[]): string {
 }
 
 /** 一次性投入的复利收益：principal × (1 + monthlyRate)^months - principal */
-function calcLumpSumReturn(
+export function calcLumpSumReturn(
   principal: number,
   annualRate: number,
   months: number,
@@ -74,7 +75,7 @@ function calcLumpSumReturn(
 }
 
 /** 定期定额投入的年金终值收益：每月投入 pmt，复利 months 个月的总收益 */
-function calcAnnuityReturn(
+export function calcAnnuityReturn(
   monthlyPmt: number,
   annualRate: number,
   months: number,
@@ -126,9 +127,9 @@ function buildEnhancedResult(
   // 机会成本：观察期内的理财收益 & 观察期内利息差
   const observationMonths = observationOverride ?? originalSummary.termMonths;
   const investmentReturn =
-    monthlyExtraPayment && monthlyExtraPayment > 0
+    monthlyExtraPayment && monthlyExtraPayment !== 0
       ? calcAnnuityReturn(
-          monthlyExtraPayment,
+          Math.abs(monthlyExtraPayment),
           investmentRate,
           observationMonths,
         )
@@ -213,6 +214,7 @@ function buildEnhancedResult(
     observationSimulatedRemaining,
     observationOriginalPayment,
     observationSimulatedPayment,
+    monthlyExtraPayment: monthlyExtraPayment ?? null,
     isValid: true,
   };
 }
@@ -249,6 +251,7 @@ function buildErrorResult(
     observationSimulatedRemaining: 0,
     observationOriginalPayment: 0,
     observationSimulatedPayment: 0,
+    monthlyExtraPayment: null,
     isValid: false,
     error,
   };
@@ -348,7 +351,7 @@ function simulateMonthlyAdjust(
     originalPayment,
     investmentRate,
     observationOverride,
-    monthlyAdjust > 0 ? monthlyAdjust : undefined,
+    monthlyAdjust !== 0 ? monthlyAdjust : undefined,
   );
 }
 

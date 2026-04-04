@@ -37,7 +37,12 @@ export function OpportunityCost({ result }: Props) {
   if (result.totalInvestment === 0) {
     return <BaselineAnalysis result={result} />;
   }
-  if (result.totalInvestment < 0) {
+  // monthlyExtraPayment < 0 说明用户在调整月供模式下减少了月供
+  // （一次性还款+减少月供策略的 monthlyExtraPayment 为 null，走 IncreasedPaymentAnalysis）
+  if (
+    result.totalInvestment < 0 ||
+    (result.monthlyExtraPayment != null && result.monthlyExtraPayment < 0)
+  ) {
     return <ReducedPaymentAnalysis result={result} />;
   }
   return <IncreasedPaymentAnalysis result={result} />;
@@ -64,7 +69,8 @@ function BaselineAnalysis({ result }: Props) {
 /** 增加月供 / 一次性还款：投入资金提前还贷 vs 理财 */
 function IncreasedPaymentAnalysis({ result }: Props) {
   const prepayBetter = result.netBenefit >= 0;
-  const isMonthlyMode = result.newMonthlyPayment != null;
+  const isMonthlyMode = result.monthlyExtraPayment != null;
+  const actionLabel = isMonthlyMode ? '增加月供' : '提前还款';
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
@@ -75,25 +81,34 @@ function IncreasedPaymentAnalysis({ result }: Props) {
         </span>
       </h3>
 
-      {/* 计算本金说明 */}
-      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-        {isMonthlyMode ? (
+      {/* 计算说明 */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2 space-y-1">
+        {isMonthlyMode && result.monthlyExtraPayment ? (
           <>
-            计算本金：每月额外投入{' '}
-            {fmtMoney(
-              Math.abs(
-                (result.newMonthlyPayment ?? 0) -
-                  result.originalSummary.totalPayment /
-                    result.originalSummary.termMonths,
-              ),
-            )}
-            ，累计投入 {fmtMoney(result.totalInvestment)}
-            （按定期定额年金终值计算理财收益）
+            <div>
+              假设每月将额外多还的 {fmtMoney(result.monthlyExtraPayment)}{' '}
+              拿去理财（年化 {result.investmentRate}%），观察期{' '}
+              {fmtObservation(result.observationMonths)} 内逐月投入、按月复利：
+            </div>
+            <div className="font-mono text-[11px]">
+              理财收益 = 每月 {fmtMoney(result.monthlyExtraPayment)} ×{' '}
+              {Math.round(result.observationMonths)} 期复利 ={' '}
+              {fmtMoney(result.investmentReturn)}
+            </div>
           </>
         ) : (
           <>
-            计算本金：一次性投入 {fmtMoney(result.totalInvestment)}
-            （按复利计算理财收益）
+            <div>
+              假设将 {fmtMoney(result.totalInvestment)}{' '}
+              不用于还贷而是拿去理财（年化 {result.investmentRate}%），观察期{' '}
+              {fmtObservation(result.observationMonths)} 内按月复利：
+            </div>
+            <div className="font-mono text-[11px]">
+              理财收益 = {fmtMoney(result.totalInvestment)} × (1 +{' '}
+              {result.investmentRate}%/12)^
+              {Math.round(result.observationMonths)} - 本金 ={' '}
+              {fmtMoney(result.investmentReturn)}
+            </div>
           </>
         )}
       </div>
@@ -134,7 +149,7 @@ function IncreasedPaymentAnalysis({ result }: Props) {
         <div>
           <TipLabel
             text="净收益差"
-            tip="观察期节省利息 - 理财预期收益。正值表示提前还贷更划算，负值表示理财更划算。"
+            tip="观察期节省利息 - 理财预期收益。正值表示额外还款更划算，负值表示理财更划算。"
           />
           <p
             className={`text-sm font-semibold ${
@@ -206,8 +221,8 @@ function IncreasedPaymentAnalysis({ result }: Props) {
         }`}
       >
         {prepayBetter
-          ? `观察期内提前还贷比 ${result.investmentRate}% 理财多省 ${fmtMoney(result.netBenefit)}`
-          : `观察期内 ${result.investmentRate}% 理财比提前还贷多赚 ${fmtMoney(result.netBenefit)}`}
+          ? `观察期内${actionLabel}比 ${result.investmentRate}% 理财多省 ${fmtMoney(result.netBenefit)}`
+          : `观察期内 ${result.investmentRate}% 理财比${actionLabel}多赚 ${fmtMoney(result.netBenefit)}`}
       </div>
     </div>
   );
@@ -217,15 +232,11 @@ function IncreasedPaymentAnalysis({ result }: Props) {
 function ReducedPaymentAnalysis({ result }: Props) {
   // 减少月供时：totalInvestment 为负（少付的总额），interestSaved 为负（多付的利息）
   const savedCash = Math.abs(result.totalInvestment); // 省下的现金流总额
-  const extraInterest = Math.abs(result.interestSaved); // 多付的利息
-  const investReturn = result.investmentReturn; // 省下的钱拿去理财的收益（基于 |totalInvestment| 计算）
-  const netGain = investReturn - extraInterest; // 理财收益 - 多付利息
+  const investReturn = result.investmentReturn; // 省下的钱拿去理财的收益
+  // 观察期内多付的利息（与理财收益在同一时间窗口对比）
+  const obsExtraInterest = Math.abs(result.observationInterestSaved);
+  const netGain = investReturn - obsExtraInterest; // 理财收益 - 观察期多付利息
   const worthIt = netGain >= 0;
-
-  const monthlyReduction = Math.abs(
-    (result.newMonthlyPayment ?? 0) -
-      result.originalSummary.totalPayment / result.originalSummary.termMonths,
-  );
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
@@ -236,17 +247,26 @@ function ReducedPaymentAnalysis({ result }: Props) {
         </span>
       </h3>
 
-      {/* 计算本金说明 */}
-      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-        计算本金：每月少还 {fmtMoney(monthlyReduction)}，累计省下{' '}
-        {fmtMoney(savedCash)}（按定期定额年金终值计算理财收益）
+      {/* 计算说明 */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2 space-y-1">
+        <div>
+          减少月供后每月省下{' '}
+          {fmtMoney(Math.abs(result.monthlyExtraPayment ?? 0))}
+          ，假设拿去理财（年化 {result.investmentRate}%），观察期{' '}
+          {fmtObservation(result.observationMonths)} 内逐月投入、按月复利：
+        </div>
+        <div className="font-mono text-[11px]">
+          理财收益 = 每月 {fmtMoney(Math.abs(result.monthlyExtraPayment ?? 0))}{' '}
+          × {Math.round(result.observationMonths)} 期复利 ={' '}
+          {fmtMoney(investReturn)}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
         <div>
           <TipLabel
             text="省下现金流总额"
-            tip="减少月供后，观察期内累计少还的金额。这笔钱可以用于理财。"
+            tip="减少月供后，整个贷款周期累计少还的金额。这笔钱可以用于理财。"
           />
           <p className="text-sm font-semibold text-foreground">
             {fmtMoney(savedCash)}
@@ -254,17 +274,17 @@ function ReducedPaymentAnalysis({ result }: Props) {
         </div>
         <div>
           <TipLabel
-            text="多付利息"
-            tip="因月供减少导致还款变慢，整个贷款周期多付的利息总额。"
+            text="观察期多付利息"
+            tip="观察期内因月供减少导致还款变慢，多付的利息。与理财收益在同一时间窗口内对比。"
           />
           <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-            {fmtMoney(extraInterest)}
+            {fmtMoney(obsExtraInterest)}
           </p>
         </div>
         <div>
           <TipLabel
             text={`理财预期收益（${result.investmentRate}%）`}
-            tip={`将省下的现金流按年化 ${result.investmentRate}% 复利计算，在观察期内可获得的理财收益。`}
+            tip={`将省下的现金流按年化 ${result.investmentRate}% 定期定额复利计算，在观察期内可获得的理财收益。`}
           />
           <p className="text-sm font-semibold text-foreground">
             {fmtMoney(investReturn)}
@@ -319,8 +339,8 @@ function ReducedPaymentAnalysis({ result }: Props) {
         }`}
       >
         {worthIt
-          ? `减少月供后理财净赚 ${fmtMoney(netGain)}（理财收益 ${fmtMoney(investReturn)} - 多付利息 ${fmtMoney(extraInterest)}）`
-          : `减少月供不划算，多付利息 ${fmtMoney(extraInterest)} 超过理财收益 ${fmtMoney(investReturn)}`}
+          ? `观察期内减少月供后理财净赚 ${fmtMoney(netGain)}（理财收益 ${fmtMoney(investReturn)} - 多付利息 ${fmtMoney(obsExtraInterest)}）`
+          : `观察期内减少月供不划算，多付利息 ${fmtMoney(obsExtraInterest)} 超过理财收益 ${fmtMoney(investReturn)}，净亏 ${fmtMoney(netGain)}`}
       </div>
     </div>
   );

@@ -9,6 +9,8 @@ import type {
 import { roundTo2 } from '@/core/utils/formatHelper';
 import { useTheme } from '@/hooks/useTheme';
 import {
+  calcAnnuityReturn,
+  calcLumpSumReturn,
   type SimulateInput,
   simulateLumpSumFast,
   simulateNewMonthlyOnce,
@@ -66,29 +68,6 @@ function fmtWan(v: number): string {
 
 function fmtMoney(v: number): string {
   return `¥${Math.abs(v).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
-
-/** 一次性投资的复利收益 */
-function calcLumpSumReturn(
-  amount: number,
-  annualRate: number,
-  months: number,
-): number {
-  if (amount <= 0 || annualRate <= 0 || months <= 0) return 0;
-  const r = annualRate / 100 / 12;
-  return roundTo2(amount * ((1 + r) ** months - 1));
-}
-
-/** 每月定投的年金收益（不含本金） */
-function calcAnnuityReturn(
-  monthlyAmount: number,
-  annualRate: number,
-  months: number,
-): number {
-  if (monthlyAmount <= 0 || annualRate <= 0 || months <= 0) return 0;
-  const r = annualRate / 100 / 12;
-  const fv = (monthlyAmount * ((1 + r) ** months - 1)) / r;
-  return roundTo2(fv - monthlyAmount * months);
 }
 
 /** 将未来值折现为现值（通胀折算） */
