@@ -1,4 +1,5 @@
 import type {
+  LoanChangeRecord,
   LoanScheduleSummary,
   PaymentScheduleItem,
 } from '@/core/types/loan.types';
@@ -194,5 +195,102 @@ export function calcCombinedSummary(
     termMonths: Math.max(summaryA.termMonths, summaryB.termMonths),
     summaryA,
     summaryB,
+  };
+}
+
+/** 子方案的历史数据（不依赖 store 类型） */
+export interface LoanHistoryData {
+  name: string;
+  schedule: PaymentScheduleItem[];
+  changes: LoanChangeRecord[];
+  history: Array<{ schedule: PaymentScheduleItem[] }>;
+}
+
+/** buildCombinedHistory 的返回值，可直接传给 ComparisonChart / InterestSavingsChart */
+export interface CombinedHistoryResult {
+  schedule: PaymentScheduleItem[];
+  changes: LoanChangeRecord[];
+  history: Array<{
+    schedule: PaymentScheduleItem[];
+    changeList: LoanChangeRecord[];
+  }>;
+}
+
+/**
+ * 构造组合历史快照。
+ * 按时间顺序合并两个子方案的变更事件，在每个事件点计算合并后的 before schedule。
+ * 返回值的 schedule/changes/history 格式与图表组件的 props 一致。
+ */
+export function buildCombinedHistory(
+  a: LoanHistoryData,
+  b: LoanHistoryData,
+): CombinedHistoryResult {
+  // 每个子方案的状态序列：[初始, 变更1后, 变更2后, ..., 当前]
+  const statesA = [...a.history.map((h) => h.schedule), a.schedule];
+  const statesB = [...b.history.map((h) => h.schedule), b.schedule];
+
+  // 收集所有变更事件（跳过 changes[0] 初始记录），按时间排序
+  interface Event {
+    source: 'A' | 'B';
+    stateIdx: number; // 变更前在 states 中的索引
+    change: LoanChangeRecord;
+  }
+  const events: Event[] = [];
+  for (let i = 1; i < a.changes.length && i <= a.history.length; i++) {
+    events.push({ source: 'A', stateIdx: i - 1, change: a.changes[i] });
+  }
+  for (let i = 1; i < b.changes.length && i <= b.history.length; i++) {
+    events.push({ source: 'B', stateIdx: i - 1, change: b.changes[i] });
+  }
+  events.sort((x, y) => {
+    const dx =
+      x.change.date instanceof Date
+        ? x.change.date.getTime()
+        : new Date(x.change.date).getTime();
+    const dy =
+      y.change.date instanceof Date
+        ? y.change.date.getTime()
+        : new Date(y.change.date).getTime();
+    return dx - dy;
+  });
+
+  // 逐事件构造合并快照
+  let idxA = 0;
+  let idxB = 0;
+  const combinedHistory: CombinedHistoryResult['history'] = [];
+  const combinedChanges: LoanChangeRecord[] = [];
+
+  // 加一条占位初始记录（与单方案格式对齐：changes[0] 是初始，图表从 changes[1] 开始）
+  if (a.changes.length > 0) {
+    combinedChanges.push(a.changes[0]);
+  }
+
+  for (const event of events) {
+    // 变更前的合并 schedule
+    const beforeSchedule = combinedToSchedule(
+      mergeCombinedSchedule(statesA[idxA], statesB[idxB]),
+    );
+    combinedHistory.push({ schedule: beforeSchedule, changeList: [] });
+
+    // 推进对应子方案的状态
+    if (event.source === 'A') idxA++;
+    else idxB++;
+
+    // 变更记录加来源标注
+    combinedChanges.push({
+      ...event.change,
+      comment: `[${event.source === 'A' ? a.name : b.name}] ${event.change.comment}`,
+    });
+  }
+
+  // 当前合并 schedule（所有变更之后）
+  const currentSchedule = combinedToSchedule(
+    mergeCombinedSchedule(statesA[idxA], statesB[idxB]),
+  );
+
+  return {
+    schedule: currentSchedule,
+    changes: combinedChanges,
+    history: combinedHistory,
   };
 }

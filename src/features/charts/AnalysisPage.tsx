@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   type CombinedViewMode,
   CombinedViewTabs,
@@ -6,7 +6,10 @@ import {
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoanSwitcher } from '@/components/shared/LoanSwitcher';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { combinedToSchedule } from '@/core/calculator/CombinedLoanHelper';
+import {
+  buildCombinedHistory,
+  combinedToSchedule,
+} from '@/core/calculator/CombinedLoanHelper';
 import { useCombinedLoan } from '@/hooks/useCombinedLoan';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { AnalysisSection } from './components/AnalysisSection';
@@ -38,6 +41,26 @@ export function AnalysisPage() {
   };
 
   const isCombinedView = isCombinedMode && viewMode === 'combined';
+
+  // 构造组合历史快照（用于变更影响区域的合并展示）
+  const combinedHistoryData = useMemo(() => {
+    if (!loanA || !loanB) return null;
+    if (loanA.changes.length <= 1 && loanB.changes.length <= 1) return null;
+    return buildCombinedHistory(
+      {
+        name: loanA.name,
+        schedule: loanA.schedule,
+        changes: loanA.changes,
+        history: loanA.history,
+      },
+      {
+        name: loanB.name,
+        schedule: loanB.schedule,
+        changes: loanB.changes,
+        history: loanB.history,
+      },
+    );
+  }, [loanA, loanB]);
 
   // 合计视图：用合并后的 schedule 给图表
   if (isCombinedView && combinedSchedule.length > 0 && loanA && loanB) {
@@ -101,13 +124,65 @@ export function AnalysisPage() {
           </div>
         </AnalysisSection>
 
-        {/* 变更影响：合计视图下不显示（变更针对单方案，需切到子方案查看） */}
+        {/* 变更影响：合并展示 */}
         <AnalysisSection title="变更影响" storageKey="changes" defaultOpen>
-          <Card>
-            <CardContent className="pt-6">
-              <EmptyState message="变更影响仅在子方案视图中显示，请切换到子方案查看" />
-            </CardContent>
-          </Card>
+          {combinedHistoryData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 min-[1900px]:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>变更前后对比</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ComparisonChart
+                      schedule={combinedHistoryData.schedule}
+                      changes={combinedHistoryData.changes}
+                      history={combinedHistoryData.history}
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>利息对比</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <InterestSavingsChart
+                      schedule={combinedHistoryData.schedule}
+                      changes={combinedHistoryData.changes}
+                      history={combinedHistoryData.history}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              {/* 利率时间线按子方案分别展示（"合并利率"无意义） */}
+              {[loanA, loanB].map(
+                (loan) =>
+                  loan.params &&
+                  loan.changes.some(
+                    (c) => c.changeParams?.type === 'rate-change',
+                  ) && (
+                    <Card key={loan.id}>
+                      <CardHeader>
+                        <CardTitle>利率变化时间线 — {loan.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <RateTimelineChart
+                          params={loan.params}
+                          schedule={loan.schedule}
+                          changes={loan.changes}
+                        />
+                      </CardContent>
+                    </Card>
+                  ),
+              )}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <EmptyState message="暂无变更记录，在贷款计算页面添加利率变更或提前还款后可查看变更影响分析" />
+              </CardContent>
+            </Card>
+          )}
         </AnalysisSection>
       </div>
     );
