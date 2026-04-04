@@ -1,6 +1,13 @@
+import { useState } from 'react';
+import {
+  type CombinedViewMode,
+  CombinedViewTabs,
+} from '@/components/shared/CombinedViewTabs';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LoanSwitcher } from '@/components/shared/LoanSwitcher';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { combinedToSchedule } from '@/core/calculator/CombinedLoanHelper';
+import { useCombinedLoan } from '@/hooks/useCombinedLoan';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { AnalysisSection } from './components/AnalysisSection';
 import { AnnualSummaryChart } from './components/AnnualSummaryChart';
@@ -18,12 +25,108 @@ export function AnalysisPage() {
   const changes = useLoanStore((s) => s.changes);
   const history = useLoanStore((s) => s.history);
   const summary = useLoanStore((s) => s.summary);
+  const switchSubLoan = useLoanStore((s) => s.switchSubLoan);
 
+  const { loanA, loanB, combinedSchedule, isCombinedMode } = useCombinedLoan();
+  const [viewMode, setViewMode] = useState<CombinedViewMode>('combined');
+
+  const handleViewChange = (mode: CombinedViewMode) => {
+    setViewMode(mode);
+    if (mode === 0 || mode === 1) {
+      switchSubLoan(mode);
+    }
+  };
+
+  const isCombinedView = isCombinedMode && viewMode === 'combined';
+
+  // 合计视图：用合并后的 schedule 给图表
+  if (isCombinedView && combinedSchedule.length > 0 && loanA && loanB) {
+    const mergedSchedule = combinedToSchedule(combinedSchedule);
+
+    return (
+      <div className="p-4 lg:p-6 space-y-4">
+        <h2 className="text-lg font-semibold">数据分析</h2>
+        <LoanSwitcher />
+        <CombinedViewTabs
+          loanA={loanA}
+          loanB={loanB}
+          value={viewMode}
+          onChange={handleViewChange}
+        />
+
+        {/* 还款进度 */}
+        <AnalysisSection title="还款进度" storageKey="progress" defaultOpen>
+          <div className="space-y-4">
+            <MilestoneCards schedule={mergedSchedule} />
+            <div className="grid grid-cols-1 min-[1900px]:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>还款概览</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RepaymentPieChart schedule={mergedSchedule} />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>年度还款汇总</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AnnualSummaryChart schedule={mergedSchedule} />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </AnalysisSection>
+
+        {/* 趋势分析 */}
+        <AnalysisSection title="趋势分析" storageKey="trend" defaultOpen>
+          <div className="grid grid-cols-1 min-[1900px]:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>月供构成详情</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DetailedTrendChart schedule={mergedSchedule} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>本息比变化趋势</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PrincipalRatioChart schedule={mergedSchedule} />
+              </CardContent>
+            </Card>
+          </div>
+        </AnalysisSection>
+
+        {/* 变更影响：合计视图下不显示（变更针对单方案，需切到子方案查看） */}
+        <AnalysisSection title="变更影响" storageKey="changes" defaultOpen>
+          <Card>
+            <CardContent className="pt-6">
+              <EmptyState message="变更影响仅在子方案视图中显示，请切换到子方案查看" />
+            </CardContent>
+          </Card>
+        </AnalysisSection>
+      </div>
+    );
+  }
+
+  // 单方案/子方案 guard
   if (!params || !summary || schedule.length === 0) {
     return (
       <div className="p-4 lg:p-6 space-y-4">
         <h2 className="text-lg font-semibold">数据分析</h2>
         <LoanSwitcher />
+        {isCombinedMode && loanA && loanB && (
+          <CombinedViewTabs
+            loanA={loanA}
+            loanB={loanB}
+            value={viewMode}
+            onChange={handleViewChange}
+          />
+        )}
         <Card>
           <CardContent className="pt-6">
             <EmptyState message="请先在贷款计算页面设置贷款参数并生成还款计划" />
@@ -33,12 +136,21 @@ export function AnalysisPage() {
     );
   }
 
+  // 子方案视图 / 单方案模式
   const hasChanges = changes.length > 0;
 
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <h2 className="text-lg font-semibold">数据分析</h2>
       <LoanSwitcher />
+      {isCombinedMode && loanA && loanB && (
+        <CombinedViewTabs
+          loanA={loanA}
+          loanB={loanB}
+          value={viewMode}
+          onChange={handleViewChange}
+        />
+      )}
 
       {/* 还款进度 */}
       <AnalysisSection title="还款进度" storageKey="progress" defaultOpen>

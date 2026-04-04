@@ -155,6 +155,29 @@ export function mergeCombinedSchedule(
 }
 
 /**
+ * 将合并计划转为标准 PaymentScheduleItem[]，供图表等组件复用
+ */
+export function combinedToSchedule(
+  combined: CombinedScheduleItem[],
+): PaymentScheduleItem[] {
+  return combined.map((item) => ({
+    period: item.period,
+    paymentDate: item.paymentDateA || item.paymentDateB,
+    monthlyPayment: item.monthlyPayment,
+    principal: item.principal,
+    interest: item.interest,
+    remainingLoan: item.remainingLoan,
+    remainingTerm: Math.max(
+      item.detailA.remainingTerm,
+      item.detailB.remainingTerm,
+    ),
+    annualInterestRate: 0,
+    loanMethod: '',
+    comment: '',
+  }));
+}
+
+/**
  * 计算两个还款计划的组合汇总
  */
 export function calcCombinedSummary(

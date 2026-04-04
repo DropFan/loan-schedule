@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import {
+  combinedToSchedule,
+  mergeCombinedSchedule,
+} from '@/core/calculator/CombinedLoanHelper';
 import type {
   LoanParameters,
   PaymentScheduleItem,
@@ -32,9 +36,16 @@ export interface SelectedLoan {
 }
 
 export function ComparePage() {
-  const { savedLoans, activeLoanId, params, schedule } = useLoanStore();
+  const {
+    savedLoans,
+    savedGroups,
+    activeLoanId,
+    activeGroupId,
+    params,
+    schedule,
+  } = useLoanStore();
 
-  // 组装可对比方案列表：savedLoans + 当前未保存方案
+  // 组装可对比方案列表：savedLoans + 组合方案 + 当前未保存方案
   const loanOptions: LoanOption[] = [];
 
   for (const loan of savedLoans) {
@@ -42,16 +53,46 @@ export function ComparePage() {
       loanOptions.push({
         id: loan.id,
         name: loan.name,
-        isActive: loan.id === activeLoanId,
+        isActive: loan.id === activeLoanId && !activeGroupId,
         params: loan.params,
         schedule: loan.schedule,
       });
     }
   }
 
+  // 组合方案：合并 schedule 作为对比数据
+  const groupScheduleMap = useMemo(() => {
+    const map = new Map<string, PaymentScheduleItem[]>();
+    for (const group of savedGroups) {
+      const a = savedLoans.find((l) => l.id === group.loanIds[0]);
+      const b = savedLoans.find((l) => l.id === group.loanIds[1]);
+      if (a?.schedule.length && b?.schedule.length) {
+        map.set(
+          group.id,
+          combinedToSchedule(mergeCombinedSchedule(a.schedule, b.schedule)),
+        );
+      }
+    }
+    return map;
+  }, [savedGroups, savedLoans]);
+
+  for (const group of savedGroups) {
+    const mergedSchedule = groupScheduleMap.get(group.id);
+    if (!mergedSchedule?.length) continue;
+    const a = savedLoans.find((l) => l.id === group.loanIds[0]);
+    if (!a?.params) continue;
+    loanOptions.push({
+      id: `group:${group.id}`,
+      name: `[组合] ${group.name}`,
+      isActive: group.id === activeGroupId,
+      params: a.params,
+      schedule: mergedSchedule,
+    });
+  }
+
   // 当前方案未保存时，加入列表
   const hasUnsaved = params && !savedLoans.some((l) => l.id === activeLoanId);
-  if (hasUnsaved && schedule.length > 0) {
+  if (hasUnsaved && schedule.length > 0 && !activeGroupId) {
     loanOptions.push({
       id: '__current__',
       name: '当前方案（未保存）',
