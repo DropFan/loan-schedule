@@ -124,6 +124,79 @@ export function SimulateChart({
         );
       }
 
+      // 交叉点：净收益首次从正变负（理财开始比还贷划算）
+      let crossIdx = -1;
+      for (let i = 1; i < netData.length; i++) {
+        if (netData[i - 1] > 0 && netData[i] <= 0) {
+          crossIdx = i;
+          break;
+        }
+      }
+
+      // 构建竖线标记
+      const verticalMarks: Array<Record<string, unknown>> = [];
+      if (startIdx >= 0) {
+        verticalMarks.push({
+          xAxis: startIdx,
+          lineStyle: { type: 'dashed', color: '#f43f5e', width: 1.5 },
+          label: {
+            show: true,
+            position: 'insideEndTop',
+            fontSize: 10,
+            color: '#f43f5e',
+            formatter: '模拟起点',
+          },
+        });
+      }
+      // 回本点
+      if (result.paybackMonths != null) {
+        const paybackIdx = periods.indexOf(result.paybackMonths);
+        if (paybackIdx >= 0) {
+          verticalMarks.push({
+            xAxis: paybackIdx,
+            lineStyle: { type: 'dashed', color: '#4caf50', width: 1.5 },
+            label: {
+              show: true,
+              position: 'insideEndTop',
+              fontSize: 10,
+              color: '#4caf50',
+              formatter: `回本 第${result.paybackMonths}期`,
+            },
+          });
+        }
+      }
+      // 模拟方案结清
+      if (simEnd > 0 && simEnd < origEnd) {
+        const simEndIdx = periods.indexOf(simEnd);
+        if (simEndIdx >= 0) {
+          verticalMarks.push({
+            xAxis: simEndIdx,
+            lineStyle: { type: 'dashed', color: '#ff9800', width: 1.5 },
+            label: {
+              show: true,
+              position: 'insideEndBottom',
+              fontSize: 10,
+              color: '#ff9800',
+              formatter: '贷款结清',
+            },
+          });
+        }
+      }
+      // 交叉点
+      if (crossIdx >= 0) {
+        verticalMarks.push({
+          xAxis: crossIdx,
+          lineStyle: { type: 'solid', color: '#e040fb', width: 1.5 },
+          label: {
+            show: true,
+            position: 'insideEndBottom',
+            fontSize: 10,
+            color: '#e040fb',
+            formatter: `交叉 第${periods[crossIdx]}期`,
+          },
+        });
+      }
+
       return {
         tooltip: {
           trigger: 'axis',
@@ -184,6 +257,14 @@ export function SimulateChart({
             showSymbol: false,
             lineStyle: { width: 2, color: '#4caf50' },
             itemStyle: { color: '#4caf50' },
+            markLine:
+              verticalMarks.length > 0
+                ? {
+                    silent: true,
+                    symbol: 'none',
+                    data: verticalMarks,
+                  }
+                : undefined,
           },
           {
             name: '理财预期收益',
