@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-这是一个贷款计算器和还贷模拟器的 Web 应用，支持商业贷款和公积金贷款，包含利率调整、提前还款和自由还款计算。基于 React + TypeScript + Vite + Zustand 构建，使用 Tailwind CSS + Base UI 组件库。
+这是一个贷款计算器和还贷模拟器的 Web 应用，支持商业贷款和公积金贷款（含组合贷款），包含利率调整、提前还款、自由还款计算、还款模拟、方案对比和机会成本分析。基于 React + TypeScript + Vite + Zustand 构建，使用 Tailwind CSS + Base UI 组件库。
 
 线上地址：https://loan.v2dl.net
 
@@ -31,25 +31,34 @@ src/
 ├── main.tsx                       # 应用入口
 ├── app/
 │   ├── App.tsx                    # 根组件（Providers + PWA Install）
-│   ├── routes.tsx                 # 路由定义（AnalysisPage 懒加载）
+│   ├── routes.tsx                 # 路由定义（Analysis/Compare/Simulate 懒加载）
 │   └── providers.tsx              # Context providers
 ├── core/
-│   ├── types/loan.types.ts        # TypeScript 类型/接口/枚举定义
-│   ├── calculator/LoanCalculator.ts  # 纯计算函数（零副作用）
+│   ├── types/loan.types.ts        # TypeScript 类型/接口/枚举定义（含 LoanGroup）
+│   ├── calculator/
+│   │   ├── LoanCalculator.ts      # 纯计算函数（零副作用）
+│   │   └── CombinedLoanHelper.ts  # 组合贷款合并计算（合计月供/利息/本金）
 │   └── utils/
 │       ├── formatHelper.ts        # 金额/日期/利率格式化
 │       └── validator.ts           # 输入验证
 ├── stores/
 │   └── useLoanStore.ts            # Zustand 状态管理 + localStorage 持久化
+├── hooks/
+│   ├── useCombinedLoan.ts         # 组合贷款状态 hook（组合视图切换/合计计算）
+│   └── useTheme.ts                # 主题切换 hook
 ├── features/
 │   ├── calculator/                # 贷款计算页（表单、汇总、还款表）
 │   ├── changes/                   # 变更操作（利率变更、提前还款、调整月供、利率表导入）
 │   ├── charts/                    # 数据分析页（echarts 懒加载）
+│   ├── compare/                   # 方案对比页（多方案指标对比、利率拆分）
+│   ├── simulate/                  # 还款模拟页（提前还款模拟、机会成本分析）
 │   ├── rate-table/                # 利率表管理（自定义/LPR+基点/公积金、保存/加载）
 │   └── settings/                  # 设置页
+├── services/
+│   └── export/                    # 导出服务（Excel 导出、数据准备）
 ├── components/
 │   ├── ui/                        # Base UI 封装组件
-│   ├── shared/LoanSwitcher.tsx    # 多方案切换器
+│   ├── shared/                    # 共享组件（LoanSwitcher、CombinedViewTabs、CreateGroupDialog）
 │   └── layout/                    # AppShell、Sidebar、BottomTabs
 ├── constants/app.constants.ts     # 应用常量
 └── styles/globals.css             # Tailwind 全局样式
@@ -70,6 +79,9 @@ src/
 - **LoanCalculator**: 纯计算函数，无副作用，所有金额使用 `roundTo2()` 控制精度
 - **贷款类型**: `LoanType` 区分商业贷款（Commercial）和公积金贷款（ProvidentFund），影响利率变更时的计息方式
 - **多方案管理**: `SavedLoan` 支持保存/加载/重命名/删除，`LoanSwitcher` 组件提供 UI
+- **组合贷款**: `LoanGroup` 将商贷+公积金组合为一组，`CombinedLoanHelper` 合并计算合计月供/利息/本金，`useCombinedLoan` hook 管理组合视图状态，`CombinedViewTabs` 提供独立/合计视图切换
+- **方案对比**: `ComparePage` 支持多方案横向对比（含当期指标、利率拆分），组合方案按子贷款拆分展示
+- **还款模拟**: `SimulatePage` 模拟提前还款/月供调整的影响，含机会成本分析（回本周期、流动性提示、投资对比曲线、关键节点标记）
 - **利率表管理**: `SavedRateTable` 独立于方案管理，支持自定义、LPR+基点和公积金三种数据源，利率变更自动同步
 - **echarts 懒加载**: 通过 `React.lazy` 将 echarts（~1MB）拆分为独立 chunk，首屏不加载
 

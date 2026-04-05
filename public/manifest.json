@@ -11,7 +11,7 @@
   "orientation": "any",
   "background_color": "#f4f4f4",
   "theme_color": "#4CAF50",
-  "description": "一个功能强大的贷款计算器和还贷模拟器，支持利率变更、提前还款、还款模拟、机会成本分析、LPR利率表、数据分析。",
+  "description": "一个功能强大的贷款计算器和还贷模拟器，支持商贷/公积金/组合贷、利率变更、提前还款、还款模拟、方案对比、机会成本分析、LPR利率表、数据分析。",
   "categories": ["finance", "utilities"],
   "launch_handler": {
     "client_mode": "focus-existing"
@@ -95,6 +95,13 @@
       "short_name": "模拟",
       "url": "/simulate",
       "description": "模拟提前还款和月供调整",
+      "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "方案对比",
+      "short_name": "对比",
+      "url": "/compare",
+      "description": "多方案横向对比分析",
       "icons": [{ "src": "/logo-192.png", "sizes": "192x192" }]
     },
     {
