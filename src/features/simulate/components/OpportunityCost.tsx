@@ -31,6 +31,14 @@ function fmtObservation(months: number): string {
   return parts.join('') || '0天';
 }
 
+function fmtPayback(months: number): string {
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  if (y > 0 && m > 0) return `约${y}年${m}个月`;
+  if (y > 0) return `约${y}年`;
+  return `${m}个月`;
+}
+
 function EarlyPayoffNotice({ result }: Props) {
   if (!result.observationCapped) return null;
   return (
@@ -174,7 +182,26 @@ function IncreasedPaymentAnalysis({ result }: Props) {
             {fmtMoney(result.netBenefit)}
           </p>
         </div>
+        <div>
+          <TipLabel
+            text="回本周期"
+            tip="累计利息节省达到投入金额所需的期数。即从第几期开始，提前还款的利息节省已覆盖全部投入成本。"
+          />
+          <p className="text-sm font-semibold text-foreground">
+            {result.paybackMonths != null
+              ? `第 ${result.paybackMonths} 期（${fmtPayback(result.paybackMonths)}）`
+              : '观察期内未回本'}
+          </p>
+        </div>
       </div>
+
+      {/* 流动性提示 */}
+      {!isMonthlyMode && result.totalInvestment > 0 && (
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+          提前还款的 {fmtMoney(result.totalInvestment)}{' '}
+          将锁定在贷款中无法取回，请确保留有足够的应急资金
+        </div>
+      )}
 
       {/* 观察期截止对比 */}
       {result.observationEndDate && (

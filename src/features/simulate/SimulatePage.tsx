@@ -258,6 +258,7 @@ export function SimulatePage() {
                 originalSchedule={displayOriginal}
                 simulatedSchedule={displaySimulated ?? result.simulatedSchedule}
                 startPeriod={startPeriod}
+                result={result}
                 onPeriodChange={(period) => {
                   setInput((prev) => ({
                     ...prev,

@@ -53,6 +53,7 @@ export interface SimulateResult {
   observationOriginalPayment: number; // 原方案观察期内总还款
   observationSimulatedPayment: number; // 模拟方案观察期内总还款
   monthlyExtraPayment: number | null; // 每月额外投入（调整月供模式），null 表示一次性模式
+  paybackMonths: number | null; // 回本周期：累计利息节省 ≥ 投入金额的期数，null=观察期内未回本
   isValid: boolean;
   error?: string;
 }
@@ -241,6 +242,30 @@ function buildEnhancedResult(
 
   const netBenefit = roundTo2(observationInterestSaved - investmentReturn);
 
+  // 回本周期：累计利息节省 ≥ 投入金额的期数
+  let paybackMonths: number | null = null;
+  if (Math.abs(totalInvestment) > 0) {
+    const origInterestMap = new Map(
+      getRegularItems(schedule).map((s) => [s.period, s.interest]),
+    );
+    const simInterestMap = new Map(
+      getRegularItems(simulatedSchedule).map((s) => [s.period, s.interest]),
+    );
+    const maxP = Math.max(
+      originalSummary.termMonths,
+      simulatedSummary.termMonths,
+    );
+    let cumSaved = 0;
+    const target = Math.abs(totalInvestment);
+    for (let p = 1; p <= maxP; p++) {
+      cumSaved += (origInterestMap.get(p) ?? 0) - (simInterestMap.get(p) ?? 0);
+      if (cumSaved >= target) {
+        paybackMonths = p;
+        break;
+      }
+    }
+  }
+
   return {
     simulatedSchedule,
     originalSummary,
@@ -266,6 +291,7 @@ function buildEnhancedResult(
     observationOriginalPayment,
     observationSimulatedPayment,
     monthlyExtraPayment: monthlyExtraPayment ?? null,
+    paybackMonths,
     isValid: true,
   };
 }
@@ -305,6 +331,7 @@ function buildErrorResult(
     observationOriginalPayment: 0,
     observationSimulatedPayment: 0,
     monthlyExtraPayment: null,
+    paybackMonths: null,
     isValid: false,
     error,
   };
