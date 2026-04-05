@@ -43,7 +43,9 @@ export interface SimulateResult {
   observationInterestSaved: number; // 观察期内节省的利息（用于机会成本对比）
   netBenefit: number; // 观察期利息差 - 理财收益，正值=还贷更划算
   investmentRate: number; // 使用的理财利率
-  observationMonths: number; // 机会成本观察期（月）
+  observationMonths: number; // 实际生效的观察期（月）
+  observationRequestedMonths: number; // 用户设置的观察期（月）
+  observationCapped: boolean; // 观察期是否因贷款提前结束而被缩短
   // 观察期截止时对比
   observationEndDate: string; // 观察期截止日期
   observationOriginalRemaining: number; // 原方案截止日剩余本金
@@ -62,6 +64,23 @@ function getRegularItems(schedule: PaymentScheduleItem[]) {
 function getEndDate(schedule: PaymentScheduleItem[]): string {
   const regular = getRegularItems(schedule);
   return regular.length > 0 ? regular[regular.length - 1].paymentDate : '';
+}
+
+/** 从今天到指定日期的精确月数（含天数小数部分，最小 0） */
+function monthsFromToday(dateStr: string): number {
+  if (!dateStr) return 0;
+  const today = new Date();
+  const end = new Date(`${dateStr}T00:00:00`);
+  const wholeMonths =
+    (end.getFullYear() - today.getFullYear()) * 12 +
+    (end.getMonth() - today.getMonth());
+  const dayDiff = end.getDate() - today.getDate();
+  const daysInMonth = new Date(
+    end.getFullYear(),
+    end.getMonth() + 1,
+    0,
+  ).getDate();
+  return Math.max(roundTo2(wholeMonths + dayDiff / daysInMonth), 0);
 }
 
 /** 一次性投入的复利收益：principal × (1 + monthlyRate)^months - principal */
@@ -125,20 +144,49 @@ function buildEnhancedResult(
   const interestSavingRate =
     totalInvestment > 0 ? roundTo2(interestSaved / totalInvestment) : 0;
 
-  // 机会成本：观察期内的理财收益 & 观察期内利息差
-  const observationMonths = observationOverride ?? originalSummary.termMonths;
-  const investmentReturn =
-    monthlyExtraPayment && monthlyExtraPayment !== 0
-      ? calcAnnuityReturn(
-          Math.abs(monthlyExtraPayment),
-          investmentRate,
-          observationMonths,
-        )
-      : calcLumpSumReturn(
-          Math.abs(totalInvestment),
-          investmentRate,
-          observationMonths,
-        );
+  // 机会成本：统一以"从今天起"为基准
+  const origMonthsLeft = monthsFromToday(originalEndDate);
+  const simMonthsLeft = monthsFromToday(newEndDate);
+  const observationMonths = observationOverride ?? Math.max(origMonthsLeft, 1);
+  // 模拟方案是否在观察期内提前结清（信息提示，不强制缩短观察期）
+  const observationCapped =
+    simMonthsLeft < observationMonths && simMonthsLeft < origMonthsLeft;
+  const observationRequestedMonths = observationMonths;
+
+  // 理财收益：
+  // - 一次性还款：全额投资复利整个观察期
+  // - 调整月供：额外投入仅在较短方案存续期内，之后仅复利已积累金额
+  let investmentReturn: number;
+  if (monthlyExtraPayment && monthlyExtraPayment !== 0) {
+    const monthlyAmt = Math.abs(monthlyExtraPayment);
+    const contributionMonths = Math.min(
+      observationMonths,
+      Math.min(origMonthsLeft, simMonthsLeft),
+    );
+    if (contributionMonths >= observationMonths) {
+      investmentReturn = calcAnnuityReturn(
+        monthlyAmt,
+        investmentRate,
+        observationMonths,
+      );
+    } else {
+      // 分两段：投入期 + 纯复利期
+      const r = investmentRate / 100 / 12;
+      const fv1 =
+        r > 0
+          ? monthlyAmt * (((1 + r) ** contributionMonths - 1) / r)
+          : monthlyAmt * contributionMonths;
+      const compoundMonths = observationMonths - contributionMonths;
+      const fv2 = r > 0 ? fv1 * (1 + r) ** compoundMonths : fv1;
+      investmentReturn = roundTo2(fv2 - monthlyAmt * contributionMonths);
+    }
+  } else {
+    investmentReturn = calcLumpSumReturn(
+      Math.abs(totalInvestment),
+      investmentRate,
+      observationMonths,
+    );
+  }
 
   // 观察期窗口：从当前日期起算，支持小数月（精确到天）
   const today = new Date();
@@ -210,6 +258,8 @@ function buildEnhancedResult(
     netBenefit,
     investmentRate,
     observationMonths,
+    observationRequestedMonths,
+    observationCapped,
     observationEndDate,
     observationOriginalRemaining,
     observationSimulatedRemaining,
@@ -247,6 +297,8 @@ function buildErrorResult(
     netBenefit: 0,
     investmentRate,
     observationMonths: 0,
+    observationRequestedMonths: 0,
+    observationCapped: false,
     observationEndDate: '',
     observationOriginalRemaining: 0,
     observationSimulatedRemaining: 0,

@@ -31,6 +31,16 @@ function fmtObservation(months: number): string {
   return parts.join('') || '0天';
 }
 
+function EarlyPayoffNotice({ result }: Props) {
+  if (!result.observationCapped) return null;
+  return (
+    <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded-md px-3 py-2">
+      模拟方案将在观察期内提前结清（{result.newEndDate}
+      ），之后原方案仍在还款，利息差额持续累积；理财资金则继续复利增长
+    </div>
+  );
+}
+
 export function OpportunityCost({ result }: Props) {
   if (!result.isValid) return null;
 
@@ -80,6 +90,8 @@ function IncreasedPaymentAnalysis({ result }: Props) {
           （观察期 {fmtObservation(result.observationMonths)}）
         </span>
       </h3>
+
+      <EarlyPayoffNotice result={result} />
 
       {/* 计算说明 */}
       <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2 space-y-1">
@@ -246,6 +258,8 @@ function ReducedPaymentAnalysis({ result }: Props) {
           （观察期 {fmtObservation(result.observationMonths)}）
         </span>
       </h3>
+
+      <EarlyPayoffNotice result={result} />
 
       {/* 计算说明 */}
       <div className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2 space-y-1">
