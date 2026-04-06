@@ -21,6 +21,7 @@ import {
   PrepaymentMode,
   PrepaymentModeName,
 } from '@/core/types/loan.types';
+import { trackEvent } from '@/core/utils/analytics';
 import { formatDate } from '@/core/utils/formatHelper';
 import { Validator } from '@/core/utils/validator';
 import { useLoanStore } from '@/stores/useLoanStore';
@@ -133,6 +134,7 @@ export function ChangeForm() {
     }
 
     setApplyResult(`已应用 ${toApply.length} 条利率变更`);
+    trackEvent('rate_table_applied', { entry_count: toApply.length });
   };
 
   if (!hasSchedule || !currentMethod) return null;
@@ -260,7 +262,10 @@ export function ChangeForm() {
         <CardTitle>变更操作</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="rate">
+        <Tabs
+          defaultValue="rate"
+          onValueChange={(tab) => trackEvent('change_tab_switched', { tab })}
+        >
           <TabsList className="w-full">
             <TabsTrigger value="rate" className="flex-1">
               利率变更

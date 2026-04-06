@@ -8,6 +8,7 @@ import type {
   LoanParameters,
   PaymentScheduleItem,
 } from '@/core/types/loan.types';
+import { trackEvent } from '@/core/utils/analytics';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { ComparisonOverlay } from './components/ComparisonOverlay';
 import { ComparisonSnapshot } from './components/ComparisonSnapshot';
@@ -191,7 +192,11 @@ export function ComparePage() {
       <LoanSelector
         loans={loanOptions}
         selected={selected}
-        onChange={setSelected}
+        onChange={(ids: string[]) => {
+          setSelected(ids);
+          if (ids.length >= 2)
+            trackEvent('loans_compared', { loan_count: ids.length });
+        }}
       />
 
       {selectedLoans.length >= 2 ? (

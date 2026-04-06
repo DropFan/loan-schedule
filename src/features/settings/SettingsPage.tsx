@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { APP_AUTHOR, APP_LINK, APP_VERSION } from '@/constants/app.constants';
+import {
+  APP_AUTHOR,
+  APP_AUTHOR_LINK,
+  APP_LINK,
+  APP_VERSION,
+} from '@/constants/app.constants';
+import { trackEvent } from '@/core/utils/analytics';
 import { type Theme, useTheme } from '@/hooks/useTheme';
 import { useLoanStore } from '@/stores/useLoanStore';
 import { exportData, importData } from './data-transfer';
@@ -35,6 +41,7 @@ export function SettingsPage() {
     if (window.confirm('确认清除所有数据？此操作不可撤销。')) {
       clear();
       localStorage.removeItem('loan-app-state');
+      trackEvent('all_data_cleared');
     }
   };
 
@@ -45,6 +52,7 @@ export function SettingsPage() {
     try {
       const result = await importData(file);
       setImportResult(result);
+      trackEvent('app_data_imported');
     } catch (err) {
       setImportResult(err instanceof Error ? err.message : '导入失败');
     }
@@ -65,7 +73,10 @@ export function SettingsPage() {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setTheme(opt.value)}
+                onClick={() => {
+                  setTheme(opt.value);
+                  trackEvent('theme_changed', { theme: opt.value });
+                }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm border transition-colors ${
                   theme === opt.value
                     ? 'border-primary bg-primary/10 text-primary font-medium'
@@ -95,7 +106,10 @@ export function SettingsPage() {
               type="button"
               role="switch"
               aria-checked={autoSave}
-              onClick={() => setAutoSave(!autoSave)}
+              onClick={() => {
+                setAutoSave(!autoSave);
+                trackEvent('auto_save_toggled', { enabled: !autoSave });
+              }}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                 autoSave ? 'bg-primary' : 'bg-muted'
               }`}
@@ -183,7 +197,13 @@ export function SettingsPage() {
               文件，可在其他设备导入恢复。包含贷款方案（参数+变更记录）和利率表，导入时自动重放计算。
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={exportData}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  exportData();
+                  trackEvent('app_data_exported');
+                }}
+              >
                 导出数据
               </Button>
               <Button
@@ -237,13 +257,23 @@ export function SettingsPage() {
           </div>
           <p>贷款计算器 & 还贷模拟器</p>
           <p className="text-muted-foreground">版本 v{APP_VERSION}</p>
-          <p className="text-muted-foreground">作者：{APP_AUTHOR}</p>
+          <p className="text-muted-foreground">
+            作者：
+            <a
+              href={APP_AUTHOR_LINK}
+              className="hover:text-primary hover:underline"
+              target="_blank"
+              rel="noopener"
+            >
+              {APP_AUTHOR}
+            </a>
+          </p>
           <p>
             <a
               href={APP_LINK}
               className="text-primary hover:underline"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener"
             >
               {APP_LINK}
             </a>
@@ -253,7 +283,7 @@ export function SettingsPage() {
               href="https://github.com/DropFan/loan-schedule"
               className="text-primary hover:underline"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener"
             >
               GitHub 源码
             </a>

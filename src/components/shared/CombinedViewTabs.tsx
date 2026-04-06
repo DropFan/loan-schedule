@@ -1,4 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { trackEvent } from '@/core/utils/analytics';
 import type { SavedLoan } from '@/stores/useLoanStore';
 
 export type CombinedViewMode = 'combined' | 0 | 1;
@@ -20,6 +21,9 @@ export function CombinedViewTabs({
     <Tabs
       value={String(value)}
       onValueChange={(v) => {
+        trackEvent('combined_view_switched', {
+          view: v === 'combined' ? 'combined' : 'individual',
+        });
         if (v === 'combined') onChange('combined');
         else onChange(Number(v) as 0 | 1);
       }}

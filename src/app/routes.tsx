@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { CalculatorPage } from '@/features/calculator';
 import { RateTablePage } from '@/features/rate-table';
 import { SettingsPage } from '@/features/settings';
+import { usePageTracking } from '@/hooks/usePageTracking';
 
 const AnalysisPage = lazy(() =>
   import('@/features/charts').then((m) => ({ default: m.AnalysisPage })),
@@ -14,6 +15,7 @@ const ComparePage = lazy(() => import('@/features/compare'));
 const SimulatePage = lazy(() => import('@/features/simulate'));
 
 export function AppRoutes() {
+  usePageTracking();
   return useRoutes(routes);
 }
 

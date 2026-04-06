@@ -24,6 +24,7 @@ import {
   type PaymentScheduleItem,
   PrepaymentMode,
 } from '@/core/types/loan.types';
+import { trackEvent } from '@/core/utils/analytics';
 import { addMonths, formatDate, roundTo2 } from '@/core/utils/formatHelper';
 
 export interface RateEntry {
@@ -255,6 +256,14 @@ export const useLoanStore = create<LoanState>()(
             canUndo: false,
           });
 
+          trackEvent('loan_calculated', {
+            loan_type:
+              params.loanType === LoanType.ProvidentFund
+                ? 'provident_fund'
+                : 'commercial',
+            loan_method: LoanMethodName[params.loanMethod],
+            loan_term: params.loanTermMonths,
+          });
           markLoanDirty();
         },
 
@@ -646,6 +655,27 @@ export const useLoanStore = create<LoanState>()(
             canUndo: true,
           });
 
+          if (changeParams.type === ChangeType.RateChange) {
+            trackEvent('rate_changed', {
+              new_rate: changeParams.newAnnualRate ?? 0,
+            });
+          } else if (changeParams.type === ChangeType.Prepayment) {
+            trackEvent('prepayment_applied', {
+              amount: changeParams.prepayAmount ?? 0,
+              mode:
+                changeParams.prepaymentMode === PrepaymentMode.ReducePayment
+                  ? 'reduce_payment'
+                  : 'shorten_term',
+            });
+          } else if (changeParams.type === ChangeType.PaymentChange) {
+            trackEvent('payment_adjusted', {
+              new_payment: changeParams.newMonthlyPayment ?? 0,
+            });
+          } else if (changeParams.type === ChangeType.RepaymentDayChange) {
+            trackEvent('repayment_day_changed', {
+              new_day: changeParams.newRepaymentDay ?? 0,
+            });
+          }
           markLoanDirty();
         },
 
@@ -664,6 +694,7 @@ export const useLoanStore = create<LoanState>()(
             canUndo: newHistory.length > 0,
           });
 
+          trackEvent('change_undone');
           markLoanDirty();
         },
 
@@ -731,6 +762,7 @@ export const useLoanStore = create<LoanState>()(
             activeLoanId: id,
             loanDirty: false,
           });
+          trackEvent('loan_saved');
           return id;
         },
 
@@ -754,6 +786,7 @@ export const useLoanStore = create<LoanState>()(
                 : null,
             canUndo: target.history.length > 0,
           });
+          trackEvent('loan_loaded');
         },
 
         deleteLoan: (id: string) => {
@@ -778,6 +811,7 @@ export const useLoanStore = create<LoanState>()(
             updates.activeGroupId = null;
           }
           set(updates as LoanState);
+          trackEvent('loan_deleted');
         },
 
         renameLoan: (id: string, name: string) => {
@@ -788,6 +822,7 @@ export const useLoanStore = create<LoanState>()(
               : l,
           );
           set({ savedLoans: updated });
+          trackEvent('loan_renamed');
         },
 
         saveRateTable: (
@@ -838,6 +873,7 @@ export const useLoanStore = create<LoanState>()(
             activeRateTableId: id,
             rateTableDirty: false,
           });
+          trackEvent('rate_table_saved', { source });
           return id;
         },
 
@@ -851,6 +887,7 @@ export const useLoanStore = create<LoanState>()(
             rateTable: target.entries,
             rateTableDirty: false,
           });
+          trackEvent('rate_table_loaded');
         },
 
         deleteRateTable: (id: string) => {
@@ -893,6 +930,7 @@ export const useLoanStore = create<LoanState>()(
             updatedAt: now,
           };
           set({ savedGroups: [...state.savedGroups, group] });
+          trackEvent('group_created');
           // 自动激活组合
           get().loadGroup(id);
           return id;
@@ -906,6 +944,7 @@ export const useLoanStore = create<LoanState>()(
             updates.activeGroupId = null;
           }
           set(updates as LoanState);
+          trackEvent('group_deleted');
         },
 
         renameGroup: (id: string, name: string) => {
@@ -942,6 +981,7 @@ export const useLoanStore = create<LoanState>()(
                 : null,
             canUndo: loanA.history.length > 0,
           });
+          trackEvent('group_loaded');
         },
 
         switchSubLoan: (index: 0 | 1) => {

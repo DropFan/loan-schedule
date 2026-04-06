@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { CombinedScheduleItem } from '@/core/calculator/CombinedLoanHelper';
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
+import { trackEvent } from '@/core/utils/analytics';
 import { formatCurrency } from '@/core/utils/formatHelper';
 import { exportCombinedToExcel, exportToExcel } from '@/services/ExcelExporter';
 import {
@@ -141,6 +142,7 @@ export function ScheduleTable({
     } else {
       exportToExcel(schedule, changes);
     }
+    trackEvent('schedule_exported', { format: 'excel' });
   }, [
     isCombinedView,
     combinedSchedule,
@@ -160,16 +162,19 @@ export function ScheduleTable({
 
   const handleExportCsv = useCallback(() => {
     exportToCsv(prepareCombinedOrSingle());
+    trackEvent('schedule_exported', { format: 'csv' });
   }, [prepareCombinedOrSingle]);
 
   const handleExportMarkdown = useCallback(() => {
     exportToMarkdown(prepareCombinedOrSingle());
+    trackEvent('schedule_exported', { format: 'markdown' });
   }, [prepareCombinedOrSingle]);
 
   const handleCopy = useCallback(async () => {
     const ok = await copyToClipboard(prepareCombinedOrSingle());
     setCopyState(ok ? 'success' : 'fail');
     setTimeout(() => setCopyState('idle'), 2000);
+    if (ok) trackEvent('schedule_copied');
   }, [prepareCombinedOrSingle]);
 
   if (rowCount === 0) {

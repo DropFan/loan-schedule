@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PaymentScheduleItem } from '@/core/types/loan.types';
+import { trackEvent } from '@/core/utils/analytics';
 import { roundTo2 } from '@/core/utils/formatHelper';
 import type { SimulateInput } from '../useSimulation';
 
@@ -186,7 +187,10 @@ export function SimulateForm({
               <button
                 key={mode}
                 type="button"
-                onClick={() => onChange({ ...input, mode })}
+                onClick={() => {
+                  onChange({ ...input, mode });
+                  trackEvent('simulation_run', { simulation_type: mode });
+                }}
                 className={`flex-1 px-3 py-1.5 text-sm rounded-md border transition-colors ${
                   input.mode === mode
                     ? 'border-primary bg-primary/10 text-primary font-medium'
