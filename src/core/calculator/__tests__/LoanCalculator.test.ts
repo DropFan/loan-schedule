@@ -96,7 +96,10 @@ describe('generateSchedule', () => {
       expect(schedule[0].period).toBe(1);
       expect(schedule[11].period).toBe(12);
       expect(schedule[11].remainingTerm).toBe(0);
-      expect(schedule[11].remainingLoan).toBeCloseTo(0, 0);
+      expect(schedule[11].remainingLoan).toBe(0);
+      expect(
+        schedule.reduce((sum, item) => sum + item.principal, 0),
+      ).toBeCloseTo(100000, 2);
       expect(schedule[0].annualInterestRate).toBe(4.9);
       expect(schedule[0].loanMethod).toBe(
         LoanMethodName[LoanMethod.EqualPrincipalInterest],
@@ -104,7 +107,7 @@ describe('generateSchedule', () => {
       expect(schedule[0].comment).toBe('');
     });
 
-    it('每期月供相同', () => {
+    it('除尾差校正外每期月供相同', () => {
       const monthlyRate = annualToMonthlyRate(4.9);
       const startDate = new Date(2024, 0, 15);
       const schedule = generateSchedule(
@@ -118,9 +121,10 @@ describe('generateSchedule', () => {
       );
 
       const firstPayment = schedule[0].monthlyPayment;
-      for (const item of schedule) {
+      for (const item of schedule.slice(0, -1)) {
         expect(item.monthlyPayment).toBe(firstPayment);
       }
+      expect(schedule[11].monthlyPayment).toBeCloseTo(firstPayment, 0);
     });
 
     it('还款日期使用指定的 repaymentDay（15号）', () => {
@@ -157,7 +161,10 @@ describe('generateSchedule', () => {
 
       expect(schedule).toHaveLength(12);
       expect(schedule[11].remainingTerm).toBe(0);
-      expect(schedule[11].remainingLoan).toBeCloseTo(0, 0);
+      expect(schedule[11].remainingLoan).toBe(0);
+      expect(
+        schedule.reduce((sum, item) => sum + item.principal, 0),
+      ).toBeCloseTo(120000, 2);
       expect(schedule[0].loanMethod).toBe(
         LoanMethodName[LoanMethod.EqualPrincipal],
       );
@@ -177,13 +184,32 @@ describe('generateSchedule', () => {
       );
 
       const firstPrincipal = schedule[0].principal;
-      for (const item of schedule) {
+      for (const item of schedule.slice(0, -1)) {
         expect(item.principal).toBe(firstPrincipal);
       }
+      expect(schedule[11].principal).toBeCloseTo(firstPrincipal, 0);
 
       // 月供递减（因为利息递减）
       expect(schedule[0].monthlyPayment).toBeGreaterThan(
         schedule[11].monthlyPayment,
+      );
+    });
+
+    it('本金无法按分整除时在最后一期收口', () => {
+      const schedule = generateSchedule(
+        100000,
+        3,
+        annualToMonthlyRate(3.6),
+        3.6,
+        new Date(2024, 0, 15),
+        LoanMethod.EqualPrincipal,
+        DEFAULT_REPAYMENT_DAY,
+      );
+
+      expect(schedule[2].remainingLoan).toBe(0);
+      expect(schedule[2].principal).toBe(33333.34);
+      expect(schedule.reduce((sum, item) => sum + item.principal, 0)).toBe(
+        100000,
       );
     });
   });

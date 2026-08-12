@@ -133,9 +133,13 @@ export function generateSchedule(
     let principal: number;
     const interest = roundTo2(remainingLoan * monthlyRate);
 
-    if (method === LoanMethod.FreeRepayment) {
-      if (i === termMonths || remainingLoan + interest <= fixedPayment) {
-        // 最后一期或剩余不足一期：还清全部
+    if (i === termMonths) {
+      // 最后一期按实际剩余本金收口，消除逐期四舍五入产生的尾差
+      principal = roundTo2(remainingLoan);
+      monthlyPayment = roundTo2(principal + interest);
+    } else if (method === LoanMethod.FreeRepayment) {
+      if (remainingLoan + interest <= fixedPayment) {
+        // 剩余不足一期：提前还清全部
         principal = roundTo2(remainingLoan);
         monthlyPayment = roundTo2(principal + interest);
       } else {
