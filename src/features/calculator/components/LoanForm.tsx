@@ -105,8 +105,12 @@ export function LoanForm() {
     let monthlyPaymentAmount: number | undefined;
     if (method === LoanMethod.FreeRepayment) {
       const mpNum = Number(monthlyPayment);
-      if (!mpNum || mpNum <= 0) {
-        setError('请输入每月还款额');
+      const paymentCheck = Validator.targetMonthlyPayment(
+        mpNum,
+        amountNum * annualToMonthlyRate(rateNum),
+      );
+      if (!paymentCheck.valid) {
+        setError(paymentCheck.message);
         return;
       }
       monthlyPaymentAmount = mpNum;

@@ -213,6 +213,39 @@ describe('generateSchedule', () => {
       );
     });
   });
+
+  describe('自由还款', () => {
+    it('月供不足以覆盖首期利息时拒绝生成负摊销计划', () => {
+      expect(() =>
+        generateSchedule(
+          1_000_000,
+          360,
+          annualToMonthlyRate(3.6),
+          3.6,
+          new Date(2024, 0, 15),
+          LoanMethod.FreeRepayment,
+          DEFAULT_REPAYMENT_DAY,
+          3_000,
+        ),
+      ).toThrow('自由还款月供必须大于首期利息');
+    });
+
+    it('月供高于首期利息时本金持续减少', () => {
+      const schedule = generateSchedule(
+        1_000_000,
+        360,
+        annualToMonthlyRate(3.6),
+        3.6,
+        new Date(2024, 0, 15),
+        LoanMethod.FreeRepayment,
+        DEFAULT_REPAYMENT_DAY,
+        3_001,
+      );
+
+      expect(schedule[0].principal).toBeGreaterThan(0);
+      expect(schedule[0].remainingLoan).toBeLessThan(1_000_000);
+    });
+  });
 });
 
 describe('findRemainingInfo', () => {

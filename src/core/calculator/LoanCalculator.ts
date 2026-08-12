@@ -128,6 +128,13 @@ export function generateSchedule(
         )
       : 0;
 
+  if (
+    method === LoanMethod.FreeRepayment &&
+    fixedPayment <= roundTo2(loanAmount * monthlyRate)
+  ) {
+    throw new RangeError('自由还款月供必须大于首期利息');
+  }
+
   for (let i = 1; i <= termMonths; i++) {
     let monthlyPayment: number;
     let principal: number;
