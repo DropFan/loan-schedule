@@ -54,6 +54,54 @@ describe('useLoanStore', () => {
     expect(state.changes).toHaveLength(0);
     expect(state.summary).toBeNull();
   });
+
+  it('rehydrate 应恢复当前方案、快照和已保存方案中的嵌套日期', async () => {
+    useLoanStore.getState().initialize({
+      loanType: LoanType.Commercial,
+      loanAmount: 1_000_000,
+      loanTermMonths: 360,
+      annualInterestRate: 3.5,
+      loanMethod: LoanMethod.EqualPrincipalInterest,
+      startDate: new Date(2024, 0, 15),
+      repaymentDay: DEFAULT_REPAYMENT_DAY,
+    });
+    useLoanStore.getState().applyChange({
+      type: ChangeType.RateChange,
+      date: new Date(2024, 6, 15),
+      loanMethod: LoanMethod.EqualPrincipalInterest,
+      newAnnualRate: 4,
+    });
+    useLoanStore.getState().applyChange({
+      type: ChangeType.RateChange,
+      date: new Date(2025, 0, 15),
+      loanMethod: LoanMethod.EqualPrincipalInterest,
+      newAnnualRate: 3.8,
+    });
+    useLoanStore.getState().saveLoan('日期恢复测试');
+
+    const persisted = localStorage.getItem('loan-app-state');
+    expect(persisted).not.toBeNull();
+
+    useLoanStore.getState().clear();
+    localStorage.setItem('loan-app-state', persisted!);
+    await useLoanStore.persist.rehydrate();
+
+    const state = useLoanStore.getState();
+    expect(state.changes[1].date).toBeInstanceOf(Date);
+    expect(state.changes[1].changeParams?.date).toBeInstanceOf(Date);
+    expect(state.history[1].params?.startDate).toBeInstanceOf(Date);
+    expect(state.history[1].changeList[1].date).toBeInstanceOf(Date);
+    expect(state.history[1].changeList[1].changeParams?.date).toBeInstanceOf(
+      Date,
+    );
+
+    const saved = state.savedLoans.find((loan) => loan.name === '日期恢复测试');
+    expect(saved?.changes[1].changeParams?.date).toBeInstanceOf(Date);
+    expect(saved?.history[1].params?.startDate).toBeInstanceOf(Date);
+    expect(saved?.history[1].changeList[1].changeParams?.date).toBeInstanceOf(
+      Date,
+    );
+  });
 });
 
 describe('useLoanStore applyChange 提前还款（基线行为）', () => {

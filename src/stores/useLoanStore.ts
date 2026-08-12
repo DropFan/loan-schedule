@@ -132,6 +132,29 @@ interface LoanState {
 const STORAGE_KEY = 'loan-app-state';
 const STORAGE_VERSION = 1;
 
+function restoreChangeDates(changes?: LoanChangeRecord[]): void {
+  for (const change of changes ?? []) {
+    if (change.date && !(change.date instanceof Date)) {
+      change.date = new Date(change.date);
+    }
+    if (
+      change.changeParams?.date &&
+      !(change.changeParams.date instanceof Date)
+    ) {
+      change.changeParams.date = new Date(change.changeParams.date);
+    }
+  }
+}
+
+function restoreSnapshotDates(history?: Snapshot[]): void {
+  for (const snapshot of history ?? []) {
+    if (snapshot.params?.startDate) {
+      snapshot.params.startDate = new Date(snapshot.params.startDate);
+    }
+    restoreChangeDates(snapshot.changeList);
+  }
+}
+
 export const useLoanStore = create<LoanState>()(
   persist(
     (set, get) => {
@@ -1111,11 +1134,8 @@ export const useLoanStore = create<LoanState>()(
           state.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
           state.params.loanType ??= LoanType.Commercial;
         }
-        for (const c of state.changes) {
-          if (c.date && !(c.date instanceof Date)) {
-            c.date = new Date(c.date);
-          }
-        }
+        restoreChangeDates(state.changes);
+        restoreSnapshotDates(state.history);
         // savedLoans 中的 Date 也需要恢复
         for (const loan of state.savedLoans) {
           if (loan.params?.startDate) {
@@ -1123,11 +1143,8 @@ export const useLoanStore = create<LoanState>()(
             loan.params.repaymentDay ??= DEFAULT_REPAYMENT_DAY;
             loan.params.loanType ??= LoanType.Commercial;
           }
-          for (const c of loan.changes) {
-            if (c.date && !(c.date instanceof Date)) {
-              c.date = new Date(c.date);
-            }
-          }
+          restoreChangeDates(loan.changes);
+          restoreSnapshotDates(loan.history);
         }
         // 校验 group 引用有效性，移除引用了不存在 loan 的 group
         if (state.savedGroups?.length) {
