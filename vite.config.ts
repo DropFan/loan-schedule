@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { copyFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -8,13 +8,15 @@ import pkg from './package.json' with { type: 'json' };
 
 function versionJsonPlugin(): Plugin {
   return {
-    name: 'version-json',
+    name: 'static-hosting-files',
     writeBundle(options) {
       const dir = options.dir || resolve(__dirname, 'dist');
       writeFileSync(
         resolve(dir, 'version.json'),
         JSON.stringify({ version: pkg.version }),
       );
+      // GitHub Pages 将未知路径交给 404.html，复制 SPA 入口以支持深层路由刷新
+      copyFileSync(resolve(dir, 'index.html'), resolve(dir, '404.html'));
     },
   };
 }
