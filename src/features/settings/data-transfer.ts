@@ -122,9 +122,15 @@ export function importData(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
+      const previousState = useLoanStore.getState();
       try {
         const data = JSON.parse(reader.result as string) as ExportData;
-        if (!data.version || !data.loans) {
+        if (
+          !data.version ||
+          !Array.isArray(data.loans) ||
+          (data.rateTables != null && !Array.isArray(data.rateTables)) ||
+          (data.groups != null && !Array.isArray(data.groups))
+        ) {
           reject(new Error('无效的数据文件'));
           return;
         }
@@ -214,6 +220,8 @@ export function importData(file: File): Promise<string> {
         if (groupCount > 0) parts.push(`${groupCount} 个组合`);
         resolve(`导入成功：${parts.join('，')}`);
       } catch (e) {
+        // 导入过程会逐步调用 store action；任一步失败时完整恢复导入前状态
+        useLoanStore.setState(previousState, true);
         reject(
           new Error(`解析失败：${e instanceof Error ? e.message : '未知错误'}`),
         );
