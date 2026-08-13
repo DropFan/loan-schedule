@@ -8,7 +8,7 @@ function usePwaUpdate() {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
+    if (import.meta.env.DEV || !('serviceWorker' in navigator)) return;
 
     const fetchNewVersion = () => {
       fetch(`/version.json?t=${Date.now()}`)
@@ -17,7 +17,7 @@ function usePwaUpdate() {
         .catch(() => {});
     };
 
-    navigator.serviceWorker
+    void navigator.serviceWorker
       .register('/service-worker.js', { scope: '/' })
       .then((reg) => {
         registrationRef.current = reg;
@@ -41,14 +41,24 @@ function usePwaUpdate() {
             }
           });
         });
-      });
+      })
+      .catch(() => {});
 
     let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const handleControllerChange = () => {
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
-    });
+    };
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      handleControllerChange,
+    );
+    return () =>
+      navigator.serviceWorker.removeEventListener(
+        'controllerchange',
+        handleControllerChange,
+      );
   }, []);
 
   const update = useCallback(() => {
