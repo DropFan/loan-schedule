@@ -102,6 +102,7 @@ interface LoanState {
   applyChange: (change: LoanChangeParams) => void;
   undo: () => void;
   clear: () => void;
+  clearAll: () => void;
   updateRateTable: (entries: RateEntry[]) => void;
 
   // multi-loan actions
@@ -783,6 +784,26 @@ export const useLoanStore = create<LoanState>()(
             history: [],
             loanDirty: false,
             activeGroupId: null,
+            summary: null,
+            canUndo: false,
+          });
+        },
+
+        clearAll: () => {
+          set({
+            params: null,
+            schedule: [],
+            changes: [],
+            rateTable: [],
+            history: [],
+            savedLoans: [],
+            activeLoanId: null,
+            savedGroups: [],
+            activeGroupId: null,
+            savedRateTables: [],
+            activeRateTableId: null,
+            loanDirty: false,
+            rateTableDirty: false,
             summary: null,
             canUndo: false,
           });

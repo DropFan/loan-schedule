@@ -55,6 +55,45 @@ describe('useLoanStore', () => {
     expect(state.summary).toBeNull();
   });
 
+  it('clearAll 应清除工作区及全部已保存数据', () => {
+    const store = useLoanStore.getState();
+    store.initialize({
+      loanType: LoanType.Commercial,
+      loanAmount: 500_000,
+      loanTermMonths: 120,
+      annualInterestRate: 4,
+      loanMethod: LoanMethod.EqualPrincipal,
+      startDate: new Date(2024, 0, 15),
+      repaymentDay: DEFAULT_REPAYMENT_DAY,
+    });
+    const loanA = useLoanStore.getState().saveLoan('方案 A');
+    useLoanStore.setState({ activeLoanId: null });
+    const loanB = useLoanStore.getState().saveLoan('方案 B');
+    useLoanStore.getState().createGroup('组合', [loanA, loanB]);
+    useLoanStore
+      .getState()
+      .updateRateTable([
+        { date: '2024-01-15', annualRate: 3.5, source: 'custom' },
+      ]);
+    useLoanStore.getState().saveRateTable('利率表', 'custom');
+
+    useLoanStore.getState().clearAll();
+
+    const state = useLoanStore.getState();
+    expect(state.params).toBeNull();
+    expect(state.schedule).toHaveLength(0);
+    expect(state.changes).toHaveLength(0);
+    expect(state.rateTable).toHaveLength(0);
+    expect(state.history).toHaveLength(0);
+    expect(state.savedLoans).toHaveLength(0);
+    expect(state.savedGroups).toHaveLength(0);
+    expect(state.savedRateTables).toHaveLength(0);
+    expect(state.activeLoanId).toBeNull();
+    expect(state.activeGroupId).toBeNull();
+    expect(state.activeRateTableId).toBeNull();
+    expect(state.summary).toBeNull();
+  });
+
   it('rehydrate 应恢复当前方案、快照和已保存方案中的嵌套日期', async () => {
     useLoanStore.getState().initialize({
       loanType: LoanType.Commercial,

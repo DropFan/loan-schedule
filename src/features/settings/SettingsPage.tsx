@@ -20,7 +20,7 @@ const themeOptions: Array<{ value: Theme; label: string }> = [
 ];
 
 export function SettingsPage() {
-  const clear = useLoanStore((s) => s.clear);
+  const clearAll = useLoanStore((s) => s.clearAll);
   const autoSave = useLoanStore((s) => s.autoSave);
   const setAutoSave = useLoanStore((s) => s.setAutoSave);
   const autoUpdate = useLoanStore((s) => s.autoUpdate);
@@ -39,8 +39,7 @@ export function SettingsPage() {
 
   const handleClearData = () => {
     if (window.confirm('确认清除所有数据？此操作不可撤销。')) {
-      clear();
-      localStorage.removeItem('loan-app-state');
+      clearAll();
       trackEvent('all_data_cleared');
     }
   };
